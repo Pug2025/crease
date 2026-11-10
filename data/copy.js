@@ -66,6 +66,6 @@ export const spotOf = (id) => PAIN_ZONES.find((z) => z.id === id)?.spot || 'some
 export const FEEL = [
   { id: 'good', label: 'Good' },
   { id: 'tired', label: 'Tired', note: 'Shorter version today.' },
-  { id: 'sore', label: 'Sore', note: 'Mobility only today.' },
+  { id: 'sore', label: 'Sore', note: 'Stretch only today.' },
   { id: 'sick', label: 'Sick', note: 'No training today. Rest up.' },
 ];

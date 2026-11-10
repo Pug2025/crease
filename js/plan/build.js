@@ -120,7 +120,14 @@ export function buildSession(type, ctx) {
     if (block.circuit) {
       const rounds = Math.max(1, block.circuit.rounds - (ctx.feel === 'tired' ? 1 : 0));
       const work = block.circuit.work;
-      const resolved = block.items.map((it) => resolveItem(it, ctx));
+      // In a circuit every drill gets the same work time; the target has to say so ("Hold 40 s").
+      const resolved = block.items.map((it) => {
+        const r = resolveItem(it, ctx);
+        const split = r.drill.side && !r.drill.alternate;
+        const slot = split ? work / 2 : work;
+        const dose = r.dose.type === 'time' ? { time: slot } : { window: slot };
+        return resolveItem({ ...it, dose: { ...(it.dose || {}), ...dose } }, ctx);
+      });
       resolved.forEach((r) => items.push({ ...r, block: block.name, sets: rounds, circuit: true }));
       for (let round = 1; round <= rounds; round++) {
         resolved.forEach((r, k) => {

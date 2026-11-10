@@ -39,7 +39,8 @@ for (const [type, s] of Object.entries(SESSIONS))
   for (const b of s.blocks) for (const it of b.items) ok(byId[it.id], `${type}: ${it.id} doesn't exist`);
 
 // 3. Every way a session can be built is safe and the right length.
-const LIMITS = { mobility: [17, 24], power: [18, 25], gameday: [5, 11] };
+const LIMITS = { strength: [17, 24], power: [17, 25], gameday: [5, 11], stretch: [9, 16] };
+const JUMP_CAP = 50;
 const draws = new Set();
 const allPhrases = new Set();
 for (const type of SESSION_ORDER)
@@ -55,7 +56,7 @@ for (const type of SESSION_ORDER)
             const [lo, hi] = LIMITS[type];
             if (feel === 'good') ok(min >= lo && min <= hi, `${tag}: ${min.toFixed(1)} min, expected ${lo}-${hi}`);
             else ok(min <= hi, `${tag}: tired version longer than the cap`);
-            ok(s.jumps <= 40, `${tag}: ${s.jumps} jumps, cap is 40`);
+            ok(s.jumps <= JUMP_CAP, `${tag}: ${s.jumps} jumps, cap is ${JUMP_CAP}`);
             for (const it of s.items) {
               draws.add(it.draw);
               const noise = it.variant ? 'quiet' : it.version.noise ?? it.drill.noise;

@@ -20,8 +20,8 @@ export function feel(root, app, { type }) {
     back: () => app.go('home'),
     pick: (f) => {
       if (f === 'sick') { message(root, app, 'Sick', 'No training today. Rest up and drink water.'); return; }
-      if (f === 'sore' && type !== 'mobility') {
-        message(root, app, 'Sore', 'Mobility only today. Easy on anything that hurts.', { label: 'Do Mobility', go: ['preview', { type: 'mobility', feel: 'good' }] });
+      if (f === 'sore' && type !== 'stretch') {
+        message(root, app, 'Sore', 'Stretch only today. Easy on anything that hurts.', { label: 'Do Stretch', go: ['preview', { type: 'stretch', feel: 'good' }] });
         return;
       }
       const next = { type, feel: f === 'tired' ? 'tired' : 'good' };
@@ -45,7 +45,7 @@ export function game(root, app, params) {
   root.innerHTML = `
   <main class="screen game">
     <button class="back" data-act="back">Back</button>
-    <p class="kicker">Power</p>
+    <p class="kicker">${esc(SESSIONS[params.type].name)}</p>
     <h1>Game tomorrow?</h1>
     <div class="choices row">
       <button class="choice" data-act="yes"><span>Yes</span></button>
@@ -54,7 +54,11 @@ export function game(root, app, params) {
   </main>`;
   on(root, {
     back: () => app.go('home'),
-    yes: () => message(root, app, 'Game tomorrow.', 'Power waits. Mobility keeps you loose without making your legs tired.', { label: 'Do Mobility', go: ['preview', { type: 'mobility', feel: params.feel }] }),
+    yes: () => message(root, app, 'Game tomorrow.',
+      params.type === 'power'
+        ? 'Power waits. Jumping today leaves your legs heavy tomorrow.'
+        : 'Save the wall sits and lunges for after the game. Your legs should be fresh.',
+      { label: 'Do Stretch', go: ['preview', { type: 'stretch', feel: params.feel }] }),
     no: () => app.go('preview', params),
   });
 }

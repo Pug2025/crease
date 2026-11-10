@@ -2,6 +2,9 @@
 // only as a backup when a clip is missing. Every sound also has an on-screen twin, so a silent
 // phone still works.
 
+// ?mute=1 in the address silences everything. Used for testing on the Mac, so nobody hears it.
+const MUTED = typeof location !== 'undefined' && /[?&]mute=1\b/.test(location.search);
+
 let ctx = null;
 let master = null;
 let manifest = null;
@@ -24,6 +27,7 @@ function audioCtx() {
 
 // Call from inside a tap. Sets the audio to play through the silent switch where Safari allows it.
 export async function unlock() {
+  if (MUTED) return true;
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
   const c = audioCtx();
   if (!c) return false;
@@ -46,7 +50,7 @@ export async function unlock() {
   return c.state === 'running';
 }
 
-export function soundOn() { return !!ctx && ctx.state === 'running'; }
+export function soundOn() { return MUTED || (!!ctx && ctx.state === 'running'); }
 
 export async function loadManifest() {
   if (manifest) return manifest;
@@ -55,6 +59,7 @@ export async function loadManifest() {
 }
 
 export async function preload(phrases) {
+  if (MUTED) return;
   await loadManifest();
   const c = audioCtx();
   if (!c) return;
@@ -62,12 +67,28 @@ export async function preload(phrases) {
     if (buffers.has(p) || !manifest[p]) return;
     try {
       const data = await (await fetch(`audio/${manifest[p]}`)).arrayBuffer();
-      buffers.set(p, await c.decodeAudioData(data));
+      buffers.set(p, trimmed(await c.decodeAudioData(data)));
     } catch {}
   }));
 }
 
+// The voice clips carry a little silence at each end. Find where the speech starts and stops,
+// so "Go." lands right on the beep.
+function trimmed(buf) {
+  const d = buf.getChannelData(0);
+  const th = 0.01;
+  let a = 0;
+  let b = d.length - 1;
+  while (a < b && Math.abs(d[a]) < th) a++;
+  while (b > a && Math.abs(d[b]) < th) b--;
+  const pad = Math.round(0.03 * buf.sampleRate);
+  const start = Math.max(0, a - pad);
+  const end = Math.min(d.length, b + pad);
+  return { buf, off: start / buf.sampleRate, dur: Math.max(0.05, (end - start) / buf.sampleRate) };
+}
+
 export function say(phrases) {
+  if (MUTED) return;
   const at = performance.now();
   phrases.forEach((p) => queue.push({ p, at }));
   pump();
@@ -87,15 +108,15 @@ function pump() {
   if (performance.now() - item.at > 6000) { pump(); return; } // too late to be useful
   playing = true;
   const done = () => { playing = false; current = null; pump(); };
-  const buf = buffers.get(item.p);
+  const clip = buffers.get(item.p);
   const c = audioCtx();
-  if (buf && c && c.state === 'running') {
+  if (clip && c && c.state === 'running') {
     const src = c.createBufferSource();
-    src.buffer = buf;
+    src.buffer = clip.buf;
     src.connect(master);
-    src.onended = () => setTimeout(done, 60);
+    src.onended = () => setTimeout(done, 120);
     current = src;
-    src.start();
+    src.start(0, clip.off, clip.dur);
     return;
   }
   speakFallback(item.p, done);
@@ -120,6 +141,7 @@ const TONES = {
 };
 
 export function beep(kind) {
+  if (MUTED) return;
   const c = audioCtx();
   const t = TONES[kind];
   if (!c || !t || c.state !== 'running') return;
