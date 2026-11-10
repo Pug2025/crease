@@ -1,5 +1,8 @@
 // Runs a built session against the clock. Time comes from timestamps, never from counting ticks,
 // so a slow or throttled timer can't make the countdown drift.
+//
+// Two clocks: the session timeline (moved by Done, Skip and Dad's skip buttons) and real time
+// (only pauses take time off it). Minutes trained come from real time, so skipping ahead adds none.
 
 const STALE = 1.5; // a cue more than this many seconds late is dropped, not played
 
@@ -16,11 +19,17 @@ export class Runner {
 
   now() { return performance.now(); }
 
-  start() {
-    this.t0 = this.now();
+  // at: the step to start on (a session picked up again after iOS closed the app).
+  // paused: start on hold, so nothing plays until Resume.
+  start({ at = 0, paused = false } = {}) {
+    const now = this.now();
+    this.t0 = now;
     this.pausedTotal = 0;
+    this.realT0 = now;
+    this.realPaused = 0;
+    if (paused) { this.paused = true; this.pausedAt = now; this.realPausedAt = now; }
     this.timer = setInterval(() => this.tick(), 100);
-    this.tick();
+    if (at > 0) this.jumpTo(at); else this.tick();
   }
 
   elapsed() {
@@ -28,21 +37,31 @@ export class Runner {
     return (now - this.t0 - this.pausedTotal) / 1000;
   }
 
+  // Real time spent training, in ms: wall time since start, minus the real length of every pause.
+  activeMs() {
+    const now = this.paused ? this.realPausedAt : this.now();
+    return Math.max(0, now - this.realT0 - this.realPaused);
+  }
+
   pause() {
     if (this.paused || this.ended) return;
     this.paused = true;
     this.pausedAt = this.now();
+    this.realPausedAt = this.pausedAt;
     this.tick();
   }
 
   resume() {
     if (!this.paused || this.ended) return;
-    this.pausedTotal += this.now() - this.pausedAt;
+    const now = this.now();
+    this.pausedTotal += now - this.pausedAt;
+    this.realPaused += now - this.realPausedAt;
     this.paused = false;
     this.tick();
   }
 
   // Jump to the start of step i (Done, Skip). Cues of the steps jumped over never play.
+  // While paused this moves the timeline only; the real pause keeps its true length.
   jumpTo(i) {
     const st = this.s.steps[Math.min(i, this.s.steps.length - 1)];
     const shift = st.start - this.elapsed();

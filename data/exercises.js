@@ -1,23 +1,32 @@
 // Crease drill library. One block per drill. Change the words freely; keep the field names.
 //
-// noise    quiet | thud | loud. Thud and loud drills are swapped in the bedroom and before 9 am.
-// space    small | big. Big drills are swapped in the bedroom.
+// noise    quiet | thud | loud. Information only: jumping in the morning is fine (Dad, 10 Nov 2026).
+// space    small | big. Big drills need about 3 m clear and are swapped in the bedroom.
 // jumps    foot landings in one set (counts toward the jump cap).
+// hops     true for small bounces that don't count toward the cap (jumping jacks). They still
+//          swap out, like jumps, when jumps are off.
 // side     "leg", "side" or "way": the drill is done on each side, left then right.
 //          alternate: true means both sides inside one set (no switch).
-// hold     true for holds and stretches (the voice says "keep breathing").
+// hold     true for holds and stretches.
+// needs    what it uses. Things he has to fetch show on the preview ("Grab: a towel."); the wall
+//          and the floor don't.
 // dose     one set: { type: "time", time: seconds } or { type: "reps", reps, window: seconds }.
 //          sets and rest (seconds) are optional. A version can change the dose.
 // start    which version he begins on: 0 = Easier, 1 = Standard, 2 = Harder.
-// quiet    what replaces it in the bedroom or before 9 am: a drill id ("W1"),
-//          a version number (0), or a quiet variant { name, how, draw }.
+// versions name (Easier, Standard, Harder) and how (the line under the drill name; the voice
+//          says it too). A version that changes the move also gives its own title (the drill
+//          name while he does it), cues and draw, plus why, mistake, jumps, hops, space, needs or dose.
+// bedroom  what replaces a big-space drill in the bedroom, and a slam before 9 am: a drill id
+//          ("ST1"), a version number (0), or a variant { name, how, cues, draw }.
+// noJump   what replaces a drill with jumps or hops when jumps are off: a version number or a drill id.
+// slam     true for ball slams: never before 9 am (Dad's rule, so the house can sleep).
 
 export const DRILLS = [
   // Warm-up
   {
     id: 'W1', name: 'March & Swing', group: 'warm-up',
     noise: 'quiet', space: 'small', jumps: 0,
-    why: 'Warms your legs without waking the house.',
+    why: 'Warms up your legs and gets your arms moving before the work.',
     cues: ['Knees to hip height.', 'Swing your arms big.', 'Breathe through your nose.'],
     mistake: 'Little knees, shuffling feet.',
     versions: [
@@ -30,18 +39,24 @@ export const DRILLS = [
   },
   {
     id: 'W2', name: 'Jumping Jacks', group: 'warm-up',
-    noise: 'loud', space: 'small', jumps: 0,
+    noise: 'loud', space: 'small', jumps: 0, hops: true,
     why: 'Gets your heart going so your muscles are ready to move fast.',
     cues: ['Land soft on the balls of your feet.', 'Arms all the way up.'],
     mistake: 'Landing flat and loud.',
     versions: [
-      { name: 'Easier', how: 'Step jacks. One foot out at a time.' },
+      {
+        name: 'Easier', title: 'Step Jacks', how: 'One foot out at a time.', noise: 'quiet', hops: false,
+        cues: ['Step one foot out wide, arms up.', 'Arms all the way up.'],
+      },
       { name: 'Standard' },
-      { name: 'Harder', how: 'Clap jacks. Arms clap in front.' },
+      {
+        name: 'Harder', how: 'Clap jacks. Arms clap in front.',
+        cues: ['Land soft on the balls of your feet.', 'Clap in front, then arms out wide.'],
+      },
     ],
     start: 1,
     dose: { type: 'time', time: 30 },
-    quiet: 'W1',
+    noJump: 0,
   },
   {
     id: 'W3', name: 'Leg Swings', group: 'warm-up',
@@ -53,7 +68,10 @@ export const DRILLS = [
     versions: [
       { name: 'Easier', how: 'Small swings.' },
       { name: 'Standard' },
-      { name: 'Harder', how: 'No hand on the wall.' },
+      {
+        name: 'Harder', how: 'No hand on the wall.', needs: [],
+        cues: ['Stand tall.', 'Swing front and back, then side to side.', 'Swing, don\'t kick.'],
+      },
     ],
     start: 1,
     dose: { type: 'time', time: 20 },
@@ -66,7 +84,7 @@ export const DRILLS = [
     cues: ['Knee up high.', 'Draw a big circle out to the side.', 'Stand tall.'],
     mistake: 'Leaning sideways to get the knee higher.',
     versions: [
-      { name: 'Easier', how: 'Hand on the wall.' },
+      { name: 'Easier', how: 'Hand on the wall.', needs: ['wall'] },
       { name: 'Standard' },
       { name: 'Harder', how: 'No hand. Two seconds per circle.' },
     ],
@@ -84,7 +102,7 @@ export const DRILLS = [
     ],
     start: 0,
     dose: { type: 'time', time: 20 },
-    quiet: { name: 'Small Shuffles', how: 'Small shuffles, soft feet.' },
+    bedroom: { name: 'Small Shuffles', how: 'Small shuffles, soft feet.' },
   },
 
   // Strength
@@ -109,9 +127,13 @@ export const DRILLS = [
     cues: ['Back flat on the wall.', 'Thighs flat, knees over your ankles.', 'Hands off your legs.'],
     mistake: 'Resting your hands on your thighs.',
     versions: [
-      { name: 'Easier', how: 'Sit a little higher.', dose: { time: 20 } },
+      {
+        name: 'Easier', how: 'Sit a little higher.', dose: { time: 20 },
+        // The 20 s hold speaks cues[1] only, so the cue that fixes the common mistake goes second.
+        cues: ['Back flat on the wall.', 'Hands off your legs.', 'Knees over your ankles.'],
+      },
       { name: 'Standard' },
-      { name: 'Harder', how: 'Hold the med ball on your lap.', dose: { time: 45 } },
+      { name: 'Harder', how: 'Hold the med ball on your lap.', needs: ['wall', 'med ball'], dose: { time: 45 } },
     ],
     start: 1,
     dose: { type: 'time', time: 30 },
@@ -123,9 +145,9 @@ export const DRILLS = [
     cues: ['Feet shoulder-width.', 'Sit back like there\'s a chair.', 'Chest up, knees out over your toes.'],
     mistake: 'Knees caving in.',
     versions: [
-      { name: 'Easier', how: 'Squat down to a chair.' },
+      { name: 'Easier', how: 'Squat down to a chair.', needs: ['chair'] },
       { name: 'Standard' },
-      { name: 'Harder', how: 'Hold the med ball at your chest.' },
+      { name: 'Harder', how: 'Hold the med ball at your chest.', needs: ['med ball'] },
     ],
     start: 1,
     dose: { type: 'reps', reps: 12, window: 35 },
@@ -137,7 +159,10 @@ export const DRILLS = [
     cues: ['Elbows under your shoulders.', 'Straight from head to heels.', 'Squeeze your butt.'],
     mistake: 'Hips sagging.',
     versions: [
-      { name: 'Easier', how: 'Knees down.' },
+      {
+        name: 'Easier', how: 'Knees down.',
+        cues: ['Elbows under your shoulders.', 'Straight from head to knees.', 'Squeeze your butt.'],
+      },
       { name: 'Standard' },
       { name: 'Harder', how: 'Lift one foot, then switch.' },
     ],
@@ -167,9 +192,9 @@ export const DRILLS = [
     cues: ['Long step back.', 'Lower your back knee gently.', 'Front knee over your toes.'],
     mistake: 'Front knee falling inward.',
     versions: [
-      { name: 'Easier', how: 'Hold a chair. Shorter range.' },
+      { name: 'Easier', how: 'Hold a chair. Shorter range.', needs: ['chair'] },
       { name: 'Standard' },
-      { name: 'Harder', how: 'Hold the med ball at your chest.' },
+      { name: 'Harder', how: 'Hold the med ball at your chest.', needs: ['med ball'] },
     ],
     start: 1,
     dose: { type: 'reps', reps: 6, window: 25 },
@@ -184,7 +209,7 @@ export const DRILLS = [
     versions: [
       { name: 'Easier', how: 'Shorter step.' },
       { name: 'Standard' },
-      { name: 'Harder', how: 'Hold the med ball at your chest.' },
+      { name: 'Harder', how: 'Hold the med ball at your chest.', needs: ['med ball'] },
     ],
     start: 1,
     dose: { type: 'reps', reps: 6, window: 25 },
@@ -211,28 +236,32 @@ export const DRILLS = [
     cues: ['Lie on your back, ball between your knees.', 'Squeeze hard.', 'Keep breathing.'],
     mistake: 'Holding your breath.',
     versions: [
-      { name: 'Easier', how: 'Pillow instead of the ball. Medium squeeze.' },
+      {
+        name: 'Easier', title: 'Pillow Squeeze', how: 'Pillow instead of the ball. Medium squeeze.', needs: ['pillow'],
+        cues: ['Lie on your back, pillow between your knees.', 'Medium squeeze.', 'Keep breathing.'],
+      },
       { name: 'Standard' },
       { name: 'Harder', how: 'Squeeze in a bridge.' },
     ],
     start: 1,
     dose: { type: 'time', time: 5, sets: 5, rest: 5 },
-    noBall: 0,
   },
   {
     id: 'C9', name: 'Mountain Climbers', group: 'strength',
     noise: 'thud', space: 'small', jumps: 0,
     why: 'Core and fast feet together.',
-    cues: ['High plank, hands under your shoulders.', 'Drive your knees to your chest, fast.', 'Hips stay low.'],
+    cues: ['High plank, hands under your shoulders.', 'Hips stay low.', 'Drive your knees to your chest, fast.'],
     mistake: 'Butt up in the air.',
     versions: [
-      { name: 'Easier', how: 'Slow. Step each knee in.' },
+      {
+        name: 'Easier', title: 'Slow Climbers', how: 'Step each knee in slowly.', noise: 'quiet',
+        cues: ['High plank, hands under your shoulders.', 'Hips stay low.', 'Step each knee in to your chest.'],
+      },
       { name: 'Standard' },
       { name: 'Harder', how: 'Faster.' },
     ],
     start: 1,
     dose: { type: 'time', time: 20 },
-    quiet: { name: 'Slow Climbers', how: 'Step each knee in slowly.' },
   },
 
   // Power
@@ -240,30 +269,38 @@ export const DRILLS = [
     id: 'P10', name: 'Snap Down', group: 'power',
     noise: 'thud', space: 'small', jumps: 3,
     why: 'Practises landing in a strong stance before you jump.',
-    cues: ['Up on your toes, arms high.', 'Snap your hands down and drop into stance.', 'Freeze.'],
+    cues: ['Snap down into stance. Freeze.', 'Up on your toes, arms high.', 'Knees out, not in.'],
     mistake: 'Landing flat with your knees in.',
     versions: [
-      { name: 'Easier', how: 'Slow drop. Feet stay down.', noise: 'quiet', jumps: 0 },
+      {
+        name: 'Easier', how: 'Slow drop. Feet stay down.', noise: 'quiet', jumps: 0,
+        why: 'Practises dropping into a strong stance.', mistake: 'Knees caving in as you drop.',
+        cues: ['Up on your toes, arms high.', 'Drop slowly into stance. Freeze.', 'Knees out, not in.'],
+      },
       { name: 'Standard' },
     ],
     start: 1,
     dose: { type: 'reps', reps: 3, window: 15 },
-    quiet: 0,
+    noJump: 0,
   },
   {
     id: 'P11', name: 'Jump Squats', group: 'power',
     noise: 'loud', space: 'small', jumps: 5,
     why: 'Explosive legs get you across the crease and up out of your butterfly fast.',
-    cues: ['Squat down, then jump as high as you can.', 'Land soft, knees over your toes.', 'Reset, then go again.'],
+    cues: ['Squat, then jump high. Land soft.', 'Knees over your toes.', 'Reset, then go again.'],
     mistake: 'Landing stiff and loud, or knees caving in.',
     versions: [
-      { name: 'Easier', how: 'Squat, then rise onto your toes. No jump.', noise: 'quiet', jumps: 0 },
+      {
+        name: 'Easier', title: 'Squat to Toes', how: 'Squat, then rise onto your toes. No jump.', noise: 'quiet', jumps: 0, draw: 'ST3',
+        mistake: 'Knees caving in.',
+        cues: ['Squat down, then rise onto your toes.', 'Knees over your toes.', 'Reset, then go again.'],
+      },
       { name: 'Standard' },
       { name: 'Harder', how: 'Pause two seconds at the bottom, then jump.' },
     ],
     start: 1,
     dose: { type: 'reps', reps: 5, window: 15, sets: 3, rest: 40 },
-    quiet: { name: 'Squat to Toes', how: 'Squat, then rise onto your toes. No jump.', draw: 'ST3', jumps: 0 },
+    noJump: 0,
   },
   {
     id: 'P4', name: 'Skater Jumps', group: 'power',
@@ -273,13 +310,21 @@ export const DRILLS = [
     cues: ['Push off one leg sideways.', 'Land on the other, soft knee.', 'Stick it for a second.'],
     mistake: 'Knee caving in on the landing.',
     versions: [
-      { name: 'Easier', how: 'Step and hold. No jump.', noise: 'quiet', space: 'small', jumps: 0 },
+      {
+        name: 'Easier', title: 'Step & Hold', how: 'No jump. Stick each step.', noise: 'quiet', space: 'small', jumps: 0,
+        why: 'Pushing off one leg and sticking it is the move that takes you post to post.',
+        cues: ['Big step sideways.', 'Stick it, knee over toes.'],
+      },
       { name: 'Standard' },
-      { name: 'Harder', how: 'No pause. Keep bounding.' },
+      {
+        name: 'Harder', how: 'No pause. Keep bounding.',
+        cues: ['Push off one leg sideways.', 'Land on the other, soft knee.', 'Bound straight back.'],
+      },
     ],
     start: 1,
     dose: { type: 'reps', reps: 4, window: 25, sets: 2, rest: 40 },
-    quiet: 0,
+    bedroom: 0,
+    noJump: 0,
   },
   {
     id: 'P13', name: 'Shuffle & Lunge', group: 'power',
@@ -289,13 +334,16 @@ export const DRILLS = [
     cues: ['Low stance. Three quick shuffles.', 'Big step into a side lunge.', 'Push off hard back to stance.'],
     mistake: 'Standing up during the shuffles.',
     versions: [
-      { name: 'Easier', how: 'Two shuffles, smaller lunge.' },
+      {
+        name: 'Easier', how: 'Two shuffles, smaller lunge.',
+        cues: ['Low stance. Two quick shuffles.', 'Step into a small side lunge.', 'Push off back to stance.'],
+      },
       { name: 'Standard' },
-      { name: 'Harder', how: 'Hold the med ball at your chest.' },
+      { name: 'Harder', how: 'Hold the med ball at your chest.', needs: ['med ball'] },
     ],
     start: 1,
     dose: { type: 'reps', reps: 3, window: 30, sets: 2, rest: 30 },
-    quiet: 'S4',
+    bedroom: 'S4',
   },
   {
     id: 'P12', name: 'Burpees', group: 'power',
@@ -304,17 +352,20 @@ export const DRILLS = [
     cues: ['Hands down, jump your feet back to a plank.', 'Jump your feet back in.', 'Jump up, hands high.'],
     mistake: 'Hips sagging in the plank.',
     versions: [
-      { name: 'Easier', how: 'Step back and step in. No jumping.', noise: 'quiet', jumps: 0 },
+      {
+        name: 'Easier', title: 'Step-Back Burpees', how: 'Step back, step in, stand tall. No jumping.', noise: 'quiet', jumps: 0, draw: 'P12q',
+        cues: ['Hands down, step back to a plank.', 'Step back in.', 'Stand up tall, hands high.'],
+      },
       { name: 'Standard' },
       { name: 'Harder', how: 'Add a push-up at the bottom.' },
     ],
     start: 1,
     dose: { type: 'reps', reps: 5, window: 25, sets: 2, rest: 40 },
-    quiet: { name: 'Step-Back Burpees', how: 'Step back, step in, stand tall. No jumping.', draw: 'P12q', jumps: 0 },
+    noJump: 0,
   },
   {
     id: 'P8', name: 'Ball Slams', group: 'power',
-    noise: 'loud', space: 'big', jumps: 0, needs: ['slam ball'],
+    noise: 'loud', space: 'big', jumps: 0, needs: ['med ball'],
     slam: true,
     why: 'Fast full-body power. Also fun.',
     cues: ['Ball up high, arms long.', 'Slam it right in front of your feet.', 'Step back.'],
@@ -326,7 +377,7 @@ export const DRILLS = [
     ],
     start: 1,
     dose: { type: 'reps', reps: 6, window: 20, sets: 2, rest: 40 },
-    quiet: 'ST1',
+    bedroom: 'ST1',
   },
 
   // Stretch (cool-downs and the Stretch day)
@@ -364,12 +415,12 @@ export const DRILLS = [
     noise: 'quiet', space: 'small', jumps: 0,
     side: 'side',
     why: 'Stretches your groin in the low, wide spot you push from.',
-    cues: ['Wide stance.', 'Sit down to one side. Other leg straight, toes up.', 'Heel down.'],
+    cues: ['Wide stance. Sit down to one side.', 'Heel down.', 'Other leg straight, toes up.'],
     mistake: 'Heel of the bent leg lifting.',
     versions: [
       { name: 'Easier', how: 'Hold a doorframe, go halfway.' },
       { name: 'Standard' },
-      { name: 'Harder', how: 'Hold the med ball out in front.' },
+      { name: 'Harder', how: 'Hold the med ball out in front.', needs: ['med ball'] },
     ],
     start: 1,
     dose: { type: 'reps', reps: 5, window: 25 },
@@ -381,7 +432,7 @@ export const DRILLS = [
     cues: ['Feet together, sit tall.', 'Let your knees drop on their own.', 'Breathe out slow.'],
     mistake: 'Pushing your knees down with your hands.',
     versions: [
-      { name: 'Easier', how: 'Sit on a pillow.' },
+      { name: 'Easier', how: 'Sit on a pillow.', needs: ['pillow'] },
       { name: 'Standard' },
       { name: 'Harder', how: 'Lean forward from the hips, back flat.' },
     ],
@@ -396,7 +447,10 @@ export const DRILLS = [
     cues: ['Lie on your back.', 'Ankle on the other knee.', 'Pull the bottom leg in.'],
     mistake: 'Lifting your head and tightening your neck.',
     versions: [
-      { name: 'Easier', how: 'Feet on the wall.' },
+      {
+        name: 'Easier', how: 'Feet on the wall.', needs: ['wall'],
+        cues: ['Lie on your back, foot on the wall.', 'Ankle on the other knee.', 'Head stays down.'],
+      },
       { name: 'Standard' },
       { name: 'Harder', how: 'Pull closer.' },
     ],

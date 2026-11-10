@@ -18,13 +18,25 @@ export function mmss(sec) {
 
 export const minutes = (sec) => Math.max(1, Math.round(sec / 60));
 
+// A quick double tap: the first tap redraws the screen, and iOS delivers the second one to
+// whatever button is now under his finger (touch-action: manipulation lets both through).
+// So any tap within this long of the last one that did something is ignored, on every screen.
+// One timestamp for the whole app, because the second tap usually lands on the next screen.
+export const TAP_GUARD_MS = 350;
+let lastTap = -Infinity;
+
 // One click handler per screen: any element with data-act="name" calls handlers.name(arg, el).
 export function on(root, handlers) {
   root.onclick = (e) => {
     const el = e.target.closest('[data-act]');
     if (!el || !root.contains(el) || el.disabled) return;
     const fn = handlers[el.dataset.act];
-    if (fn) { e.preventDefault(); fn(el.dataset.arg, el, e); }
+    if (!fn) return;
+    e.preventDefault();
+    const now = performance.now();
+    if (now - lastTap < TAP_GUARD_MS) return;
+    lastTap = now;
+    fn(el.dataset.arg, el, e);
   };
 }
 

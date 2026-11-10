@@ -1,22 +1,104 @@
 // Today: one Start button. The check-in that follows decides the session; he never picks it.
+// Also here: the pain records Dad's screen reads, and the week strip that Done shows too.
 import { esc, on, CREASE_MARK, today } from '../ui.js';
 import { SESSIONS } from '../../data/sessions.js';
-import { PAIN_ZONES } from '../../data/copy.js';
+import { ROOM_HINT, spotOf, zoneWord } from '../../data/copy.js';
 import { doneByDay, dayKey, counts } from '../plan/decide.js';
+import { lightsStats } from './lights.js';
 
-const zoneLabel = (id) => (PAIN_ZONES.find((z) => z.id === id)?.label || 'somewhere').toLowerCase();
+// ---- His record (pure: tests.mjs runs these in Node) ----
 
-// A pain stop, a "hurts" skip or a "something hurts" check-in in the last 36 hours, not yet dismissed.
-function painAlert(save) {
-  const cutoff = Date.now() - 36 * 3600 * 1000;
-  for (let i = save.log.length - 1; i >= 0; i--) {
-    const e = save.log[i];
-    if (Date.parse(e.date) < cutoff) break;
-    if (save.seenAlerts.includes(e.date)) continue;
-    const zone = e.stopped?.zone || e.skipped?.find((s) => s.zone)?.zone;
-    if (zone) return { key: e.date, zone };
-  }
+// Dad's test runs. New ones never reach save.log; older saves may still hold some.
+export const isTest = (e) => !!(e.test || (e.dad && e.extra));
+
+// The spots a log entry reports as hurting: a pain stop, "hurts" before training, an "It hurts" skip.
+export function painZones(e) {
+  if (!e || isTest(e)) return [];
+  const z = [];
+  if (e.stopped && (e.stopped.why === 'pain' || e.stopped.why === 'hurt-before')) z.push(e.stopped.zone || 'other');
+  for (const sk of e.skipped || []) if (sk.zone) z.push(sk.zone);
+  return z;
+}
+export const isPain = (e) => painZones(e).length > 0;
+
+// Anything that hurt today and Dad hasn't cleared locks Today, the same as a "hurts" check-in.
+export const hurtToday = (log, now = new Date()) =>
+  log.filter((e) => isPain(e) && !e.cleared && dayKey(new Date(e.date)) === dayKey(now));
+
+// The newest pain report Dad hasn't marked Seen. It stays on Today until he does.
+export function unseenPain(log) {
+  for (let i = log.length - 1; i >= 0; i--) if (isPain(log[i]) && !log[i].dadSeen) return log[i];
   return null;
+}
+
+const dayAt = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const mondayOf = (d) => dayAt(d, -((d.getDay() + 6) % 7));
+export const FULL_WEEK = 4;
+
+// Monday to Sunday: a box for each day with a counted session, G or P on hockey days.
+// Missed days stay blank. Full weeks (4 or more) in a row, and the best run.
+export function weekStats(log, days = {}, now = new Date()) {
+  const by = doneByDay(log);
+  const mon = mondayOf(now);
+  const todayKey = dayKey(now);
+  const boxes = [];
+  for (let i = 0; i < 7; i++) {
+    const d = dayAt(mon, i);
+    const k = dayKey(d);
+    const ice = days[k]?.today || days[dayKey(dayAt(d, -1))]?.tomorrow || null;
+    boxes.push({
+      key: k,
+      letter: 'MTWTFSS'[i],
+      name: d.toLocaleDateString('en-CA', { weekday: 'long' }),
+      filled: !!by[k]?.length,
+      mark: ice === 'game' ? 'G' : ice === 'practice' ? 'P' : '',
+      today: k === todayKey,
+      future: k > todayKey,
+    });
+  }
+  const count = boxes.filter((b) => b.filled).length;
+  let run = 0;
+  let best = 0;
+  const keys = Object.keys(by).sort();
+  if (keys.length) {
+    const [y, m, dd] = keys[0].split('-').map(Number);
+    for (let w = mondayOf(new Date(y, m - 1, dd)); w <= mon; w = dayAt(w, 7)) {
+      let n = 0;
+      for (let i = 0; i < 7; i++) if (by[dayKey(dayAt(w, i))]?.length) n++;
+      if (n >= FULL_WEEK) best = Math.max(best, ++run);
+      else if (dayKey(w) !== dayKey(mon)) run = 0; // this week isn't over yet, so it can't break the run
+    }
+  }
+  return { boxes, count, full: count >= FULL_WEEK, inARow: run, best };
+}
+
+// The season starts on 1 September.
+export function seasonStats(log, now = new Date()) {
+  const from = new Date(now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1, 8, 1).getTime();
+  const es = log.filter((e) => counts(e) && Date.parse(e.date) >= from);
+  return { sessions: es.length, mins: Math.round(es.reduce((n, e) => n + (e.secs || 0), 0) / 60) };
+}
+
+export function weekStripHtml(w) {
+  const days = w.boxes.map((b) => {
+    const cls = ['wk-day', b.filled && 'filled', b.today && 'today', b.future && 'future'].filter(Boolean).join(' ');
+    const label = `${b.name}: ${b.filled ? 'session done' : 'no session'}${b.mark === 'G' ? ', game' : b.mark === 'P' ? ', practice' : ''}`;
+    return `<li class="${cls}" aria-label="${esc(label)}"><span class="wk-box">${b.mark}</span><span class="wk-letter">${b.letter}</span></li>`;
+  }).join('');
+  return `
+  <section class="week${w.full ? ' full' : ''}">
+    <div class="wk-head">
+      <span class="wk-count">This week: <b>${w.count}</b></span>
+      ${w.full ? '<span class="wk-full">Full week.</span>' : ''}
+    </div>
+    <ol class="wk-days">${days}</ol>
+    ${w.full ? `<p class="wk-run">Full weeks in a row: <b>${w.inARow}</b> · Best: <b>${w.best}</b></p>` : ''}
+  </section>`;
+}
+
+export function lightsLineHtml(lights) {
+  const { best } = lightsStats(lights);
+  return `<button class="lights-line" data-act="lights"><span class="ll-dot" aria-hidden="true"></span><span>Lights · ${best === null ? 'no score yet' : `best <b>${best} ms</b>`}</span></button>`;
 }
 
 function lastSession(save) {
@@ -32,17 +114,18 @@ function lastSession(save) {
   return null;
 }
 
+// ---- The screen ----
+
 export function render(root, app) {
   const s = app.save;
-  const hour = new Date().getHours();
-  if (!app.room) app.room = hour < 9 ? 'bedroom' : 'big';
-  const alert = painAlert(s);
-  const doneToday = (doneByDay(s.log)[dayKey(new Date())] || []).length > 0;
-  // Once he says something hurts, today stays locked. Dad's screen can still start a session.
-  const hurtToday = s.log.some((e) => e.stopped?.why === 'hurt-before' && dayKey(new Date(e.date)) === dayKey(new Date()));
-  const doneCount = s.log.filter(counts).length;
+  const now = new Date();
+  if (!app.room) app.room = now.getHours() < 9 ? 'bedroom' : 'big';
+  const hurts = hurtToday(s.log, now);
+  const lockZone = hurts.length ? painZones(hurts[hurts.length - 1]).pop() : null;
+  const notice = hurts.length ? null : unseenPain(s.log);
+  const noticeZone = notice ? painZones(notice).pop() : null;
+  const doneToday = (doneByDay(s.log)[dayKey(now)] || []).length > 0;
   const last = lastSession(s);
-  const quiet = app.room === 'bedroom' || hour < 9;
 
   root.innerHTML = `
   <main class="screen home">
@@ -50,15 +133,14 @@ export function render(root, app) {
       ${CREASE_MARK}
       <div><h1>Crease</h1><p class="date">${esc(today())}</p></div>
     </header>
-    ${alert ? `
+    ${notice ? `
       <div class="alert" role="status">
-        <p>Sore spot last time: ${esc(zoneLabel(alert.zone))}. If it still hurts, tell Dad before you train.</p>
-        <button class="btn btn-small" data-act="seen" data-arg="${esc(alert.key)}">OK</button>
+        <p>Last time it hurt: ${esc(zoneWord(noticeZone))}. Still hurts? Tell Dad before you train.</p>
       </div>` : ''}
-    ${hurtToday ? `
-      <section class="today-done">
+    ${hurts.length ? `
+      <section class="today-done locked">
         <h2>No training today.</h2>
-        <p>You said something hurts. Show Dad, and train again once he's had a look.</p>
+        <p>${lockZone && lockZone !== 'other' ? `You said ${esc(spotOf(lockZone))} hurts.` : 'You said something hurts.'} Show Dad, and train again once he's had a look.</p>
       </section>` : doneToday ? `
       <section class="today-done">
         <h2>Done for today.</h2>
@@ -71,12 +153,14 @@ export function render(root, app) {
           <button data-act="room" data-arg="bedroom" aria-pressed="${app.room === 'bedroom'}">Bedroom</button>
           <button data-act="room" data-arg="big" aria-pressed="${app.room === 'big'}">Big room</button>
         </div>
-        <p class="hint">${quiet ? (app.room === 'bedroom' ? 'Quiet versions. Nothing that thumps or needs space.' : 'Before 9 am: quiet versions, so the house can sleep.') : 'Full versions. Clear about 3 metres around you.'}</p>
+        <p class="hint">${esc(ROOM_HINT[app.room] || ROOM_HINT.big)}</p>
       </section>
       <button class="btn btn-go btn-start" data-act="start">Start today's training</button>
       <p class="small center">A few quick questions, then your session.</p>`}
+    ${lightsLineHtml(s.lights)}
+    ${weekStripHtml(weekStats(s.log, s.days, now))}
     <footer class="home-foot">
-      <span>${last ? `Last: <b>${esc(last)}</b>` : 'No sessions yet'}<br>Sessions done: <b>${doneCount}</b></span>
+      <span>${last ? `Last: <b>${esc(last)}</b>` : 'No sessions yet'}</span>
       <button class="link" data-act="settings">Settings</button>
     </footer>
   </main>`;
@@ -85,7 +169,7 @@ export function render(root, app) {
     room: (r) => { app.room = r; render(root, app); },
     start: () => app.go('checkin', { step: 0, answers: {} }),
     stretch: () => app.go('preview', { type: 'stretch', reason: 'Extra stretching. It doesn\'t count as a session.', extra: true }),
-    seen: (key) => { s.seenAlerts.push(key); app.persist(); render(root, app); },
+    lights: () => app.go('lights'),
     settings: () => app.go('settings'),
   });
 }

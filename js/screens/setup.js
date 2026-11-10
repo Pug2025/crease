@@ -1,6 +1,8 @@
-// First launch: install, welcome and the stop rule, gear questions for Dad, sound check.
+// First launch: install, welcome with the stop rule and sore-or-hurt, Dad's PIN, sound check,
+// then one round of Lights. (The gear questions are no longer asked; the screen stays for later.)
 import { esc, on, CREASE_MARK, stopRuleHtml } from '../ui.js';
-import { STOP_RULE, SAY } from '../../data/copy.js';
+import { STOP_RULE, SORE_OR_HURT, SAY } from '../../data/copy.js';
+import { scramble } from '../store.js';
 import * as audio from '../timer/audio.js';
 
 export function install(root) {
@@ -25,10 +27,47 @@ export function welcome(root, app) {
     <h1>Crease</h1>
     <p class="lead">Off-ice training for goalies. The phone runs the session. You do the work.</p>
     ${stopRuleHtml(STOP_RULE)}
+    ${soreOrHurtHtml()}
     <p class="small">There's a Stop button on screen the whole time.</p>
     <button class="btn btn-primary" data-act="next">Got it</button>
   </main>`;
-  on(root, { next: () => app.go('sound') });
+  // Dad's PIN comes before the sound check, so his screen is never open to whoever finds it first.
+  on(root, { next: () => app.go(app.save.dadPin ? 'sound' : 'dadpin') });
+}
+
+export function soreOrHurtHtml() {
+  const row = ([label, text], cls) => `<p class="sh-row ${cls}"><b class="sh-label">${esc(label)}</b> ${esc(text)}</p>`;
+  return `<div class="sore-hurt">
+    <p class="sh-title">${esc(SORE_OR_HURT.title)}</p>
+    ${row(SORE_OR_HURT.sore, 'sh-sore')}
+    ${row(SORE_OR_HURT.hurt, 'sh-hurt')}
+  </div>`;
+}
+
+// First launch, hand-off to Dad: set the PIN that locks his screen. No skip.
+export function dadPin(root, app) {
+  root.innerHTML = `
+  <main class="screen dad-pin setup-pin">
+    <p class="kicker">Hand the phone to Dad</p>
+    <h1>For Dad</h1>
+    <p class="lead">Pick a 4-digit PIN for your screen. It holds his last 14 days, his drill versions and your test runs.</p>
+    <input class="pin-input" id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-label="PIN" placeholder="PIN">
+    <input class="pin-input" id="pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-label="PIN again" placeholder="Again">
+    <p class="small pin-msg" role="status"></p>
+    <p class="small">Then hand it back for the sound check.</p>
+    <button class="btn btn-primary" data-act="ok">Save PIN</button>
+  </main>`;
+  const msg = root.querySelector('.pin-msg');
+  on(root, {
+    ok: async () => {
+      const pin = root.querySelector('#pin').value.trim();
+      if (!/^\d{4}$/.test(pin)) { msg.textContent = 'Four digits, please.'; return; }
+      if (root.querySelector('#pin2').value.trim() !== pin) { msg.textContent = 'The two PINs don\'t match.'; return; }
+      app.save.dadPin = await scramble(pin);
+      app.persist();
+      app.go('sound');
+    },
+  });
 }
 
 const BALL = [
@@ -88,7 +127,8 @@ export function sound(root, app, { fromSettings = false } = {}) {
       if (fromSettings) { app.go('settings'); return; }
       app.save.setupDone = true;
       app.persist();
-      app.go('home');
+      // His first number, on day one. He can play it later instead.
+      app.go('lights', { first: true });
     },
   });
 }

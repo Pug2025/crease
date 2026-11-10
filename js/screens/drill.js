@@ -4,7 +4,9 @@ import { DEMOS, demoUrl } from '../../data/demos.js';
 
 export function render(root, app, { item, back }) {
   const d = item.drill;
-  const demos = DEMOS[d.id] || [];
+  // A version with its own name (Squat to Toes, Step & Hold) is a different move from the demo videos.
+  const ownMove = !!(item.version?.title || item.variant);
+  const demos = ownMove ? [] : DEMOS[d.id] || [];
   const versions = d.versions.map((v, k) => `
     <li class="${k === item.v ? 'current' : ''}">
       <span class="v-mark" aria-hidden="true">${k === item.v ? '●' : '○'}</span>

@@ -1,22 +1,21 @@
-// Records every line Crease can say as a short voice clip.
-// Run from the Crease folder: node tools/make-voice.mjs
+// Records every line Crease can say as a short voice clip, with OpenAI's voice model.
+// Run from the Crease folder: node tools/make-voice.mjs   (needs OPENAI_API_KEY in the environment
+// for the run; the key is never written to any file)
 // Writes audio/<hash>.m4a and audio/clips.json ({ "phrase": "file" }). Existing clips are kept.
+// Each new clip is levelled (tools/loudness.mjs) straight from the recording, and its loudness and
+// spoken length go in audio/levels.json.
 //
-// Two engines. The default is OpenAI's voice model (needs OPENAI_API_KEY in the environment for the
-// run; the key is never written to any file). CREASE_ENGINE=mac uses the Mac's built-in `say` voice.
-import { execFileSync } from 'node:child_process';
+// There is no other voice. If the voice model can't be reached, nothing is recorded: Dad threw out
+// the Mac's voice, and the app never falls back to the iPhone's.
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { SESSION_ORDER } from '../data/sessions.js';
-import { DRILLS } from '../data/exercises.js';
 import { SAY } from '../data/copy.js';
-import { buildSession, makeContext, phrasesOf } from '../js/plan/build.js';
+import { buildSession, everyContext, phrasesOf } from '../js/plan/build.js';
+import { finishClip, readLevels, writeLevels } from './loudness.mjs';
 
-const ENGINE = process.env.CREASE_ENGINE || 'openai';
-const VOICE = process.env.CREASE_VOICE || (ENGINE === 'openai' ? 'cedar' : 'Samantha');
-const RATE = '172';
+const VOICE = process.env.CREASE_VOICE || 'cedar';
 const MODEL = process.env.CREASE_TTS_MODEL || 'gpt-4o-mini-tts';
 const COACH =
   'You are a youth hockey goalie coach in your thirties, from Canada, talking an 11-year-old goalie through a workout at home. ' +
@@ -25,40 +24,17 @@ const COACH =
 const outDir = path.resolve('audio');
 fs.mkdirSync(outDir, { recursive: true });
 
-// Every context a session can be built in, including every version Dad can set.
-const everyDrillAt = (v) => Object.fromEntries(DRILLS.map((d) => [d.id, Math.min(v, d.versions.length - 1)]));
-const versionSets = [{}, everyDrillAt(0), everyDrillAt(1), everyDrillAt(2)];
+// Every line any session can say, in every way it can be built.
 const phrases = new Set([SAY.soundCheck, SAY.sessionDone]);
-for (const type of SESSION_ORDER)
-  for (const room of ['bedroom', 'big'])
-    for (const hour of [7, 15])
-      for (const ball of ['dead', 'bouncy', 'none'])
-        for (const band of [true, false])
-          for (const versions of versionSets)
-            phrasesOf(buildSession(type, makeContext({ room, hour, ball, band, versions }))).forEach((p) => phrases.add(p));
+for (const { type, ctx } of everyContext()) phrasesOf(buildSession(type, ctx)).forEach((p) => phrases.add(p));
 
 // How a line should sound, where the written form would be read oddly.
 const spoken = (p) => p.replace(/90\/90/g, 'ninety ninety').replace(/&/g, 'and').replace(/\bT-Push\b/g, 'T push');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'crease-voice-'));
 
-// A Mac clip: `say` occasionally hangs, so each line gets 15 seconds and two more tries.
-function recordMac(text, dest, n) {
-  const aiff = path.join(tmp, `clip${n}.aiff`);
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      execFileSync('say', ['-v', VOICE, '-r', RATE, '-o', aiff, text], { timeout: 15000, killSignal: 'SIGKILL' });
-      if (fs.existsSync(aiff) && fs.statSync(aiff).size > 1000) break;
-    } catch { /* try again */ }
-  }
-  if (!fs.existsSync(aiff)) return false;
-  execFileSync('afconvert', [aiff, dest, '-f', 'm4af', '-d', 'aac', '-b', '48000']);
-  fs.unlinkSync(aiff);
-  return true;
-}
-
-// An OpenAI clip: one request per line, saved as WAV, then turned into AAC like the Mac clips.
-async function recordOpenAI(text, dest, n) {
+// One request per line, saved as WAV, then levelled and turned into AAC.
+async function record(text, dest, n) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const res = await fetch('https://api.openai.com/v1/audio/speech', {
@@ -73,59 +49,67 @@ async function recordOpenAI(text, dest, n) {
       }
       const wav = path.join(tmp, `clip${n}.wav`);
       fs.writeFileSync(wav, Buffer.from(await res.arrayBuffer()));
-      execFileSync('afconvert', [wav, dest, '-f', 'm4af', '-d', 'aac', '-b', '64000']);
+      const level = finishClip(wav, dest);
       fs.unlinkSync(wav);
-      return true;
+      return level;
     } catch (e) {
       if (e.fatal) throw e;
-      if (attempt === 2) { console.error(`could not record "${text}": ${e.message}`); return false; }
+      if (attempt === 2) { console.error(`could not record "${text}": ${e.message}`); return null; }
       await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
     }
   }
-  return false;
+  return null;
 }
 
-const key = (p) => (ENGINE === 'openai' ? `openai|${MODEL}|${VOICE}|${COACH}|${spoken(p)}` : `${VOICE}|${RATE}|${spoken(p)}`);
+const key = (p) => `openai|${MODEL}|${VOICE}|${COACH}|${spoken(p)}`;
 const clips = {};
 for (const p of phrases) clips[p] = `${createHash('sha1').update(key(p)).digest('hex').slice(0, 12)}.m4a`;
 const missing = [...phrases].sort().filter((p) => !fs.existsSync(path.join(outDir, clips[p])));
 
 // CREASE_SAMPLE="some line" records just that one line to qa/voice-sample.m4a, as a cheap test.
 if (process.env.CREASE_SAMPLE) {
-  missing.length = 0;
+  if (!process.env.OPENAI_API_KEY) { console.error('OPENAI_API_KEY is not set for this run.'); process.exit(1); }
   fs.mkdirSync('qa', { recursive: true });
-  const ok = ENGINE === 'openai' ? await recordOpenAI(process.env.CREASE_SAMPLE, 'qa/voice-sample.m4a', 0) : recordMac(process.env.CREASE_SAMPLE, 'qa/voice-sample.m4a', 0);
-  console.log(ok ? 'sample written to qa/voice-sample.m4a' : 'sample failed');
-  process.exit(ok ? 0 : 1);
+  let level = null;
+  try { level = await record(process.env.CREASE_SAMPLE, 'qa/voice-sample.m4a', 0); } catch (e) { console.error(`voice model refused: ${e.message}`); }
+  fs.rmSync(tmp, { recursive: true, force: true });
+  console.log(level ? `sample written to qa/voice-sample.m4a (${level.lufs} LUFS, peak ${level.peak} dBFS, ${level.len} s)` : 'sample failed');
+  process.exit(level ? 0 : 1);
 }
 
-if (missing.length && ENGINE === 'openai' && !process.env.OPENAI_API_KEY) {
-  console.error(`${missing.length} lines need recording and OPENAI_API_KEY is not set. Set it for this run, or use CREASE_ENGINE=mac.`);
+if (missing.length && !process.env.OPENAI_API_KEY) {
+  console.error(`${missing.length} lines need recording and OPENAI_API_KEY is not set for this run.`);
   process.exit(1);
 }
 
+const levels = readLevels();
 let made = 0;
 const failed = [];
-if (ENGINE === 'openai') {
-  // Six requests at a time.
-  let next = 0;
+// Six requests at a time.
+let next = 0;
+try {
   await Promise.all(Array.from({ length: 6 }, async () => {
     while (next < missing.length) {
       const n = next++;
       const p = missing[n];
-      if (await recordOpenAI(spoken(p), path.join(outDir, clips[p]), n)) made++; else failed.push(p);
+      const level = await record(spoken(p), path.join(outDir, clips[p]), n);
+      if (level) { levels[clips[p]] = level; made++; } else failed.push(p);
     }
   }));
-} else {
-  missing.forEach((p, n) => { if (recordMac(spoken(p), path.join(outDir, clips[p]), n)) made++; else failed.push(p); });
+} catch (e) {
+  console.error(`voice model refused, nothing more recorded: ${e.message}`);
+  next = missing.length;
+  missing.forEach((p) => { if (!levels[clips[p]] || !fs.existsSync(path.join(outDir, clips[p]))) failed.push(p); });
 }
 fs.rmSync(tmp, { recursive: true, force: true });
-failed.forEach((p) => delete clips[p]);
+[...new Set(failed)].forEach((p) => delete clips[p]);
 
 // Remove clips nothing uses any more.
 const keep = new Set(Object.values(clips));
 for (const f of fs.readdirSync(outDir)) if (f.endsWith('.m4a') && !keep.has(f)) fs.unlinkSync(path.join(outDir, f));
+for (const f of Object.keys(levels)) if (!keep.has(f)) delete levels[f];
 
 fs.writeFileSync(path.join(outDir, 'clips.json'), JSON.stringify(clips, null, 1));
-console.log(`${Object.keys(clips).length} lines, ${made} new clips, ${failed.length} failed, voice ${ENGINE}/${VOICE}`);
+writeLevels(levels);
+console.log(`${Object.keys(clips).length} lines, ${made} new clips, ${new Set(failed).size} failed, voice openai/${VOICE}`);
 if (failed.length) process.exit(1);

@@ -223,38 +223,66 @@ img { max-width: 100%; }
 .howto p { margin-top: 8px; }
 
 /* Player: the screen across the room */
+/* Every piece has a named place, so a hidden piece (the rep bar, a warning) leaves its row empty
+   instead of shifting the drawing into the wrong one. The --sa-* names are the notch and home bar. */
 .player {
+  --sa-t: env(safe-area-inset-top, 0px);
+  --sa-r: env(safe-area-inset-right, 0px);
+  --sa-b: env(safe-area-inset-bottom, 0px);
+  --sa-l: env(safe-area-inset-left, 0px);
   position: fixed; inset: 0;
   display: grid;
-  grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto auto auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 12px) max(16px, env(safe-area-inset-left, 0px));
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto auto auto auto minmax(0, 1fr) auto auto auto;
+  grid-template-areas: "top" "prog" "phase" "count" "name" "bar" "target" "board" "cue" "dad" "btns";
+  padding: calc(var(--sa-t) + 10px) max(16px, var(--sa-r)) calc(var(--sa-b) + 12px) max(16px, var(--sa-l));
   background: var(--ice);
   color: var(--ink);
   -webkit-user-select: none; user-select: none;
   overflow: hidden;
   transition: background-color .25s ease;
 }
+.player [hidden] { display: none !important; }
 .player[data-phase="work"] { background: var(--crease); color: #FFFFFF; }
-.pl-top { display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem; opacity: .85; font-variant-numeric: tabular-nums; }
-.pl-phase { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
+.pl-top { grid-area: top; display: flex; justify-content: space-between; gap: 12px; font-weight: 700; font-size: 1rem; opacity: .85; font-variant-numeric: tabular-nums; }
+/* How far through: one segment per drill, in the text colour, so it reads on blue and on ice. */
+.pl-prog { grid-area: prog; display: flex; gap: 3px; height: 14px; margin-top: 6px; }
+.pl-prog i { flex: 1; position: relative; overflow: hidden; border-radius: 3px; }
+.pl-prog i::before { content: ''; position: absolute; inset: 0; background: currentColor; opacity: .22; }
+.pl-prog b { position: absolute; inset: 0; background: currentColor; transform-origin: left center; transform: scaleX(0); }
+.pl-phase { grid-area: phase; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
 .pl-word { font-family: var(--display); font-weight: 900; font-size: clamp(2.2rem, 11vw, 3.6rem); line-height: 1; text-transform: uppercase; letter-spacing: .02em; }
 .pl-set { font-weight: 700; font-size: 1.15rem; text-align: right; }
+.pl-count { grid-area: count; text-align: center; }
 .pl-clock {
   font-family: var(--display); font-weight: 900; font-variant-numeric: tabular-nums;
-  font-size: min(76vw, 33vh); line-height: .8; text-align: center; letter-spacing: -.01em;
-  margin: 12px 0 4px;
+  /* A third of the height left once the notch and home bar are taken off. */
+  font-size: min(76vw, calc((100vh - var(--sa-t) - var(--sa-b)) * .33)); line-height: .8; text-align: center; letter-spacing: -.01em;
+  margin: 8px 0 4px;
 }
-.pl-clock.long { font-size: min(40vw, 24vh); line-height: .95; }
-.pl-clock.flash { animation: flash .35s ease-out; }
+.pl-clock.long { font-size: min(40vw, calc((100vh - var(--sa-t) - var(--sa-b)) * .24)); line-height: .95; }
+.pl-clock.flash, .pl-bar.flash { animation: flash .35s ease-out; }
 @keyframes flash { from { opacity: .35; } to { opacity: 1; } }
-.pl-name { font-family: var(--display); font-weight: 900; font-size: clamp(2rem, 10vw, 3.2rem); line-height: 1; text-transform: uppercase; text-align: center; text-wrap: balance; }
-.pl-target { font-weight: 700; font-size: 1.25rem; text-align: center; margin-top: 4px; }
+/* Rep sets: the big number is his reps, with what it counts under it. */
+.pl-unit { font-family: var(--display); font-weight: 800; font-size: 1.4rem; line-height: 1; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 4px; }
+.player.is-reps .pl-clock { margin-bottom: 5px; }
+.pl-name { grid-area: name; font-family: var(--display); font-weight: 900; font-size: clamp(2rem, 10vw, 3.2rem); line-height: 1; text-transform: uppercase; text-align: center; text-wrap: balance; }
+/* The rep window drains as a bar under the name. */
+.pl-bar { grid-area: bar; position: relative; justify-self: center; width: 100%; max-width: 24rem; height: 14px; margin-top: 8px; border-radius: 7px; overflow: hidden; }
+.pl-bar::before { content: ''; position: absolute; inset: 0; background: currentColor; opacity: .25; }
+.pl-bar b { position: absolute; inset: 0; background: currentColor; transform-origin: left center; }
+.pl-target { grid-area: target; font-weight: 700; font-size: 1.25rem; text-align: center; margin-top: 4px; }
 /* The drawing takes whatever height is left, never more: it sits absolutely inside its row. */
-.pl-board { min-height: 0; position: relative; margin: 10px 0 6px; }
+.pl-board { grid-area: board; min-height: 0; position: relative; margin: 8px 0 4px; }
 .pl-draw { position: absolute; inset: 0; margin: auto; height: 100%; max-width: 100%; aspect-ratio: 1; object-fit: contain; background: var(--board); border-radius: 18px; }
-.pl-cue { min-height: 2.6em; text-align: center; font-size: 1.2rem; font-weight: 700; text-wrap: balance; }
-.pl-sound { margin: 4px auto 6px; min-height: 48px; padding: 8px 16px; border-radius: 12px; border: 2px solid currentColor; background: var(--kick); color: var(--ink); font-weight: 700; }
-.pl-buttons { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; margin-top: 4px; }
+.pl-cue { grid-area: cue; min-height: 2.6em; text-align: center; font-size: 1.2rem; font-weight: 700; text-wrap: balance; }
+/* Warnings sit over the top of the drawing, so showing one never shrinks or moves it.
+   They are information, so no colour of their own: yellow is only for something earned. */
+.pl-warn { grid-area: board; z-index: 1; align-self: start; justify-self: center; display: grid; justify-items: center; gap: 6px; margin-top: 16px; width: min(100% - 24px, 17rem); pointer-events: none; }
+.pl-sound, .pl-awake { pointer-events: auto; border: 2px solid var(--ink); background: var(--card); color: var(--ink); border-radius: 12px; font-weight: 700; text-align: center; text-wrap: balance; box-shadow: 0 2px 10px rgba(5, 10, 16, .25); }
+.pl-sound { width: 100%; min-height: 48px; padding: 8px 16px; }
+.pl-awake { width: 100%; margin: 0; padding: 6px 12px; font-size: 1rem; }
+.pl-buttons { grid-area: btns; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; margin-top: 4px; }
 .pbtn { min-height: 72px; border-radius: 16px; border: 3px solid currentColor; background: transparent; font-family: var(--display); font-weight: 900; font-size: 1.8rem; text-transform: uppercase; }
 .pbtn-done { background: currentColor; }
 .player .pbtn-done { color: var(--ink); background: var(--card); border-color: var(--card); }
@@ -263,7 +291,7 @@ img { max-width: 100%; }
 .player[data-phase="work"] .pbtn-pause { color: #FFFFFF; }
 
 /* Dad's test runs only: click through without waiting. */
-.pl-dad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.pl-dad { grid-area: dad; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
 .pbtn-dad { min-height: 48px; border-radius: 12px; border: 2px dashed currentColor; background: transparent; font-weight: 700; font-size: 1.05rem; }
 
 .sheet { position: fixed; inset: 0; background: rgba(5, 10, 16, .55); display: flex; align-items: flex-end; z-index: 5; }
@@ -275,10 +303,181 @@ img { max-width: 100%; }
   max-height: 92%; overflow: auto;
 }
 .sheet-card h2 { font-family: var(--display); font-weight: 900; font-size: 2.4rem; line-height: 1; text-transform: uppercase; margin: 0 0 4px; }
+.sheet-card > p { margin: 0; }
+.sheet-line { margin: 0 0 4px; font-size: 1.25rem; font-weight: 700; }
 .zones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .zones .choice { min-height: 60px; }
 
+/* Phone on its side, propped on its long edge: three columns. Clock and drill name on the left,
+   the drawing in the middle, Pause, Done and Stop stacked on the right. No cue line: the voice says it.
+   --board-w is the drawing's width: the height left under the top strip, or 40% of the width.
+   (Not --board: that name is the drawing's background colour.) */
+@media (orientation: landscape) and (max-height: 500px) {
+  .player {
+    --board-w: min(40vw, calc(100dvh - var(--sa-t) - var(--sa-b) - 60px));
+    grid-template-columns: minmax(0, 1fr) var(--board-w) minmax(150px, 22vw);
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "top top top"
+      "prog prog prog"
+      ". board btns"
+      "phase board btns"
+      "count board btns"
+      "name board btns"
+      "bar board btns"
+      "target board btns"
+      ". board btns"
+      ". dad btns";
+    column-gap: 18px;
+    padding-top: calc(var(--sa-t) + 6px);
+    padding-bottom: calc(var(--sa-b) + 8px);
+  }
+  .pl-top { font-size: .85rem; }
+  .pl-prog { height: 12px; margin: 4px 0 8px; }
+  .pl-phase { margin-top: 0; flex-wrap: wrap; justify-content: center; column-gap: 12px; row-gap: 0; }
+  .pl-word { font-size: clamp(1.6rem, 9vh, 2.4rem); }
+  .pl-set { font-size: 1rem; text-align: center; }
+  .pl-clock { font-size: 34vh; margin: 6px 0 2px; }
+  .pl-clock.long { font-size: 24vh; }
+  .player.is-reps .pl-clock { margin-bottom: 4px; }
+  .pl-unit { font-size: 1.15rem; margin-bottom: 2px; }
+  .pl-name { font-size: clamp(1.3rem, 7.5vh, 2rem); }
+  .pl-bar { height: 12px; margin-top: 8px; }
+  .pl-target { font-size: 1rem; }
+  .pl-board { margin: 0; }
+  .pl-cue { display: none; }
+  .pl-sound { min-height: 44px; padding: 6px 12px; font-size: 1rem; }
+  .pl-awake { font-size: .9rem; }
+  .pl-buttons { grid-auto-flow: row; grid-auto-columns: auto; align-content: center; gap: 10px; margin: 0; }
+  .pl-dad { margin-top: 8px; }
+  .sheet-card { max-width: 42rem; padding-top: 16px; }
+  .sheet-card h2 { font-size: 2rem; }
+  .zones { grid-template-columns: repeat(4, 1fr); }
+  /* After an "It hurts" skip: the stop rule beside the two buttons, so both stay on screen. */
+  .sheet-skipped { grid-template-columns: 1fr 1fr; column-gap: 20px; align-items: start; }
+  .sheet-skipped > * { grid-column: 1; }
+  .sheet-skipped > .stop-rule { grid-column: 2; grid-row: 1 / span 4; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .player { transition: none; }
-  .pl-clock.flash { animation: none; }
+  .pl-clock.flash, .pl-bar.flash { animation: none; }
 }
+
+/* ===== Screens fix build, 10 November 2026 ===== */
+
+/* Bottom buttons sit at the bottom: the screen fills the phone, then margin-top: auto works. */
+#app { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+#app > .screen { flex: 1 0 auto; width: 100%; }
+
+/* Sore or hurt, on the welcome screen under the stop rule */
+.sore-hurt { border: 2px solid var(--line); border-radius: 14px; background: var(--card); padding: 12px 16px; display: grid; gap: 6px; }
+.sh-title { font-weight: 700; }
+.sh-label { font-family: var(--display); font-weight: 900; font-size: 1.3rem; line-height: 1; text-transform: uppercase; letter-spacing: .02em; }
+.sh-sore .sh-label { color: var(--crease-deep); }
+.sh-hurt .sh-label { color: var(--red); }
+
+/* Today */
+.today-done.locked { border-color: var(--red); }
+.lights-line {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 48px; padding: 6px 0; background: none; border: 0;
+  color: var(--ink2); font-weight: 700; font-size: 1rem;
+}
+.lights-line b { color: var(--ink); font-family: var(--display); font-weight: 900; font-size: 1.3rem; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.ll-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--crease); box-shadow: 0 0 0 3px var(--crease-soft); }
+
+/* Week strip, Today and Done. Filled crease blue for a counted session; missed days stay blank. */
+.week { display: grid; gap: 8px; margin-top: 4px; }
+.wk-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 32px; }
+.wk-count { font-family: var(--display); font-weight: 800; font-size: 1.3rem; text-transform: uppercase; letter-spacing: .02em; color: var(--ink2); }
+.wk-count b { color: var(--ink); font-weight: 900; font-size: 1.7rem; font-variant-numeric: tabular-nums; }
+.wk-full { background: var(--kick); color: #0D1520; font-family: var(--display); font-weight: 900; font-size: 1.25rem; text-transform: uppercase; letter-spacing: .03em; padding: 3px 10px 2px; border-radius: 8px; }
+.wk-days { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.wk-day { display: grid; gap: 4px; justify-items: center; }
+.wk-box {
+  width: 100%; aspect-ratio: 1; border-radius: 9px; border: 2px solid var(--line); background: var(--card);
+  display: grid; place-items: center;
+  font-family: var(--display); font-weight: 900; font-size: 1.35rem; line-height: 1; color: var(--ink2);
+}
+.wk-day.future .wk-box { background: transparent; }
+.wk-day.filled .wk-box { background: var(--crease); border-color: var(--crease); color: #FFFFFF; }
+.wk-day.today .wk-box { border-color: var(--ink); }
+.wk-day.today.filled .wk-box { box-shadow: inset 0 0 0 2px var(--ice); }
+.wk-letter { font-weight: 700; font-size: .85rem; color: var(--ink2); }
+.wk-day.today .wk-letter { color: var(--ink); }
+.wk-run { color: var(--ink2); font-size: .98rem; }
+.wk-run b { color: var(--ink); }
+
+/* Done */
+.stats.stats-2 { grid-template-columns: 1fr 1fr; }
+.done-line { font-weight: 700; }
+.season { font-family: var(--display); font-weight: 800; font-size: 1.45rem; text-transform: uppercase; letter-spacing: .02em; color: var(--ink2); }
+.season b { color: var(--ink); font-weight: 900; font-variant-numeric: tabular-nums; }
+
+/* Lights: an ink board in both themes, one big circle that lights crease blue. */
+.lights {
+  position: fixed; inset: 0; z-index: 2;
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 20px) max(20px, env(safe-area-inset-left, 0px));
+  background: #0D1520; color: #F1F5F8;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none; overflow: hidden;
+}
+.lt-top { display: flex; justify-content: space-between; align-items: center; min-height: 44px; }
+.lt-back { background: none; border: 0; padding: 8px 0; min-height: 44px; color: #8CC4F0; font-weight: 700; }
+.lt-back::before { content: '‹ '; }
+.lt-kicker { color: #9DAEBF; font-weight: 700; font-size: 1rem; }
+.lt-title { font-family: var(--display); font-weight: 900; font-size: 3.25rem; line-height: .92; text-transform: uppercase; margin: 2px 0 0; }
+.lt-stage { min-height: 0; display: grid; place-items: center; padding: 14px 0; }
+.lt-light {
+  height: 100%; max-height: min(80vw, 46vh); aspect-ratio: 1; border-radius: 50%;
+  background: #152131; border: 4px solid #2A3B4F;
+  display: grid; place-content: center; justify-items: center; gap: 2px;
+}
+.lt-light.on { background: var(--crease); border-color: #7DBBEC; box-shadow: 0 0 0 12px rgba(46, 124, 192, .22), 0 0 90px 12px rgba(46, 124, 192, .55); }
+.lt-light.best { border-color: var(--kick); }
+.lt-num { font-family: var(--display); font-weight: 900; font-size: min(22vw, 13vh); line-height: .9; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.lt-unit { font-family: var(--display); font-weight: 800; font-size: 1.6rem; line-height: 1; text-transform: uppercase; letter-spacing: .08em; color: #9DAEBF; }
+.lt-unit:empty { display: none; }
+.lt-light.best .lt-num, .lt-light.best .lt-unit { color: var(--kick); }
+.lt-pips { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin: 0 0 14px; }
+.lt-pips i { height: 8px; border-radius: 4px; background: #24344A; }
+.lt-pips i.on { background: #F1F5F8; }
+.lights p { margin: 0; }
+.lt-info { display: grid; gap: 4px; text-align: center; align-content: start; min-height: 4.8em; margin-bottom: 12px; }
+.lt-status { color: #9DAEBF; font-weight: 700; }
+.lt-line { font-weight: 700; font-size: 1.25rem; }
+.lt-gold { color: var(--kick); }
+.lt-buttons { display: grid; gap: 10px; }
+.lt-buttons:empty { display: none; }
+.lights .btn { border-color: #F1F5F8; color: #F1F5F8; }
+.lights .btn-primary { background: #F1F5F8; color: #0D1520; }
+.lights .btn-go { background: var(--crease); border-color: var(--crease); color: #FFFFFF; }
+
+/* Dad's screen */
+.pin-input::placeholder { letter-spacing: .04em; font-size: 1.3rem; color: var(--ink2); }
+.dad-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.build { color: var(--ink2); font-size: .9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dad-note { background: var(--crease-soft); border-radius: 12px; padding: 10px 14px; font-weight: 700; }
+.dad-lock { border: 2px solid var(--red); border-radius: 16px; background: var(--card); padding: 16px; display: grid; gap: 10px; }
+.dad-lock h2 { font-family: var(--display); font-weight: 900; font-size: 2rem; line-height: 1; text-transform: uppercase; margin: 0; }
+.dd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.dd-row { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; }
+.dd-row.unseen { border-color: var(--red); box-shadow: inset 5px 0 0 var(--red); padding-left: 16px; }
+.dd-row.dd-empty { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 6px 12px; background: transparent; }
+.dd-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 30px; }
+.dd-date { font-family: var(--display); font-weight: 900; font-size: 1.3rem; line-height: 1; text-transform: uppercase; }
+.dd-date small { font-family: var(--body); font-weight: 700; font-size: .85rem; text-transform: none; color: var(--ink2); margin-left: 6px; }
+.dd-ans { color: var(--ink2); font-size: .95rem; }
+.dd-entry { display: grid; gap: 1px; }
+.dd-entry + .dd-entry { border-top: 1px solid var(--line); padding-top: 4px; }
+.dd-sess { font-weight: 700; }
+.dd-end, .dd-skip { font-size: .98rem; }
+.dd-row .pain { font-weight: 700; }
+.dd-row.unseen .pain { color: var(--red); }
+.dd-none { color: var(--ink2); font-size: .95rem; }
+.dd-seen { min-height: 40px; font-size: 1.1rem; padding: 4px 14px; }
+.dd-seen-done { color: var(--ink2); font-weight: 700; font-size: .9rem; }
+.ver-name { background: none; border: 0; padding: 0; min-height: 32px; text-align: left; font-weight: 700; color: var(--ink); }
+.ver-name span { color: var(--crease-deep); }
+.ver-what { color: var(--ink2); font-size: .95rem; }

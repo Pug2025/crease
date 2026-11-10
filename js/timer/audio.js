@@ -1,9 +1,12 @@
-// Sound for sessions: recorded voice clips, synthesized beeps, and the iPhone's built-in speech
-// only as a backup when a clip is missing. Every sound also has an on-screen twin, so a silent
-// phone still works.
+// Sound for sessions: recorded voice clips and synthesized beeps. Nothing else ever speaks.
+// A line with no clip, or one that comes while the phone has put the sound to sleep, is dropped:
+// every line is also on screen, so a silent phone still works.
 
 // ?mute=1 in the address silences everything. Used for testing on the Mac, so nobody hears it.
 const MUTED = typeof location !== 'undefined' && /[?&]mute=1\b/.test(location.search);
+
+export const LATE = 6.5; // seconds: a line that can't start this soon after it was queued is dropped
+export const GAP = 0.12; // seconds of quiet between two lines
 
 let ctx = null;
 let master = null;
@@ -12,6 +15,7 @@ const buffers = new Map();
 const queue = [];
 let playing = false;
 let current = null;
+let gen = 0; // goes up on every hush and every clip, so a cut-off clip's ending can't start another line
 
 function audioCtx() {
   if (!ctx) {
@@ -39,18 +43,20 @@ export async function unlock() {
     src.connect(master);
     src.start(0);
   } catch {}
-  // Wake up speech too, in case a clip is missing later.
-  try {
-    if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance(' ');
-      u.volume = 0;
-      speechSynthesis.speak(u);
-    }
-  } catch {}
   return c.state === 'running';
 }
 
 export function soundOn() { return MUTED || (!!ctx && ctx.state === 'running'); }
+
+// Calls fn() each time the phone wakes or sleeps the sound (calls, Siri, locking the screen).
+// Returns a function that stops listening.
+export function onSoundChange(fn) {
+  if (MUTED) return () => {};
+  const c = audioCtx();
+  if (!c || !c.addEventListener) return () => {};
+  c.addEventListener('statechange', fn);
+  return () => c.removeEventListener('statechange', fn);
+}
 
 export async function loadManifest() {
   if (manifest) return manifest;
@@ -94,44 +100,49 @@ export function say(phrases) {
   pump();
 }
 
+// Stop talking now: the clip playing and everything queued.
 export function hush() {
   queue.length = 0;
-  try { current?.stop(); } catch {}
-  try { speechSynthesis?.cancel(); } catch {}
+  gen++;
+  const src = current;
+  current = null;
   playing = false;
+  if (src) {
+    src.onended = null;
+    try { src.stop(); } catch {}
+  }
 }
 
 function pump() {
-  if (playing) return;
-  const item = queue.shift();
-  if (!item) return;
-  if (performance.now() - item.at > 6000) { pump(); return; } // too late to be useful
-  playing = true;
-  const done = () => { playing = false; current = null; pump(); };
-  const clip = buffers.get(item.p);
-  const c = audioCtx();
-  if (clip && c && c.state === 'running') {
-    const src = c.createBufferSource();
-    src.buffer = clip.buf;
-    src.connect(master);
-    src.onended = () => setTimeout(done, 120);
-    current = src;
-    src.start(0, clip.off, clip.dur);
-    return;
+  while (!playing && queue.length) {
+    const item = queue.shift();
+    if (performance.now() - item.at > LATE * 1000) continue; // too late to be useful
+    const c = ctx;
+    if (!c || c.state !== 'running') {
+      // The phone has the sound asleep. Ask for it back and drop the line: it's on screen.
+      try { c?.resume()?.catch?.(() => {}); } catch {}
+      continue;
+    }
+    const clip = buffers.get(item.p);
+    if (!clip) continue; // no recording of this line: never the built-in voice
+    play(c, clip);
   }
-  speakFallback(item.p, done);
 }
 
-function speakFallback(text, done) {
-  try {
-    if (!('speechSynthesis' in window)) { done(); return; }
-    const u = new SpeechSynthesisUtterance(text.replace(/90\/90/g, 'ninety ninety').replace(/&/g, 'and'));
-    u.rate = 1;
-    u.onend = done;
-    u.onerror = done;
-    speechSynthesis.speak(u);
-    setTimeout(() => { if (playing) done(); }, 6000);
-  } catch { done(); }
+function play(c, clip) {
+  const mine = ++gen;
+  playing = true;
+  const src = c.createBufferSource();
+  src.buffer = clip.buf;
+  src.connect(master);
+  src.onended = () => setTimeout(() => {
+    if (mine !== gen) return; // cut off by hush(), or something newer is playing
+    playing = false;
+    current = null;
+    pump();
+  }, GAP * 1000);
+  current = src;
+  src.start(0, clip.off, clip.dur);
 }
 
 const TONES = {

@@ -1,0 +1,1458 @@
+{
+ "04bf394b4b2f.m4a": {
+  "lufs": -16,
+  "peak": -1.3,
+  "len": 0.729,
+  "gain": 10,
+  "limited": 4.5
+ },
+ "058179f0a33d.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.49,
+  "gain": 4.9,
+  "limited": 1.6
+ },
+ "063bc3421452.m4a": {
+  "lufs": -18.8,
+  "peak": -1.1,
+  "len": 1.981,
+  "gain": 7.1,
+  "limited": 6
+ },
+ "0874128e56a5.m4a": {
+  "lufs": -16.1,
+  "peak": -1.7,
+  "len": 1.442,
+  "gain": 4.1,
+  "limited": 0
+ },
+ "0a4d32a23b9d.m4a": {
+  "lufs": -16.1,
+  "peak": -1.7,
+  "len": 1.219,
+  "gain": 5.7,
+  "limited": 0
+ },
+ "0da1d3a80ee1.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 1.653,
+  "gain": 8.5,
+  "limited": 6
+ },
+ "0dfd4c2d7006.m4a": {
+  "lufs": -16.4,
+  "peak": -1.4,
+  "len": 1.302,
+  "gain": 7.3,
+  "limited": 6
+ },
+ "0e77434b8d6b.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.946,
+  "gain": 5.6,
+  "limited": 3
+ },
+ "0eaa4506b757.m4a": {
+  "lufs": -16.6,
+  "peak": -1.1,
+  "len": 2.463,
+  "gain": 9.2,
+  "limited": 6
+ },
+ "0f53c4a64bf3.m4a": {
+  "lufs": -16.3,
+  "peak": -1.4,
+  "len": 1.82,
+  "gain": 8.7,
+  "limited": 6
+ },
+ "0fed74fb6e67.m4a": {
+  "lufs": -16.7,
+  "peak": -1.3,
+  "len": 1.297,
+  "gain": 7.6,
+  "limited": 6
+ },
+ "11bd200a36a9.m4a": {
+  "lufs": -16.2,
+  "peak": -1.4,
+  "len": 1.18,
+  "gain": 9.7,
+  "limited": 5.6
+ },
+ "13a9c24cd65f.m4a": {
+  "lufs": -16,
+  "peak": -1.3,
+  "len": 2.685,
+  "gain": 5.9,
+  "limited": 0.2
+ },
+ "1424c1ae81e6.m4a": {
+  "lufs": -16.3,
+  "peak": -1.3,
+  "len": 1.219,
+  "gain": 12.4,
+  "limited": 6
+ },
+ "14ef2ce92aee.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.635,
+  "gain": 9.1,
+  "limited": 4.8
+ },
+ "15205ad7c627.m4a": {
+  "lufs": -16.5,
+  "peak": -1.3,
+  "len": 1.525,
+  "gain": 11.1,
+  "limited": 6
+ },
+ "15b9e3cf4042.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.865,
+  "gain": 7.1,
+  "limited": 0.9
+ },
+ "1633b44ac3bb.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.524,
+  "gain": 6.2,
+  "limited": 1.3
+ },
+ "16e8f1ad456a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.1,
+  "len": 3.129,
+  "gain": 6.5,
+  "limited": 2.2
+ },
+ "183454e95ede.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.938,
+  "gain": 8.1,
+  "limited": 2
+ },
+ "19232f4b48a0.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.09,
+  "gain": 5.7,
+  "limited": 0.2
+ },
+ "19853ddb42ff.m4a": {
+  "lufs": -16.6,
+  "peak": -1.4,
+  "len": 2.23,
+  "gain": 7.4,
+  "limited": 6
+ },
+ "1b9689759b84.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.554,
+  "gain": 7.5,
+  "limited": 2.8
+ },
+ "1befbfbbf004.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.07,
+  "gain": 7.7,
+  "limited": 0.5
+ },
+ "1c365f307817.m4a": {
+  "lufs": -18.9,
+  "peak": -1.2,
+  "len": 1.171,
+  "gain": 8,
+  "limited": 6
+ },
+ "1c806d9d936f.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.805,
+  "gain": 6.6,
+  "limited": 3.1
+ },
+ "1ec3df49c7b4.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 0.901,
+  "gain": 7.3,
+  "limited": 3.3
+ },
+ "1ffe23e7fe1e.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.39,
+  "gain": 10.2,
+  "limited": 5.9
+ },
+ "2045cd0018f0.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 2.377,
+  "gain": 7.9,
+  "limited": 5.6
+ },
+ "219c3b56c676.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.219,
+  "gain": 6.6,
+  "limited": 2.1
+ },
+ "223f66769d30.m4a": {
+  "lufs": -16.2,
+  "peak": -1.2,
+  "len": 1.31,
+  "gain": 10,
+  "limited": 5.5
+ },
+ "25041c9e3b9b.m4a": {
+  "lufs": -17,
+  "peak": -1.2,
+  "len": 4.31,
+  "gain": 8.5,
+  "limited": 6
+ },
+ "299372203f22.m4a": {
+  "lufs": -16.1,
+  "peak": -2.7,
+  "len": 1.147,
+  "gain": 6.1,
+  "limited": 0
+ },
+ "2c0388664668.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.539,
+  "gain": 6,
+  "limited": 2.9
+ },
+ "2ca4e2e78496.m4a": {
+  "lufs": -16.2,
+  "peak": -1.2,
+  "len": 2.581,
+  "gain": 7.4,
+  "limited": 6
+ },
+ "2cc69833425c.m4a": {
+  "lufs": -16.3,
+  "peak": -1.3,
+  "len": 1.296,
+  "gain": 9.6,
+  "limited": 4.8
+ },
+ "2e555e9c512e.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 1.945,
+  "gain": 6.4,
+  "limited": 5.7
+ },
+ "2f25dc213c22.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 2.394,
+  "gain": 7.4,
+  "limited": 3.4
+ },
+ "2f7923f4e9fc.m4a": {
+  "lufs": -16.1,
+  "peak": -1.1,
+  "len": 2.427,
+  "gain": 5.2,
+  "limited": 1.7
+ },
+ "307e7e1dd684.m4a": {
+  "lufs": -16.1,
+  "peak": -1.1,
+  "len": 1.737,
+  "gain": 6.4,
+  "limited": 2.8
+ },
+ "308cbbc52a74.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.626,
+  "gain": 7.7,
+  "limited": 3.9
+ },
+ "332235d1c2ab.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.522,
+  "gain": 6.9,
+  "limited": 2.1
+ },
+ "35b2145946fa.m4a": {
+  "lufs": -16.1,
+  "peak": -1.1,
+  "len": 1.706,
+  "gain": 7.5,
+  "limited": 3.9
+ },
+ "364e5a2310e1.m4a": {
+  "lufs": -16.2,
+  "peak": -1.2,
+  "len": 1.639,
+  "gain": 10,
+  "limited": 6
+ },
+ "396f792ea269.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.635,
+  "gain": 6.9,
+  "limited": 4.7
+ },
+ "3aa366117acd.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.523,
+  "gain": 5,
+  "limited": 1.8
+ },
+ "3b1a27023c3f.m4a": {
+  "lufs": -16.2,
+  "peak": -1.4,
+  "len": 2.587,
+  "gain": 9.6,
+  "limited": 4.7
+ },
+ "3bc29fed2feb.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.476,
+  "gain": 6.1,
+  "limited": 1.3
+ },
+ "3cab517305e4.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 0.828,
+  "gain": 4.7,
+  "limited": 0.9
+ },
+ "3cedb2e7038d.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.248,
+  "gain": 7.1,
+  "limited": 1.2
+ },
+ "3d964ecbb6e4.m4a": {
+  "lufs": -16.1,
+  "peak": -1.1,
+  "len": 1.939,
+  "gain": 7.1,
+  "limited": 3.4
+ },
+ "3ea8eaf284f1.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.824,
+  "gain": 6.5,
+  "limited": 2.5
+ },
+ "4033baa49a0e.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.437,
+  "gain": 10.1,
+  "limited": 5.6
+ },
+ "4230c35559fa.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.789,
+  "gain": 7,
+  "limited": 2.8
+ },
+ "46a3e5751b97.m4a": {
+  "lufs": -18.3,
+  "peak": -1.4,
+  "len": 1.11,
+  "gain": 6.7,
+  "limited": 6
+ },
+ "47e281e545e0.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.673,
+  "gain": 6,
+  "limited": 2.4
+ },
+ "4880a160b322.m4a": {
+  "lufs": -16,
+  "peak": -1.9,
+  "len": 0.813,
+  "gain": 4,
+  "limited": 0
+ },
+ "48aac3c256f8.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.792,
+  "gain": 10.5,
+  "limited": 5.3
+ },
+ "48ab10a0b898.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.471,
+  "gain": 9.5,
+  "limited": 5.6
+ },
+ "4aaaede5330e.m4a": {
+  "lufs": -18.4,
+  "peak": -1.2,
+  "len": 2.337,
+  "gain": 6,
+  "limited": 6
+ },
+ "4bdd510c82ec.m4a": {
+  "lufs": -16.2,
+  "peak": -1.2,
+  "len": 0.97,
+  "gain": 6.9,
+  "limited": 4.3
+ },
+ "4e6996fc41bc.m4a": {
+  "lufs": -16.1,
+  "peak": -1.6,
+  "len": 1.176,
+  "gain": 5.4,
+  "limited": 0.4
+ },
+ "4eac1838fddf.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.538,
+  "gain": 10.2,
+  "limited": 5.5
+ },
+ "4f34b510aedc.m4a": {
+  "lufs": -16.1,
+  "peak": -2.6,
+  "len": 1.461,
+  "gain": 3.5,
+  "limited": 0
+ },
+ "4f8dce1e08d4.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 3.131,
+  "gain": 8.1,
+  "limited": 5.2
+ },
+ "4facd2a06221.m4a": {
+  "lufs": -16,
+  "peak": -1.3,
+  "len": 1.741,
+  "gain": 7.3,
+  "limited": 3
+ },
+ "511d021420b8.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 1.839,
+  "gain": 10.2,
+  "limited": 3.7
+ },
+ "525390eedcc4.m4a": {
+  "lufs": -16.5,
+  "peak": -1.4,
+  "len": 2.869,
+  "gain": 7.7,
+  "limited": 6
+ },
+ "54e3746bfb45.m4a": {
+  "lufs": -16,
+  "peak": -1.4,
+  "len": 1.172,
+  "gain": 4,
+  "limited": 0
+ },
+ "54e6074a043a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.824,
+  "gain": 6.8,
+  "limited": 3.9
+ },
+ "5793f639fbfd.m4a": {
+  "lufs": -16.1,
+  "peak": -2.6,
+  "len": 0.664,
+  "gain": 9.1,
+  "limited": 0
+ },
+ "58031c87a2d7.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.842,
+  "gain": 5.6,
+  "limited": 0.7
+ },
+ "5b6c870efab8.m4a": {
+  "lufs": -17.1,
+  "peak": -1.3,
+  "len": 1.272,
+  "gain": 9.1,
+  "limited": 6
+ },
+ "5e7a368b85b6.m4a": {
+  "lufs": -16.3,
+  "peak": -1.4,
+  "len": 1.584,
+  "gain": 10.1,
+  "limited": 6
+ },
+ "5e806365117c.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.139,
+  "gain": 7.7,
+  "limited": 3.6
+ },
+ "5f429e11c7f9.m4a": {
+  "lufs": -16.9,
+  "peak": -1.2,
+  "len": 1.38,
+  "gain": 9.8,
+  "limited": 6
+ },
+ "625f20b2ab39.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 0.915,
+  "gain": 6.2,
+  "limited": 1.9
+ },
+ "628fc4120323.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.138,
+  "gain": 6.9,
+  "limited": 1.8
+ },
+ "6532731510b2.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.08,
+  "gain": 8.9,
+  "limited": 3.3
+ },
+ "671e375ca5c6.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 3.748,
+  "gain": 7.7,
+  "limited": 3.5
+ },
+ "67e30612a7c5.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 2.899,
+  "gain": 8.2,
+  "limited": 2.7
+ },
+ "68df5de57304.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.382,
+  "gain": 8.6,
+  "limited": 3.6
+ },
+ "694d314cc81a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.227,
+  "gain": 8.4,
+  "limited": 2.2
+ },
+ "69ac1dc0b07e.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 1.317,
+  "gain": 6.3,
+  "limited": 1.2
+ },
+ "6a0369f6027a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 2.362,
+  "gain": 7.9,
+  "limited": 1.8
+ },
+ "6cee91d68a5e.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.251,
+  "gain": 7,
+  "limited": 1.9
+ },
+ "6d2d20129dce.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.097,
+  "gain": 7.3,
+  "limited": 3.7
+ },
+ "6da460442b3b.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.614,
+  "gain": 8.7,
+  "limited": 2.4
+ },
+ "6f4a4e51dbc4.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.875,
+  "gain": 6.6,
+  "limited": 2.1
+ },
+ "6fd109c8b78c.m4a": {
+  "lufs": -16,
+  "peak": -2.4,
+  "len": 0.86,
+  "gain": 5.7,
+  "limited": 0
+ },
+ "700ca81ebbc3.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.244,
+  "gain": 6.9,
+  "limited": 3.3
+ },
+ "737761347756.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.122,
+  "gain": 9.3,
+  "limited": 4.5
+ },
+ "7391d693480b.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.059,
+  "gain": 6,
+  "limited": 1.7
+ },
+ "744a008e23f8.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 2.225,
+  "gain": 6.6,
+  "limited": 2.5
+ },
+ "775e22c0091e.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.176,
+  "gain": 9.1,
+  "limited": 2
+ },
+ "77fc3980243e.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.163,
+  "gain": 6.5,
+  "limited": 2.7
+ },
+ "782436c302dc.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 2.322,
+  "gain": 10.6,
+  "limited": 4.8
+ },
+ "78d7be7926de.m4a": {
+  "lufs": -19.8,
+  "peak": -1.4,
+  "len": 1.093,
+  "gain": 8.5,
+  "limited": 6
+ },
+ "79d277d7b80f.m4a": {
+  "lufs": -16.1,
+  "peak": -1.8,
+  "len": 1.15,
+  "gain": 5.1,
+  "limited": 0
+ },
+ "7a3f1b8bc196.m4a": {
+  "lufs": -16,
+  "peak": -1.9,
+  "len": 1.27,
+  "gain": 4.3,
+  "limited": 0
+ },
+ "7dd1823f1a63.m4a": {
+  "lufs": -16.3,
+  "peak": -1.2,
+  "len": 1.693,
+  "gain": 8.2,
+  "limited": 6
+ },
+ "7e4b4082273e.m4a": {
+  "lufs": -16.5,
+  "peak": -1.5,
+  "len": 0.334,
+  "gain": 9.8,
+  "limited": 6
+ },
+ "7e824819b3ff.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.899,
+  "gain": 7.8,
+  "limited": 2.9
+ },
+ "8083c4fdb950.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.285,
+  "gain": 7.6,
+  "limited": 2.2
+ },
+ "809f163bc909.m4a": {
+  "lufs": -16.1,
+  "peak": -1.6,
+  "len": 2.582,
+  "gain": 6.2,
+  "limited": 2.3
+ },
+ "816e39b30437.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.939,
+  "gain": 7.6,
+  "limited": 3.6
+ },
+ "816f082e9e45.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 1.071,
+  "gain": 9.4,
+  "limited": 4.1
+ },
+ "8271cf8d81bf.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 2.083,
+  "gain": 4.9,
+  "limited": 0.8
+ },
+ "84988f8164ab.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.014,
+  "gain": 7.7,
+  "limited": 1.6
+ },
+ "864ddf8c6883.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.304,
+  "gain": 9.9,
+  "limited": 1.4
+ },
+ "86cd7a6b7c61.m4a": {
+  "lufs": -16.3,
+  "peak": -1.2,
+  "len": 0.758,
+  "gain": 6.2,
+  "limited": 6
+ },
+ "8734c2b38698.m4a": {
+  "lufs": -16.3,
+  "peak": -1.5,
+  "len": 1.11,
+  "gain": 11.2,
+  "limited": 6
+ },
+ "897370482e99.m4a": {
+  "lufs": -16,
+  "peak": -1.3,
+  "len": 1.585,
+  "gain": 8.7,
+  "limited": 3.4
+ },
+ "8b5e6c8a3f12.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.05,
+  "gain": 9.9,
+  "limited": 4.8
+ },
+ "8ddd68d4a0e5.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 3.173,
+  "gain": 7.5,
+  "limited": 3.4
+ },
+ "8dfd934de6a2.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.218,
+  "gain": 7.4,
+  "limited": 1.9
+ },
+ "8ec34e52808b.m4a": {
+  "lufs": -16.2,
+  "peak": -1.4,
+  "len": 2.273,
+  "gain": 8,
+  "limited": 1.7
+ },
+ "940acf69ccc2.m4a": {
+  "lufs": -16.3,
+  "peak": -1.2,
+  "len": 0.705,
+  "gain": 9.6,
+  "limited": 5.8
+ },
+ "97b0eac0fe84.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.382,
+  "gain": 5.5,
+  "limited": 3
+ },
+ "986fe0e1281b.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.744,
+  "gain": 8.3,
+  "limited": 3.5
+ },
+ "9880b60867fb.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.138,
+  "gain": 6.6,
+  "limited": 4.7
+ },
+ "990fda891709.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.669,
+  "gain": 5.8,
+  "limited": 2
+ },
+ "994c86c07628.m4a": {
+  "lufs": -16,
+  "peak": -2.3,
+  "len": 0.708,
+  "gain": 7.1,
+  "limited": 0
+ },
+ "9ccf5d38f70b.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 0.844,
+  "gain": 6.9,
+  "limited": 2.4
+ },
+ "9d6d2f01d7ce.m4a": {
+  "lufs": -18.8,
+  "peak": -1.1,
+  "len": 0.368,
+  "gain": 9.4,
+  "limited": 6
+ },
+ "9de68f595d6f.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.317,
+  "gain": 8.6,
+  "limited": 4.2
+ },
+ "9e2471691610.m4a": {
+  "lufs": -19,
+  "peak": -1.3,
+  "len": 2.15,
+  "gain": 9.5,
+  "limited": 6
+ },
+ "9f16aa1cd549.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.277,
+  "gain": 7.2,
+  "limited": 1
+ },
+ "9f46f8472c5a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.562,
+  "gain": 5.2,
+  "limited": 0.9
+ },
+ "a039000fcb4f.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 3.481,
+  "gain": 6.7,
+  "limited": 3.5
+ },
+ "a118cef97e16.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.931,
+  "gain": 7.8,
+  "limited": 3.5
+ },
+ "a121b0d46bec.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.072,
+  "gain": 6.4,
+  "limited": 1.8
+ },
+ "a425f376f354.m4a": {
+  "lufs": -16,
+  "peak": -1.4,
+  "len": 1.187,
+  "gain": 8.3,
+  "limited": 3.8
+ },
+ "a71e394c7a0a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.18,
+  "gain": 6.2,
+  "limited": 1.2
+ },
+ "a7708c2ad6bf.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.405,
+  "gain": 8.5,
+  "limited": 0.6
+ },
+ "a8a3757582a7.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 0.567,
+  "gain": 11.2,
+  "limited": 3.2
+ },
+ "aa6f2c3f16b5.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.036,
+  "gain": 8,
+  "limited": 2.8
+ },
+ "ac1af5b9f1ed.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.608,
+  "gain": 6.6,
+  "limited": 2.7
+ },
+ "aceb48f0e4b5.m4a": {
+  "lufs": -17.1,
+  "peak": -1.5,
+  "len": 1.055,
+  "gain": 10.1,
+  "limited": 6
+ },
+ "ad94a2833139.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.461,
+  "gain": 6,
+  "limited": 1.3
+ },
+ "ae06994bd0e9.m4a": {
+  "lufs": -16.2,
+  "peak": -1.5,
+  "len": 0.67,
+  "gain": 8.2,
+  "limited": 0.3
+ },
+ "b1f70e5c4cb9.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.333,
+  "gain": 6.9,
+  "limited": 1.6
+ },
+ "b250a1734c13.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 0.862,
+  "gain": 5.1,
+  "limited": 1.5
+ },
+ "b284aebf1035.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.562,
+  "gain": 6.1,
+  "limited": 2.4
+ },
+ "b2f93babcd78.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.406,
+  "gain": 10.1,
+  "limited": 4.2
+ },
+ "b31aed77292b.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.611,
+  "gain": 4.6,
+  "limited": 1.5
+ },
+ "b33703184a52.m4a": {
+  "lufs": -16,
+  "peak": -1.4,
+  "len": 1.028,
+  "gain": 7.1,
+  "limited": 2.1
+ },
+ "b59c3a3ca9a3.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.439,
+  "gain": 4.9,
+  "limited": 1.2
+ },
+ "b5cec6c0520c.m4a": {
+  "lufs": -16.1,
+  "peak": -2.5,
+  "len": 1.184,
+  "gain": 7.7,
+  "limited": 0
+ },
+ "b814979b7f71.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.037,
+  "gain": 6.9,
+  "limited": 2.8
+ },
+ "b9e25929a409.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.178,
+  "gain": 5.5,
+  "limited": 0.7
+ },
+ "bc6bfa0cd4c3.m4a": {
+  "lufs": -16,
+  "peak": -1.2,
+  "len": 1.855,
+  "gain": 5.6,
+  "limited": 0.6
+ },
+ "bf8c0edc023b.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.151,
+  "gain": 8.5,
+  "limited": 5.9
+ },
+ "c0593728f08b.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.936,
+  "gain": 7.1,
+  "limited": 2.5
+ },
+ "c1a33ddb75bd.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.379,
+  "gain": 5.4,
+  "limited": 1.9
+ },
+ "c27a421d25e0.m4a": {
+  "lufs": -16.2,
+  "peak": -1.7,
+  "len": 0.919,
+  "gain": 6.2,
+  "limited": 0
+ },
+ "c320e280334b.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.694,
+  "gain": 4.8,
+  "limited": 1.5
+ },
+ "c45a624dc3e1.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 2.329,
+  "gain": 7.2,
+  "limited": 3
+ },
+ "c502848f76a1.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 1.138,
+  "gain": 7.3,
+  "limited": 4.4
+ },
+ "c63499001bb9.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.512,
+  "gain": 5.1,
+  "limited": 5.1
+ },
+ "c6fadb3c3d28.m4a": {
+  "lufs": -18.1,
+  "peak": -1.3,
+  "len": 1.055,
+  "gain": 6.2,
+  "limited": 6
+ },
+ "c7b167b63245.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.338,
+  "gain": 9.2,
+  "limited": 4.5
+ },
+ "cae615767ad6.m4a": {
+  "lufs": -16.8,
+  "peak": -1.2,
+  "len": 1.642,
+  "gain": 11.8,
+  "limited": 6
+ },
+ "cbc46b878b7c.m4a": {
+  "lufs": -16.3,
+  "peak": -1.3,
+  "len": 2.62,
+  "gain": 9.3,
+  "limited": 6
+ },
+ "cbd381a6a896.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.25,
+  "gain": 9.7,
+  "limited": 5.2
+ },
+ "cbdcf77e8220.m4a": {
+  "lufs": -17,
+  "peak": -1.2,
+  "len": 1.129,
+  "gain": 8.3,
+  "limited": 6
+ },
+ "cd40ceefa61a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.389,
+  "gain": 6.8,
+  "limited": 1.2
+ },
+ "ce8a7f38e7d5.m4a": {
+  "lufs": -16.2,
+  "peak": -1.2,
+  "len": 3.013,
+  "gain": 10.9,
+  "limited": 5.7
+ },
+ "ceada1e0083d.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.558,
+  "gain": 7.2,
+  "limited": 4
+ },
+ "cf51f3164383.m4a": {
+  "lufs": -16.9,
+  "peak": -1.3,
+  "len": 1.814,
+  "gain": 8.6,
+  "limited": 6
+ },
+ "d00d734217f5.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 2.096,
+  "gain": 9.3,
+  "limited": 3.4
+ },
+ "d048be421180.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 2.089,
+  "gain": 5.7,
+  "limited": 2.9
+ },
+ "d069d66f740c.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.065,
+  "gain": 7.6,
+  "limited": 2
+ },
+ "d08936d0e721.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.07,
+  "gain": 5.8,
+  "limited": 1.7
+ },
+ "d0be797f5d3d.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.946,
+  "gain": 7.2,
+  "limited": 5
+ },
+ "d1bc6d0ec97c.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.753,
+  "gain": 12,
+  "limited": 4.2
+ },
+ "d2ef4482429c.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.439,
+  "gain": 7.6,
+  "limited": 1.3
+ },
+ "d35c7d8f0ee7.m4a": {
+  "lufs": -16.1,
+  "peak": -1.1,
+  "len": 3.03,
+  "gain": 7.3,
+  "limited": 4.7
+ },
+ "d659c4081356.m4a": {
+  "lufs": -16.7,
+  "peak": -1.3,
+  "len": 0.581,
+  "gain": 10.3,
+  "limited": 6
+ },
+ "d7a033f66848.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.99,
+  "gain": 7.1,
+  "limited": 2.9
+ },
+ "da6dd1c00c55.m4a": {
+  "lufs": -16.1,
+  "peak": -1.9,
+  "len": 1.356,
+  "gain": 7.4,
+  "limited": 0
+ },
+ "dba5a2e6f0ec.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.105,
+  "gain": 5.8,
+  "limited": 3.5
+ },
+ "dbc4104cfa21.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.066,
+  "gain": 4.9,
+  "limited": 0.9
+ },
+ "dcaac27b7bf4.m4a": {
+  "lufs": -16.1,
+  "peak": -2.1,
+  "len": 1.31,
+  "gain": 5,
+  "limited": 0
+ },
+ "dd6f49cee393.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.899,
+  "gain": 5.5,
+  "limited": 3.4
+ },
+ "de67c45dacb8.m4a": {
+  "lufs": -16.5,
+  "peak": -1.3,
+  "len": 0.776,
+  "gain": 8.9,
+  "limited": 6
+ },
+ "e0cf3638ed08.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.297,
+  "gain": 10.9,
+  "limited": 5.5
+ },
+ "e0f7dc42c74e.m4a": {
+  "lufs": -16.1,
+  "peak": -1.7,
+  "len": 1.239,
+  "gain": 7.6,
+  "limited": 0
+ },
+ "e1ed98fee536.m4a": {
+  "lufs": -17.5,
+  "peak": -1.3,
+  "len": 1.258,
+  "gain": 10.8,
+  "limited": 6
+ },
+ "e2f8e021efb3.m4a": {
+  "lufs": -16.1,
+  "peak": -1.6,
+  "len": 1.231,
+  "gain": 7.2,
+  "limited": 1.3
+ },
+ "e38caf0d5205.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.106,
+  "gain": 7.8,
+  "limited": 4.5
+ },
+ "e3a19c406124.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.421,
+  "gain": 6.6,
+  "limited": 1.7
+ },
+ "e47d57364827.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.183,
+  "gain": 11.7,
+  "limited": 5.8
+ },
+ "e4e8338fbe20.m4a": {
+  "lufs": -16.2,
+  "peak": -1.4,
+  "len": 0.897,
+  "gain": 9.6,
+  "limited": 1.5
+ },
+ "e5d2ffb9e2b9.m4a": {
+  "lufs": -16.3,
+  "peak": -1.2,
+  "len": 1.028,
+  "gain": 7.1,
+  "limited": 6
+ },
+ "ea28ae108a5c.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.568,
+  "gain": 6.5,
+  "limited": 2.1
+ },
+ "ea781a5531b0.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.391,
+  "gain": 9.7,
+  "limited": 0.3
+ },
+ "ec54e1a0d9bf.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 0.87,
+  "gain": 5.9,
+  "limited": 0.7
+ },
+ "ed9ce0b49275.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.16,
+  "gain": 7.4,
+  "limited": 0.4
+ },
+ "ef3d0970fcd4.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 1.555,
+  "gain": 7,
+  "limited": 4
+ },
+ "f178c56d7167.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 2.266,
+  "gain": 9.4,
+  "limited": 3.2
+ },
+ "f1960aebd129.m4a": {
+  "lufs": -17,
+  "peak": -1.2,
+  "len": 3.686,
+  "gain": 8.2,
+  "limited": 6
+ },
+ "f2af8130929a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 1.463,
+  "gain": 6.6,
+  "limited": 0.9
+ },
+ "f91d7f8cf5cd.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 2.424,
+  "gain": 9,
+  "limited": 2.9
+ },
+ "f92c9f0b3027.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 1.933,
+  "gain": 6.1,
+  "limited": 2.5
+ },
+ "fe647e942095.m4a": {
+  "lufs": -16.1,
+  "peak": -1.3,
+  "len": 3.13,
+  "gain": 6.9,
+  "limited": 2.8
+ },
+ "febff07ec718.m4a": {
+  "lufs": -16.1,
+  "peak": -1.2,
+  "len": 2.638,
+  "gain": 6.6,
+  "limited": 1.6
+ },
+ "ffc93d2506e1.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.444,
+  "gain": 7.5,
+  "limited": 5.9
+ }
+}

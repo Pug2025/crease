@@ -3,10 +3,9 @@
 
 export const SAY = {
   firstUp: 'First up.',
-  next: 'Next.',
   go: 'Go.',
+  goLandSoft: 'Go. Land soft.', // every set of a drill with jumps
   rest: 'Rest.',
-  getReady: 'Get ready.',
   tenSeconds: 'Ten seconds.',
   keepBreathing: 'Keep breathing.',
   lastSet: 'Last set.',
@@ -45,9 +44,25 @@ export const STOP_RULE = {
     'something hurts sharp',
     'your knee hurts just below the kneecap',
     'your heel hurts',
-    'something still hurts the next day',
+    'pain (not sore muscles) still there the next day',
     'you feel dizzy or can\'t catch your breath',
   ],
+};
+
+// Shown once on the welcome screen, under the stop rule. Jamie, 10 November 2026:
+// "we should also explain to him the difference between soreness and pain".
+export const SORE_OR_HURT = {
+  title: 'Sore or hurt?',
+  sore: ['Sore:', 'your muscles ache a day or two after training. That\'s normal. Train.'],
+  hurt: ['Hurt:', 'sharp pain, pain in a joint, below your kneecap or in your heel, or pain that makes you limp. Stop and tell Dad.'],
+};
+// The line under "Does anything hurt right now?" in the check-in.
+export const HURT_QUESTION_NOTE = 'Sore muscles are normal. Tap Yes for sharp pain, or pain in a joint, below the kneecap or in your heel.';
+
+// Today's room hint. The bedroom swaps only the drills that need space; before 9 am only slams swap.
+export const ROOM_HINT = {
+  bedroom: 'Small room: nothing that needs 3 metres.',
+  big: 'Full versions. Clear about 3 metres around you.',
 };
 
 // label: the button. spot: how it reads in a sentence ("You stopped for ___").
@@ -62,6 +77,8 @@ export const PAIN_ZONES = [
   { id: 'other', label: 'Somewhere else', spot: 'something that hurt' },
 ];
 export const spotOf = (id) => PAIN_ZONES.find((z) => z.id === id)?.spot || 'something that hurt';
+// "knee", "just below the kneecap", "somewhere else": for "Last time it hurt: ___."
+export const zoneWord = (id) => (PAIN_ZONES.find((z) => z.id === id)?.label || 'Somewhere else').toLowerCase();
 
 export const FEEL = [
   { id: 'good', label: 'Good' },

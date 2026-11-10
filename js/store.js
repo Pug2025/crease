@@ -4,18 +4,21 @@
 const KEY = 'crease.save';
 const VERSION = 1;
 
-function blank() {
+// New fields always get a safe default here, so an older save keeps working.
+export function blank() {
   return {
     v: VERSION,
     created: new Date().toISOString(),
     setupDone: false,
     // His med ball doesn't bounce (Jamie, 10 November 2026), so slams are always allowed. No band drills remain.
     settings: { ball: 'dead', band: false },
+    // Sessions. A pain entry can also carry dadSeen (Dad tapped Seen) and cleared (Dad: he's OK to train today).
     log: [],
-    seenAlerts: [],
-    days: {}, // check-in answers by date: { '2026-11-10': { today, tomorrow } }
+    seenAlerts: [], // old saves only: notices he closed himself. Only Dad's Seen clears a pain notice now.
+    days: {}, // first check-in of each day: { '2026-11-10': { today, tomorrow, when, type, at } }
     dadPin: null, // scrambled, never the PIN itself
     versions: {}, // Dad's chosen version per drill: { ST1: 0 } (0 Easier, 1 Standard, 2 Harder)
+    lights: [], // every Lights round: { date, ms, counted, taps }. It never counts as a session.
   };
 }
 
@@ -26,7 +29,15 @@ export function load() {
       const s = JSON.parse(raw);
       if (s && s.v === VERSION) {
         const b = blank();
-        return { ...b, ...s, settings: { ...b.settings, ...s.settings, ball: 'dead' }, days: s.days || {}, versions: s.versions || {} };
+        return {
+          ...b,
+          ...s,
+          settings: { ...b.settings, ...s.settings, ball: 'dead' },
+          log: Array.isArray(s.log) ? s.log : [],
+          days: s.days || {},
+          versions: s.versions || {},
+          lights: Array.isArray(s.lights) ? s.lights : [],
+        };
       }
     }
   } catch {}
@@ -40,6 +51,13 @@ export function save(s) {
 export function wipe() {
   try { localStorage.removeItem(KEY); } catch {}
   return blank();
+}
+
+// Dad's PIN is saved scrambled, so the saved data never holds the four digits.
+export async function scramble(pin) {
+  const data = new TextEncoder().encode(`crease:${pin}`);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 // Ask the phone to keep this storage even when space runs low.

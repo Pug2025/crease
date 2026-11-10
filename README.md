@@ -11,4 +11,4 @@ It works offline and keeps all progress on the phone.
 
 Run `node tests.mjs` after editing. `./deploy.sh "message"` records new voice lines, runs the tests and publishes.
 
-Drawings are made with an image model from one style reference. Voice lines are recorded with macOS `say`.
+Drawings are made with an image model from one style reference. Voice lines are recorded with OpenAI's speech API (`tools/make-voice.mjs`, the key passed in for the run only) and levelled to about -16 LUFS (`tools/loudness.mjs`).

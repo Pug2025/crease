@@ -17,12 +17,14 @@ const tags = (d) => {
   return t.join(' · ');
 };
 
-const quietLine = (d) => {
-  if (d.quiet === undefined) return null;
-  if (typeof d.quiet === 'string') return `Quiet swap: ${DRILLS.find((x) => x.id === d.quiet).name}.`;
-  if (typeof d.quiet === 'number') return `Quiet swap: the ${d.versions[d.quiet].name} version.`;
-  return `Quiet swap: ${d.quiet.name} (${d.quiet.how.replace(/\.$/, '')}).`;
+const swapLine = (d, field, label) => {
+  const to = d[field];
+  if (to === undefined) return null;
+  if (typeof to === 'string') return `${label}: ${DRILLS.find((x) => x.id === to).name}.`;
+  if (typeof to === 'number') return `${label}: ${d.versions[to].title || `the ${d.versions[to].name} version`}.`;
+  return `${label}: ${to.name} (${to.how.replace(/\.$/, '')}).`;
 };
+const quietLine = (d) => [swapLine(d, 'bedroom', d.slam ? 'Bedroom and before 9 am' : 'Bedroom'), swapLine(d, 'noJump', 'Jumps off')].filter(Boolean).join(' ') || null;
 
 const out = [];
 for (const [g, title] of GROUPS) {
