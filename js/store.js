@@ -9,7 +9,8 @@ function blank() {
     v: VERSION,
     created: new Date().toISOString(),
     setupDone: false,
-    settings: { ball: 'none', band: false },
+    // His med ball doesn't bounce (Jamie, 10 November 2026), so slams are always allowed. No band drills remain.
+    settings: { ball: 'dead', band: false },
     log: [],
     seenAlerts: [],
     days: {}, // check-in answers by date: { '2026-11-10': { today, tomorrow } }
@@ -25,7 +26,7 @@ export function load() {
       const s = JSON.parse(raw);
       if (s && s.v === VERSION) {
         const b = blank();
-        return { ...b, ...s, settings: { ...b.settings, ...s.settings }, days: s.days || {}, versions: s.versions || {} };
+        return { ...b, ...s, settings: { ...b.settings, ...s.settings, ball: 'dead' }, days: s.days || {}, versions: s.versions || {} };
       }
     }
   } catch {}

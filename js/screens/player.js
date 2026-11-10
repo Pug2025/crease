@@ -8,11 +8,13 @@ import { PAIN_ZONES, STOP_RULE, SAY } from '../../data/copy.js';
 
 const SIDE = { L: 'Left', R: 'Right' };
 
-export function render(root, app, { session, extra = false }) {
+// dad: started from Dad's screen, so it gets skip buttons to click through quickly.
+export function render(root, app, { session, extra = false, dad = false }) {
   const log = {
     date: new Date().toISOString(),
     type: session.type,
     extra,
+    dad,
     room: session.ctx.room,
     feel: session.ctx.feel,
     planned: session.drills,
@@ -33,6 +35,10 @@ export function render(root, app, { session, extra = false }) {
     <div class="pl-board"><img class="pl-draw" alt=""></div>
     <div class="pl-cue"></div>
     <button class="pl-sound" data-act="fixSound" hidden>Sound is off. Tap to fix.</button>
+    ${dad ? `<div class="pl-dad">
+      <button class="pbtn-dad" data-act="nextStep">Next step ›</button>
+      <button class="pbtn-dad" data-act="nextDrill">Next drill »</button>
+    </div>` : ''}
     <div class="pl-buttons">
       <button class="pbtn pbtn-pause" data-act="pause">Pause</button>
       <button class="pbtn pbtn-done" data-act="done" hidden>Done</button>
@@ -170,6 +176,8 @@ export function render(root, app, { session, extra = false }) {
     pause: () => { runner.pause(); audio.hush(); pauseSheet(); },
     resume: () => { closeSheet(); audio.unlock(); keepAwake(); runner.resume(); },
     done: () => { runner.jumpTo(runner.afterCurrent()); },
+    nextStep: () => { audio.hush(); runner.jumpTo(runner.afterCurrent()); },
+    nextDrill: () => { audio.hush(); runner.jumpTo(runner.nextDrillIndex()); },
     stop: () => {
       runner.pause();
       audio.hush();

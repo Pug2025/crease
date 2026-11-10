@@ -50,7 +50,7 @@ export function render(root, app, { unlocked = false } = {}) {
   on(root, {
     back: () => app.go('settings'),
     counts: (v) => { app.dadCounts = v === 'yes'; render(root, app, { unlocked: true }); },
-    run: (type) => app.go('preview', { type, reason: counts ? 'Picked by Dad.' : 'Test run. It doesn\'t count as a session.', extra: !counts, from: 'dad' }),
+    run: (type) => app.go('preview', { type, reason: counts ? 'Picked by Dad.' : 'Test run. It doesn\'t count as a session.', extra: !counts, dad: true }),
     ver: (arg) => {
       const [id, k] = arg.split(':');
       const d = DRILLS.find((x) => x.id === id);

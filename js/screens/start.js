@@ -87,7 +87,7 @@ function whereItHurts(root, app) {
   });
 }
 
-export function preview(root, app, { type, reason = '', extra = false }) {
+export function preview(root, app, { type, reason = '', extra = false, dad = false }) {
   const s = app.save;
   const ctx = makeContext({ room: app.room || 'big', ball: s.settings.ball, band: s.settings.band, versions: s.versions });
   const session = buildSession(type, ctx);
@@ -124,14 +124,14 @@ export function preview(root, app, { type, reason = '', extra = false }) {
 
   on(root, {
     back: () => app.go('home'),
-    drill: (k) => app.go('drill', { item: session.items[+k], back: ['preview', { type, reason, extra }] }),
+    drill: (k) => app.go('drill', { item: session.items[+k], back: ['preview', { type, reason, extra, dad }] }),
     start: async (arg, btn) => {
       btn.disabled = true;
       btn.textContent = 'Loading';
       audio.unlock();
       keepAwake();
       await audio.preload(phrasesOf(session));
-      app.go('player', { session, extra });
+      app.go('player', { session, extra, dad });
     },
   });
 }

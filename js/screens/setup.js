@@ -28,7 +28,7 @@ export function welcome(root, app) {
     <p class="small">There's a Stop button on screen the whole time.</p>
     <button class="btn btn-primary" data-act="next">Got it</button>
   </main>`;
-  on(root, { next: () => app.go('gear') });
+  on(root, { next: () => app.go('sound') });
 }
 
 const BALL = [
@@ -71,7 +71,7 @@ export function gear(root, app, { fromSettings = false } = {}) {
 export function sound(root, app, { fromSettings = false } = {}) {
   root.innerHTML = `
   <main class="screen sound">
-    <p class="kicker">${fromSettings ? 'Settings' : 'Last step'}</p>
+    <p class="kicker">${fromSettings ? 'Settings' : 'One more thing'}</p>
     <h1>Sound check</h1>
     <p class="lead">The coach talks you through every session, so you can keep the phone on the floor.</p>
     <button class="btn btn-big" data-act="play">Play the voice</button>

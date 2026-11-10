@@ -3,8 +3,6 @@ import { esc, on } from '../ui.js';
 import { wipe } from '../store.js';
 import { BUILD } from '../version.js';
 
-const BALL = { dead: 'Slam ball (doesn\'t bounce)', bouncy: 'Bouncy ball, no slams', none: 'No med ball' };
-
 export function render(root, app) {
   const s = app.save.settings;
   const draw = (confirm = false) => {
@@ -13,7 +11,6 @@ export function render(root, app) {
       <button class="back" data-act="back">Back</button>
       <h1>Settings</h1>
       <section class="set-group">
-        <button class="set-row" data-act="gear"><span>Gear</span><small>${esc(BALL[s.ball])} · ${s.band ? 'mini band' : 'no band'}</small></button>
         <button class="set-row" data-act="sound"><span>Sound check</span></button>
         <button class="set-row" data-act="dad"><span>For Dad</span><small>PIN</small></button>
       </section>
@@ -36,7 +33,6 @@ export function render(root, app) {
   draw();
   on(root, {
     back: () => app.go('home'),
-    gear: () => app.go('gear', { fromSettings: true }),
     sound: () => app.go('sound', { fromSettings: true }),
     dad: () => app.go('dad'),
     ask: () => draw(true),
