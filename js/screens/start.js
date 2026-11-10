@@ -1,76 +1,99 @@
-// Before a session: how he feels, the game-tomorrow check, and the preview with Start.
+// Before a session: the check-in that decides it, then the preview with Start.
 import { esc, on, minutes, stopRuleHtml } from '../ui.js';
-import { SESSIONS } from '../../data/sessions.js';
-import { FEEL, STOP_RULE } from '../../data/copy.js';
+import { STOP_RULE, PAIN_ZONES, spotOf } from '../../data/copy.js';
 import { buildSession, makeContext, phrasesOf } from '../plan/build.js';
+import { decide, reasonText, knownYesterdayGame, dayKey } from '../plan/decide.js';
 import * as audio from '../timer/audio.js';
 import { keepAwake } from '../timer/wakelock.js';
 
-export function feel(root, app, { type }) {
+const HOCKEY = [
+  { id: 'game', label: 'A game' },
+  { id: 'practice', label: 'Practice or clinic' },
+  { id: 'none', label: 'No hockey' },
+];
+
+// The questions, in order. Each is asked only when it matters.
+const QUESTIONS = [
+  { key: 'today', title: 'Any hockey today?', choices: HOCKEY },
+  {
+    key: 'when', title: 'Before or after the game?', only: (a) => a.today === 'game',
+    choices: [{ id: 'before', label: 'Before. The game is later.' }, { id: 'after', label: 'After. I already played.' }],
+  },
+  { key: 'tomorrow', title: 'Any hockey tomorrow?', only: (a) => !(a.today === 'game' && a.when === 'before'), choices: HOCKEY },
+  {
+    key: 'yesterdayGame', title: 'Did you have a game yesterday?',
+    only: (a, app) => a.today !== 'game' && a.tomorrow !== 'game' && knownYesterdayGame(app.save.log, app.save.days) === undefined,
+    choices: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }],
+  },
+  { key: 'hurts', title: 'Does anything hurt right now?', choices: [{ id: 'no', label: 'No' }, { id: 'yes', label: 'Yes' }] },
+];
+
+export function checkin(root, app, { step = 0, answers = {} }) {
+  let i = step;
+  while (i < QUESTIONS.length && QUESTIONS[i].only && !QUESTIONS[i].only(answers, app)) i++;
+  if (i >= QUESTIONS.length) { finish(root, app, answers); return; }
+  const q = QUESTIONS[i];
+
   root.innerHTML = `
-  <main class="screen feel">
+  <main class="screen checkin">
     <button class="back" data-act="back">Back</button>
-    <p class="kicker">${esc(SESSIONS[type].name)}</p>
-    <h1>How do you feel?</h1>
-    <div class="choices">
-      ${FEEL.map((f) => `<button class="choice" data-act="pick" data-arg="${f.id}"><span>${esc(f.label)}</span>${f.note ? `<small>${esc(f.note)}</small>` : ''}</button>`).join('')}
+    <p class="kicker">Check-in</p>
+    <h1>${esc(q.title)}</h1>
+    <div class="choices ${q.choices.length === 2 ? 'row' : ''}">
+      ${q.choices.map((c) => `<button class="choice" data-act="pick" data-arg="${c.id}"><span>${esc(c.label)}</span></button>`).join('')}
     </div>
   </main>`;
   on(root, {
     back: () => app.go('home'),
-    pick: (f) => {
-      if (f === 'sick') { message(root, app, 'Sick', 'No training today. Rest up and drink water.'); return; }
-      if (f === 'sore' && type !== 'stretch') {
-        message(root, app, 'Sore', 'Stretch only today. Easy on anything that hurts.', { label: 'Do Stretch', go: ['preview', { type: 'stretch', feel: 'good' }] });
-        return;
-      }
-      const next = { type, feel: f === 'tired' ? 'tired' : 'good' };
-      app.go(SESSIONS[type].checkGameTomorrow ? 'game' : 'preview', next);
+    pick: (id) => {
+      const value = q.key === 'yesterdayGame' ? id === 'yes' : q.key === 'hurts' ? id === 'yes' : id;
+      app.go('checkin', { step: i + 1, answers: { ...answers, [q.key]: value } });
     },
   });
 }
 
-function message(root, app, title, text, action) {
-  root.innerHTML = `
-  <main class="screen message">
-    <h1>${esc(title)}</h1>
-    <p class="lead">${esc(text)}</p>
-    ${action ? `<button class="btn btn-primary" data-act="go">${esc(action.label)}</button>` : ''}
-    <button class="btn" data-act="home">Back to Today</button>
-  </main>`;
-  on(root, { home: () => app.go('home'), go: () => app.go(...action.go) });
+function finish(root, app, answers) {
+  const s = app.save;
+  if (answers.hurts) { whereItHurts(root, app); return; }
+  if (answers.today) {
+    s.days[dayKey(new Date())] = { today: answers.today, tomorrow: answers.tomorrow ?? null };
+    app.persist();
+  }
+  const d = decide(answers, s.log, s.days);
+  if (!d.type) { app.go('home'); return; }
+  app.go('preview', { type: d.type, reason: reasonText(d) });
 }
 
-export function game(root, app, params) {
+function whereItHurts(root, app) {
   root.innerHTML = `
-  <main class="screen game">
-    <button class="back" data-act="back">Back</button>
-    <p class="kicker">${esc(SESSIONS[params.type].name)}</p>
-    <h1>Game tomorrow?</h1>
-    <div class="choices row">
-      <button class="choice" data-act="yes"><span>Yes</span></button>
-      <button class="choice" data-act="no"><span>No</span></button>
-    </div>
+  <main class="screen hurts">
+    <p class="kicker">Check-in</p>
+    <h1>Where does it hurt?</h1>
+    <div class="zones">${PAIN_ZONES.map((z) => `<button class="choice" data-act="zone" data-arg="${z.id}"><span>${esc(z.label)}</span></button>`).join('')}</div>
   </main>`;
   on(root, {
-    back: () => app.go('home'),
-    yes: () => message(root, app, 'Game tomorrow.',
-      params.type === 'power'
-        ? 'Power waits. Jumping today leaves your legs heavy tomorrow.'
-        : 'Save the wall sits and lunges for after the game. Your legs should be fresh.',
-      { label: 'Do Stretch', go: ['preview', { type: 'stretch', feel: params.feel }] }),
-    no: () => app.go('preview', params),
+    zone: (zone) => {
+      app.save.log.push({ date: new Date().toISOString(), type: null, completed: false, done: [], skipped: [], stopped: { why: 'hurt-before', zone } });
+      app.persist();
+      root.innerHTML = `
+      <main class="screen message">
+        <h1>No training today.</h1>
+        <p class="lead">Show Dad ${esc(zone === 'other' ? 'where it hurts' : spotOf(zone))} and tell him how it feels. Train again once he's had a look.</p>
+        ${stopRuleHtml(STOP_RULE)}
+        <button class="btn btn-primary" data-act="home">Back to Today</button>
+      </main>`;
+      on(root, { home: () => app.go('home') });
+    },
   });
 }
 
-export function preview(root, app, { type, feel = 'good' }) {
-  const s = app.save.settings;
-  const ctx = makeContext({ room: app.room || 'big', feel, ball: s.ball, band: s.band });
+export function preview(root, app, { type, reason = '', extra = false }) {
+  const s = app.save;
+  const ctx = makeContext({ room: app.room || 'big', ball: s.settings.ball, band: s.settings.band, versions: s.versions });
   const session = buildSession(type, ctx);
   const notes = [];
   if (ctx.small) notes.push('Bedroom: quiet versions.');
   else if (ctx.quiet) notes.push('Before 9 am: quiet versions.');
-  if (feel === 'tired') notes.push('Tired: one set fewer.');
 
   let lastBlock = null;
   const rows = session.items.map((it, k) => {
@@ -88,8 +111,9 @@ export function preview(root, app, { type, feel = 'good' }) {
   root.innerHTML = `
   <main class="screen preview">
     <button class="back" data-act="back">Back</button>
-    <p class="kicker">${minutes(session.total)} min · ${session.drills} drills</p>
+    <p class="kicker">Today · ${minutes(session.total)} min · ${session.drills} drills</p>
     <h1>${esc(session.name)}</h1>
+    ${reason ? `<p class="reason">${esc(reason)}</p>` : ''}
     ${notes.length ? `<p class="hint">${esc(notes.join(' '))}</p>` : ''}
     <p class="small">Tap a drill to see how it's done.</p>
     <ul class="drill-list">${rows}</ul>
@@ -100,14 +124,14 @@ export function preview(root, app, { type, feel = 'good' }) {
 
   on(root, {
     back: () => app.go('home'),
-    drill: (k) => app.go('drill', { item: session.items[+k], back: ['preview', { type, feel }] }),
+    drill: (k) => app.go('drill', { item: session.items[+k], back: ['preview', { type, reason, extra }] }),
     start: async (arg, btn) => {
       btn.disabled = true;
       btn.textContent = 'Loading';
       audio.unlock();
       keepAwake();
       await audio.preload(phrasesOf(session));
-      app.go('player', { session });
+      app.go('player', { session, extra });
     },
   });
 }

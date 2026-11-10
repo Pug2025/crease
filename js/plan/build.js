@@ -9,9 +9,15 @@ const INTRO = 10;
 const SWITCH = 5;
 const MIN_GAP = 4; // seconds between two spoken cues
 
-export function makeContext({ room = 'big', hour = new Date().getHours(), feel = 'good', ball = 'none', band = false } = {}) {
-  return { room, hour, feel, ball, band, quiet: room === 'bedroom' || hour < 9, small: room === 'bedroom' };
+// versions: Dad's chosen version per drill id ({ ST1: 0 }); anything not listed uses the drill's start.
+export function makeContext({ room = 'big', hour = new Date().getHours(), feel = 'good', ball = 'none', band = false, versions = {} } = {}) {
+  return { room, hour, feel, ball, band, versions, quiet: room === 'bedroom' || hour < 9, small: room === 'bedroom' };
 }
+
+const chosenVersion = (drill, ctx) => {
+  const v = ctx.versions?.[drill.id];
+  return Number.isInteger(v) && v >= 0 && v < drill.versions.length ? v : drill.start;
+};
 
 // What he will actually do for one session item, after gear, room and time-of-day swaps.
 export function resolveItem(item, ctx) {
@@ -23,13 +29,13 @@ export function resolveItem(item, ctx) {
   if (drill.noBand && !ctx.band) swapTo(drill.noBand);
   if (drill.slam && ctx.ball !== 'dead' && typeof drill.quiet === 'string') swapTo(drill.quiet);
 
-  let v = drill.start;
+  let v = chosenVersion(drill, ctx);
   let version = drill.versions[v];
   const noise = version.noise ?? drill.noise;
   const space = version.space ?? drill.space;
   if (((ctx.quiet && noise !== 'quiet') || (ctx.small && space === 'big')) && drill.quiet !== undefined) {
     const q = drill.quiet;
-    if (typeof q === 'string') { swapTo(q); v = drill.start; }
+    if (typeof q === 'string') { swapTo(q); v = chosenVersion(drill, ctx); }
     else if (typeof q === 'number') v = q;
     else variant = q;
   }

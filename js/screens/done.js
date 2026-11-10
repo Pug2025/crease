@@ -2,6 +2,7 @@
 import { esc, on, minutes, stopRuleHtml } from '../ui.js';
 import { spotOf, STOP_RULE } from '../../data/copy.js';
 import { byId } from '../../data/exercises.js';
+import { counts } from '../plan/decide.js';
 
 const WHY = { hard: 'too hard', here: 'couldn\'t do it here', hurts: 'it hurt' };
 
@@ -9,7 +10,7 @@ export function render(root, app, { session, log }) {
   const pain = log.stopped?.why === 'pain';
   const zone = pain ? spotOf(log.stopped.zone) : '';
   const title = log.completed ? 'Done.' : pain ? 'Stopped.' : log.stopped ? 'Ended early.' : 'Too many skips.';
-  const total = app.save.log.filter((e) => e.completed || e.stopped?.why === 'pain').length;
+  const total = app.save.log.filter(counts).length;
 
   root.innerHTML = `
   <main class="screen done">

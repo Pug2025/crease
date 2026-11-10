@@ -8,10 +8,11 @@ import { PAIN_ZONES, STOP_RULE, SAY } from '../../data/copy.js';
 
 const SIDE = { L: 'Left', R: 'Right' };
 
-export function render(root, app, { session }) {
+export function render(root, app, { session, extra = false }) {
   const log = {
     date: new Date().toISOString(),
     type: session.type,
+    extra,
     room: session.ctx.room,
     feel: session.ctx.feel,
     planned: session.drills,

@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { SESSION_ORDER } from '../data/sessions.js';
+import { DRILLS } from '../data/exercises.js';
 import { SAY } from '../data/copy.js';
 import { buildSession, makeContext, phrasesOf } from '../js/plan/build.js';
 
@@ -24,15 +25,17 @@ const COACH =
 const outDir = path.resolve('audio');
 fs.mkdirSync(outDir, { recursive: true });
 
-// Every context a session can be built in.
+// Every context a session can be built in, including every version Dad can set.
+const everyDrillAt = (v) => Object.fromEntries(DRILLS.map((d) => [d.id, Math.min(v, d.versions.length - 1)]));
+const versionSets = [{}, everyDrillAt(0), everyDrillAt(1), everyDrillAt(2)];
 const phrases = new Set([SAY.soundCheck, SAY.sessionDone]);
 for (const type of SESSION_ORDER)
   for (const room of ['bedroom', 'big'])
     for (const hour of [7, 15])
-      for (const feel of ['good', 'tired'])
-        for (const ball of ['dead', 'bouncy', 'none'])
-          for (const band of [true, false])
-            phrasesOf(buildSession(type, makeContext({ room, hour, feel, ball, band }))).forEach((p) => phrases.add(p));
+      for (const ball of ['dead', 'bouncy', 'none'])
+        for (const band of [true, false])
+          for (const versions of versionSets)
+            phrasesOf(buildSession(type, makeContext({ room, hour, ball, band, versions }))).forEach((p) => phrases.add(p));
 
 // How a line should sound, where the written form would be read oddly.
 const spoken = (p) => p.replace(/90\/90/g, 'ninety ninety').replace(/&/g, 'and').replace(/\bT-Push\b/g, 'T push');

@@ -7,8 +7,9 @@ export function render(root, app, { item, back }) {
   const demos = DEMOS[d.id] || [];
   const versions = d.versions.map((v, k) => `
     <li class="${k === item.v ? 'current' : ''}">
-      <span class="v-name">${esc(v.name)}${k === item.v ? ' <small>you</small>' : ''}</span>
-      ${v.how ? `<span class="v-how">${esc(v.how)}</span>` : ''}
+      <span class="v-mark" aria-hidden="true">${k === item.v ? '●' : '○'}</span>
+      <span><span class="v-name">${esc(v.name)}${k === item.v ? ' <small>what you do now</small>' : ''}</span>
+      ${v.how ? `<span class="v-how">${esc(v.how)}</span>` : ''}</span>
     </li>`).join('');
 
   root.innerHTML = `
@@ -30,6 +31,7 @@ export function render(root, app, { item, back }) {
       </a></li>`).join('')}</ul><p class="small">Videos need the internet. The drawing works without it.</p>` : ''}
     <h2>Versions</h2>
     <ul class="versions">${versions}</ul>
+    ${d.versions.length > 1 ? '<p class="small">Dad moves you up or down from his screen once he\'s watched you.</p>' : ''}
     ${item.swappedFrom ? `<p class="small">In place of ${esc(item.swappedFrom.name)} today.</p>` : ''}
   </main>`;
   on(root, { back: () => app.go(...back) });

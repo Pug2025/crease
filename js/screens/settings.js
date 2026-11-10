@@ -15,10 +15,11 @@ export function render(root, app) {
       <section class="set-group">
         <button class="set-row" data-act="gear"><span>Gear</span><small>${esc(BALL[s.ball])} · ${s.band ? 'mini band' : 'no band'}</small></button>
         <button class="set-row" data-act="sound"><span>Sound check</span></button>
+        <button class="set-row" data-act="dad"><span>For Dad</span><small>PIN</small></button>
       </section>
       <section class="howto">
         <h2>How it works</h2>
-        <p>Pick a session. The coach's voice runs it, so the phone can stay on the floor. Blue screen means work. White means rest or get ready.</p>
+        <p>Tap Start and answer a few questions. The app picks today's session from your hockey and what you've done lately. The coach's voice runs it, so the phone can stay on the floor. Blue screen means work. White means rest or get ready.</p>
         <p>Before 9 am, or in your bedroom, you get quiet versions of the loud drills.</p>
         <p>Tap a drill before you start to see how it's done. Most have a video.</p>
       </section>
@@ -37,6 +38,7 @@ export function render(root, app) {
     back: () => app.go('home'),
     gear: () => app.go('gear', { fromSettings: true }),
     sound: () => app.go('sound', { fromSettings: true }),
+    dad: () => app.go('dad'),
     ask: () => draw(true),
     cancel: () => draw(false),
     wipe: () => { app.save = wipe(); app.go('welcome'); },

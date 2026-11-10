@@ -181,12 +181,33 @@ img { max-width: 100%; }
 .demo > span:first-child::after { content: '▶'; color: var(--crease); }
 .demo small { color: var(--ink2); font-weight: 400; margin-left: 8px; }
 .demo-note { color: var(--ink2); font-size: .95rem; }
-.versions { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-.versions li { display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; border: 2px solid var(--line); }
-.versions li.current { border-color: var(--crease); }
+/* Versions on the drill card are information, not buttons: Dad changes them from his screen. */
+.versions { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.versions li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; color: var(--ink2); }
+.versions li.current { color: var(--ink); }
+.v-mark { color: var(--crease); font-size: 1rem; line-height: 1.5; }
+.versions li > span:last-child { display: grid; gap: 1px; }
 .v-name { font-weight: 700; }
-.v-name small { color: var(--crease-deep); margin-left: 6px; }
-.v-how { color: var(--ink2); font-size: .98rem; }
+.v-name small { color: var(--crease-deep); margin-left: 6px; font-weight: 700; }
+.v-how { font-size: .98rem; }
+
+/* Today and the check-in */
+.btn-start { margin-top: 10px; min-height: 96px; font-size: 2.2rem; }
+.center { text-align: center; }
+.reason { font-weight: 700; font-size: 1.15rem; color: var(--crease-deep); }
+.today-done { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 6px; }
+.today-done h2 { font-family: var(--display); font-weight: 900; font-size: 2.2rem; text-transform: uppercase; margin: 0; }
+.checkin .choice { min-height: 76px; }
+.checkin .choice span { font-size: 1.35rem; }
+
+/* Dad's screen */
+.pin-input { font: inherit; font-size: 2rem; letter-spacing: .4em; text-align: center; padding: 12px; border: 2px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink); width: 100%; }
+.ver-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.ver-row { display: grid; gap: 6px; padding: 10px 12px; background: var(--card); border: 2px solid var(--line); border-radius: 14px; }
+.ver-name { font-weight: 700; }
+.ver-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
+.ver-seg button { min-height: 44px; border-radius: 10px; border: 2px solid var(--line); background: transparent; font-weight: 700; font-size: .95rem; }
+.ver-seg button[aria-pressed="true"] { background: var(--ink); color: var(--ice); border-color: var(--ink); }
 
 /* Done */
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 6px 0; }

@@ -7,6 +7,7 @@ import * as drill from './screens/drill.js';
 import * as player from './screens/player.js';
 import * as done from './screens/done.js';
 import * as settings from './screens/settings.js';
+import * as dad from './screens/dad.js';
 
 const root = document.getElementById('app');
 
@@ -16,9 +17,9 @@ const screens = {
   gear: setup.gear,
   sound: setup.sound,
   home: home.render,
-  feel: start.feel,
-  game: start.game,
+  checkin: start.checkin,
   preview: start.preview,
+  dad: dad.render,
   drill: drill.render,
   player: player.render,
   done: done.render,

@@ -12,6 +12,9 @@ function blank() {
     settings: { ball: 'none', band: false },
     log: [],
     seenAlerts: [],
+    days: {}, // check-in answers by date: { '2026-11-10': { today, tomorrow } }
+    dadPin: null, // scrambled, never the PIN itself
+    versions: {}, // Dad's chosen version per drill: { ST1: 0 } (0 Easier, 1 Standard, 2 Harder)
   };
 }
 
@@ -22,7 +25,7 @@ export function load() {
       const s = JSON.parse(raw);
       if (s && s.v === VERSION) {
         const b = blank();
-        return { ...b, ...s, settings: { ...b.settings, ...s.settings } };
+        return { ...b, ...s, settings: { ...b.settings, ...s.settings }, days: s.days || {}, versions: s.versions || {} };
       }
     }
   } catch {}
