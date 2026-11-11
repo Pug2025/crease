@@ -4,6 +4,16 @@ import { esc, on, minutes, stopRuleHtml } from '../ui.js';
 import { spotOf, STOP_RULE } from '../../data/copy.js';
 import { byId } from '../../data/exercises.js';
 import { weekStats, weekStripHtml, seasonStats, isTest } from './home.js';
+import { settleSplits, splitsState } from '../plan/splits.js';
+
+// One line about the splits ladder, when he did today's hold. Nothing when he didn't.
+export function splitsDone(st, moved, did) {
+  if (!did) return '';
+  if (moved) return `Splits: next rung. ${st.r.name}.`;
+  if (st.waiting) return 'Splits: ready for Dad to watch.';
+  if (st.top) return 'Splits: you can do the splits.';
+  return `Splits: ${st.holds} of ${st.need} holds on ${st.r.name}.`;
+}
 
 const WHY = { hard: 'too hard', here: 'couldn\'t do it here', hurts: 'it hurt' };
 
@@ -35,6 +45,11 @@ export function render(root, app, { session, log, test = false }) {
   const { title, line } = doneWords(log, { test: isTestRun });
   const s = app.save;
   const season = seasonStats(s.log);
+  // The hold is already in his record by now, so the ladder settles here.
+  const didSplits = !isTestRun && session.items.some((it) => it.block === 'Splits');
+  const moved = !isTestRun && settleSplits(s, new Date());
+  if (moved) app.persist();
+  const splitsLine = splitsDone(splitsState(s), moved, didSplits);
 
   root.innerHTML = `
   <main class="screen done">
@@ -51,6 +66,7 @@ export function render(root, app, { session, log, test = false }) {
       <div><dt>Drills</dt><dd>${log.done.length}<small> of ${log.planned}</small></dd></div>
     </dl>
     ${log.skipped.length ? `<p class="small">Skipped: ${log.skipped.map((k) => `${esc(byId[k.id]?.name || k.id)} (${WHY[k.why] || esc(k.why)})`).join(', ')}.</p>` : ''}
+    ${splitsLine ? `<p class="season splits-done">${esc(splitsLine)}</p>` : ''}
     ${isTestRun ? '' : `
       ${weekStripHtml(weekStats(s.log, s.days))}
       <p class="season">Season: <b>${season.sessions}</b> ${season.sessions === 1 ? 'session' : 'sessions'} · <b>${season.mins}</b> min</p>`}

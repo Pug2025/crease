@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import { DRILLS, byId } from './data/exercises.js';
 import { SESSIONS, SESSION_ORDER } from './data/sessions.js';
 import { DEMOS } from './data/demos.js';
-import { buildSession, makeContext, phrasesOf, resolveItem, everyContext } from './js/plan/build.js';
+import { SPLIT_DRILLS, LADDER, TOP, HOLDS, PAUSE_ZONES } from './data/splits.js';
+import { buildSession, makeContext, phrasesOf, resolveItem, everyContext, everyLadder } from './js/plan/build.js';
 
 let failed = 0;
 let passed = 0;
@@ -11,7 +12,7 @@ const ok = (cond, msg) => { if (cond) passed++; else { failed++; console.log('FA
 
 // 1. The drill file is complete and consistent.
 const ids = new Set();
-for (const d of DRILLS) {
+for (const d of [...DRILLS, ...SPLIT_DRILLS]) {
   ok(!ids.has(d.id), `${d.id}: id used twice`);
   ids.add(d.id);
   for (const f of ['name', 'group', 'noise', 'space', 'why', 'mistake', 'dose'])
@@ -780,6 +781,152 @@ process.on('exit', (code) => {
     ok(started.length === before, 'a line with no clip is dropped, never spoken another way');
     globalThis.fetch = realFetch;
     delete globalThis.window;
+  }
+}
+
+// ===== The splits ladder =====
+// Side splits, not front splits: a goalie's legs go out to the sides (Dad, 10 November 2026).
+{
+  const SP = await import('./js/plan/splits.js');
+  const { splitsState, settleSplits, markWatched, setRung, ladderItem, splitsPause, rungAt } = SP;
+  const NOW = new Date(2026, 10, 18, 16, 0);
+  const day = (n) => new Date(2026, 10, 18 - n, 15).toISOString();
+  const fresh = (over = {}) => ({ log: [], splits: { rung: 1, since: day(60), watched: [] }, ...over });
+  const held = (id, n, over = {}) => ({ date: day(n), type: 'stretch', completed: true, skipped: [], done: [id], ...over });
+
+  // --- The ladder data itself ---
+  LADDER.forEach((r, k) => {
+    ok(r.n === k + 1, `ladder: rung ${k + 1} is numbered ${r.n}`);
+    ok(byId[r.id], `ladder: rung ${r.n} points at ${r.id}, which isn't a drill`);
+    ok(r.name && r.name.length <= 28, `ladder: rung ${r.n} name too long for the row ("${r.name}")`);
+    ok(fs.existsSync(`media/draw/${r.id}.webp`), `ladder: rung ${r.n} drawing ${r.id} missing`);
+  });
+  ok(LADDER.length === TOP && TOP >= 6, 'ladder: TOP matches the rungs');
+  ok(LADDER.at(-1).watch === true, 'ladder: the top rung waits for Dad');
+  ok(LADDER.filter((r) => r.watch).length >= 2, 'ladder: at least two rungs wait for Dad');
+  // The goalie's shape: legs out to the SIDES. Nothing front-to-back.
+  for (const d of SPLIT_DRILLS) {
+    const words = [d.name, d.why, d.mistake, ...d.cues].join(' ');
+    ok(!/front split|lunge|back leg|front leg|back knee/i.test(words), `${d.id}: front-splits wording ("${d.name}")`);
+    ok(!d.side, `${d.id}: a side-splits hold is both legs at once, never one side at a time`);
+    ok(d.hold === true && d.dose.type === 'time', `${d.id}: must be a timed hold`);
+    ok(d.dose.time <= 40, `${d.id}: hold ${d.dose.time} s is over the 40 s cap (PLAN section 2)`);
+    ok(d.jumps === 0 && !d.hops, `${d.id}: a stretch must have no jumps`);
+    ok(d.space === 'small', `${d.id}: must fit the bedroom`);
+  }
+
+  // --- Every rung builds, in every session, and never on a game day ---
+  const ladderLimits = { strength: [17, 24], power: [17, 25], stretch: [9, 16], splits: [2, 5] };
+  const ladderPhrases = new Set();
+  for (const { type, rung, tag, ctx } of everyLadder()) {
+    const s = buildSession(type, ctx);
+    phrasesOf(s).forEach((p) => ladderPhrases.add(p));
+    const mins = s.total / 60;
+    const [lo, hi] = ladderLimits[type];
+    ok(mins >= lo && mins <= hi, `${tag}: ${mins.toFixed(1)} min is outside ${lo}-${hi}`);
+    const hold = s.items.filter((it) => it.block === 'Splits');
+    ok(hold.length === 1, `${tag}: expected one splits hold, got ${hold.length}`);
+    ok(hold[0].name === LADDER[rung - 1].name, `${tag}: shows "${hold[0].name}", not the rung's name`);
+    ok(hold[0].draw === `media/draw/${LADDER[rung - 1].id}.webp`, `${tag}: wrong drawing`);
+    ok(hold[0].dose.sets === 1 && !hold[0].dose.window, `${tag}: a hold is one set, not reps`);
+    ok(fs.existsSync(hold[0].draw), `${tag}: drawing ${hold[0].draw} missing`);
+    // The cushion rungs say how many; nothing else claims a stack.
+    const says = [hold[0].how || '', hold[0].name].join(' ');
+    if (/cushion/i.test(LADDER[rung - 1].name)) ok(/cushion/i.test(says), `${tag}: a cushion rung that never says cushions`);
+    for (const p of phrasesOf(s)) ok(!/shoe|sock|footwear/i.test(p), `${tag}: footwear line "${p}"`);
+    for (const p of [hold[0].how, ...hold[0].cues].filter(Boolean)) ok(!/jump|bounce (up|down|into)/i.test(p), `${tag}: a stretch that says "${p}"`);
+  }
+  for (const p of ladderPhrases) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `ladder: no voice clip for "${p}"`);
+  {
+    const item = ladderItem(fresh());
+    const g = buildSession('gameday', makeContext({ room: 'big', hour: 15, ladder: item }));
+    ok(!g.items.some((it) => it.block === 'Splits'), 'game day: never a long stretch before he plays');
+    ok(!buildSession('gameday', makeContext({ room: 'bedroom', hour: 7, ladder: item })).items.some((it) => it.block === 'Splits'),
+      'game day, bedroom: still no splits hold');
+  }
+
+  // --- Climbing it ---
+  {
+    const s = fresh();
+    ok(splitsState(s, NOW).rung === 1 && splitsState(s, NOW).holds === 0, 'a new save starts on rung 1 with no holds');
+    // One hold a day: five sessions today is one hold.
+    s.log = Array.from({ length: 5 }, () => held('SP1', 0));
+    ok(splitsState(s, NOW).holds === 1, 'five holds in one day count once');
+    // Dad's test runs aren't his.
+    s.log = [held('SP1', 1, { dad: true, extra: true }), held('SP1', 2, { dad: true, extra: true })];
+    ok(splitsState(s, NOW).holds === 0, 'Dad\'s test runs never move the ladder');
+    // Holds from before the rung opened don't count toward it.
+    const old = fresh();
+    old.splits.since = day(2);
+    old.log = [held('SP1', 10), held('SP1', 1)];
+    ok(splitsState(old, NOW).holds === 1, 'holds from before the rung opened don\'t count');
+  }
+  {
+    // Six holds opens rung 2.
+    const s = fresh();
+    s.log = Array.from({ length: HOLDS }, (_, k) => held('SP1', k + 1));
+    ok(splitsState(s, NOW).ready === true, `${HOLDS} holds opens the next rung`);
+    ok(settleSplits(s, NOW) === true && s.splits.rung === 2, 'settle moves him up one rung');
+    ok(splitsState(s, NOW).holds === 0, 'the new rung starts at no holds');
+    ok(settleSplits(s, NOW) === false, 'settling twice doesn\'t skip a rung');
+  }
+  {
+    // A rung Dad watches stops there until he taps Watched.
+    const watchRung = LADDER.find((r) => r.watch).n;
+    const s = fresh();
+    setRung(s, watchRung, NOW);
+    s.splits.since = day(60); // setRung starts the count again; these holds are the ones after it
+    s.log = Array.from({ length: HOLDS }, (_, k) => held(rungAt(watchRung).id, k + 1));
+    const st = splitsState(s, NOW);
+    ok(st.waiting === true && st.ready === false, `rung ${watchRung} waits for Dad`);
+    ok(settleSplits(s, NOW) === false && s.splits.rung === watchRung, 'it never climbs past Dad on its own');
+    markWatched(s, watchRung, NOW);
+    ok(s.splits.rung === watchRung + 1, 'Dad taps Watched and he moves up');
+  }
+  {
+    // The top rung stops at the top.
+    const s = fresh();
+    setRung(s, TOP, NOW);
+    s.splits.since = day(60);
+    s.splits.watched = [TOP];
+    s.log = Array.from({ length: HOLDS }, (_, k) => held(rungAt(TOP).id, k + 1));
+    ok(splitsState(s, NOW).top === true, 'the top rung, held and watched: he can do the side splits');
+    settleSplits(s, NOW);
+    ok(s.splits.rung === TOP, 'it never climbs past the top rung');
+    setRung(s, 99, NOW);
+    ok(s.splits.rung === TOP, 'Dad can\'t set a rung past the top');
+    setRung(s, -3, NOW);
+    ok(s.splits.rung === 1, 'Dad can\'t set a rung below 1');
+  }
+
+  // --- Pain rests it ---
+  for (const zone of PAUSE_ZONES) {
+    const s = fresh();
+    s.log = [{ date: day(1), type: 'strength', completed: false, done: [], skipped: [], stopped: { why: 'pain', zone } }];
+    ok(splitsPause(s.log, NOW), `${zone}: rests the ladder`);
+    ok(ladderItem(s, NOW) === null, `${zone}: no splits hold while it rests`);
+    ok(splitsState(s, NOW).pause, `${zone}: the screen says it's resting`);
+    const over = { ...s, log: [{ ...s.log[0], date: day(9) }] };
+    ok(ladderItem(over, NOW) !== null, `${zone}: the ladder comes back after 7 days`);
+  }
+  {
+    // A heel or an ankle doesn't stop him stretching his hips.
+    const s = fresh();
+    s.log = [{ date: day(1), type: 'power', completed: false, done: [], skipped: [], stopped: { why: 'pain', zone: 'heel' } }];
+    ok(ladderItem(s, NOW) !== null, 'heel pain: the ladder carries on');
+    // A skipped drill that hurt counts as a report too.
+    const sk = fresh();
+    sk.log = [{ date: day(1), type: 'stretch', completed: true, done: [], skipped: [{ id: 'M5', why: 'hurts', zone: 'groin' }] }];
+    ok(ladderItem(sk, NOW) === null, 'a drill skipped for groin pain rests the ladder');
+  }
+
+  // --- The Done line ---
+  {
+    const { splitsDone } = await import('./js/screens/done.js');
+    const st = splitsState(fresh(), NOW);
+    ok(splitsDone(st, false, false) === '', 'a session with no splits hold says nothing about the ladder');
+    ok(/0 of 6/.test(splitsDone(st, false, true)), 'after the hold it says how many he\'s done');
+    ok(/next rung/i.test(splitsDone(st, true, true)), 'moving up says so');
   }
 }
 

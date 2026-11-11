@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { SAY } from '../data/copy.js';
-import { buildSession, everyContext, phrasesOf } from '../js/plan/build.js';
+import { buildSession, everyContext, everyLadder, phrasesOf } from '../js/plan/build.js';
 import { finishClip, readLevels, writeLevels } from './loudness.mjs';
 
 const VOICE = process.env.CREASE_VOICE || 'cedar';
@@ -27,9 +27,13 @@ fs.mkdirSync(outDir, { recursive: true });
 // Every line any session can say, in every way it can be built.
 const phrases = new Set([SAY.soundCheck, SAY.sessionDone]);
 for (const { type, ctx } of everyContext()) phrasesOf(buildSession(type, ctx)).forEach((p) => phrases.add(p));
+// And every rung of the splits ladder, which isn't a version Dad sets.
+for (const { type, ctx } of everyLadder()) phrasesOf(buildSession(type, ctx)).forEach((p) => phrases.add(p));
 
 // How a line should sound, where the written form would be read oddly.
-const spoken = (p) => p.replace(/90\/90/g, 'ninety ninety').replace(/&/g, 'and').replace(/\bT-Push\b/g, 'T push');
+const spoken = (p) => p.replace(/90\/90/g, 'ninety ninety').replace(/&/g, 'and').replace(/\bT-Push\b/g, 'T push')
+  // The splits rungs are written "Side Splits · 3 cushions" on screen; he says it as one sentence.
+  .replace(/ · /g, ', ');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'crease-voice-'));
 

@@ -39,6 +39,8 @@ export const SESSIONS = {
   gameday: {
     name: 'Game Day',
     blurb: 'Loose and switched on before a game. Nothing tiring.',
+    // No splits hold today: a long static stretch before a game takes power out of his legs.
+    noLadder: true,
     blocks: [
       { name: 'Wake up', items: [{ id: 'W1' }, { id: 'W3' }, { id: 'W4' }] },
       {
@@ -66,6 +68,19 @@ export const SESSIONS = {
       { name: 'Finish', items: [{ id: 'X1' }, { id: 'X3' }] },
     ],
   },
+
+  // The splits ladder on its own, for a rest day. Short, and it never counts as a session:
+  // Today always starts it with extra: true. A block named "Splits" is filled with today's rung
+  // by buildSession, so this one item is only the fallback. Warm-up first: never stretch cold.
+  splits: {
+    name: 'The Splits',
+    blurb: 'Warm up, then today\'s hold on the ladder.',
+    blocks: [
+      { name: 'Warm-up', items: [{ id: 'W1' }, { id: 'W4' }] },
+      { name: 'Splits', main: true, items: [{ id: 'SP1' }] },
+    ],
+  },
 };
 
+// The four the rules can pick. The Splits session isn't one: it never counts.
 export const SESSION_ORDER = ['strength', 'power', 'gameday', 'stretch'];

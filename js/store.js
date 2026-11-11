@@ -19,6 +19,9 @@ export function blank() {
     dadPin: null, // scrambled, never the PIN itself
     versions: {}, // Dad's chosen version per drill: { ST1: 0 } (0 Easier, 1 Standard, 2 Harder)
     lights: [], // every Lights round: { date, ms, counted, taps }. It never counts as a session.
+    // The splits ladder: which rung he's on, when it opened (holds before that don't count
+    // toward it), and the rungs Dad has watched.
+    splits: { rung: 1, since: new Date().toISOString(), watched: [] },
   };
 }
 
@@ -37,6 +40,7 @@ export function load() {
           days: s.days || {},
           versions: s.versions || {},
           lights: Array.isArray(s.lights) ? s.lights : [],
+          splits: { ...b.splits, ...(s.splits || {}), watched: Array.isArray(s.splits?.watched) ? s.splits.watched : [] },
         };
       }
     }

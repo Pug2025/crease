@@ -2,6 +2,7 @@
 // Pure functions: no DOM, so tests.mjs can run them in Node.
 import { DRILLS, byId } from '../../data/exercises.js';
 import { SESSIONS, SESSION_ORDER } from '../../data/sessions.js';
+import { LADDER } from '../../data/splits.js';
 import { SAY, targetSay, targetText, setsSay, setSay } from '../../data/copy.js';
 
 const INTRO_FIRST = 12;
@@ -13,8 +14,9 @@ const MIN_GAP = 4; // seconds between two spoken cues
 // (Dad, 10 Nov 2026: jumping in the morning is fine; slams would still wake the house).
 // versions: Dad's chosen version per drill id ({ ST1: 0 }); anything not listed uses the drill's start.
 // avoid: drill ids left out of this session. noJumps: every drill with jumps uses its no-jump version.
-export function makeContext({ room = 'big', hour = new Date().getHours(), feel = 'good', versions = {}, avoid = [], noJumps = false } = {}) {
-  return { room, hour, feel, versions, avoid: [...(avoid || [])], noJumps: !!noJumps, small: room === 'bedroom', early: hour < 9 };
+// ladder: today's splits hold as a session item ({ id, as }), or null while the ladder rests.
+export function makeContext({ room = 'big', hour = new Date().getHours(), feel = 'good', versions = {}, avoid = [], noJumps = false, ladder = null } = {}) {
+  return { room, hour, feel, versions, avoid: [...(avoid || [])], noJumps: !!noJumps, ladder, small: room === 'bedroom', early: hour < 9 };
 }
 
 const chosenVersion = (drill, ctx) => {
@@ -48,12 +50,15 @@ export function resolveItem(item, ctx) {
   if (avoid.has(drill.id)) return null;
 
   const version = drill.versions[v];
-  const dose = { sets: 1, rest: 20, ...drill.dose, ...(version.dose || {}), ...(item.dose || {}) };
+  // `as` overrides the drill for this one item, after every swap. The splits ladder uses it: four
+  // of its rungs are the same hold with a different stack under him.
+  const as = item.as || null;
+  const dose = { sets: 1, rest: 20, ...drill.dose, ...(version.dose || {}), ...(as?.dose || {}), ...(item.dose || {}) };
   if (ctx.feel === 'tired' && dose.sets > 1) dose.sets -= 1;
-  const name = variant?.name ?? version.title ?? drill.name;
-  const cues = variant?.cues ?? version.cues ?? drill.cues;
-  const why = variant?.why ?? version.why ?? drill.why;
-  const mistake = variant?.mistake ?? version.mistake ?? drill.mistake;
+  const name = as?.name ?? variant?.name ?? version.title ?? drill.name;
+  const cues = as?.cues ?? variant?.cues ?? version.cues ?? drill.cues;
+  const why = as?.why ?? variant?.why ?? version.why ?? drill.why;
+  const mistake = as?.mistake ?? variant?.mistake ?? version.mistake ?? drill.mistake;
   return {
     drill: { ...drill, name, cues, why, mistake },
     v,
@@ -61,13 +66,13 @@ export function resolveItem(item, ctx) {
     variant,
     name,
     cues,
-    how: variant?.how ?? version.how ?? null,
+    how: as?.how ?? variant?.how ?? version.how ?? null,
     note: item.note ?? null,
     dose,
     jumps: variant?.jumps ?? version.jumps ?? drill.jumps ?? 0,
     hops: !!(variant?.hops ?? version.hops ?? drill.hops),
-    needs: variant?.needs ?? version.needs ?? drill.needs ?? [],
-    draw: `media/draw/${variant?.draw ?? version.draw ?? drill.id}.webp`,
+    needs: as?.needs ?? variant?.needs ?? version.needs ?? drill.needs ?? [],
+    draw: `media/draw/${as?.draw ?? variant?.draw ?? version.draw ?? drill.id}.webp`,
     swappedFrom,
     target: targetText(drill, dose),
   };
@@ -146,7 +151,17 @@ function switchStep(r, o) {
 }
 
 // Things to fetch before he starts, as the preview says them ("Grab: the med ball and a towel.").
-const GRAB = { 'med ball': 'the med ball', pillow: 'a pillow', towel: 'a towel', chair: 'a chair' };
+const GRAB = { 'med ball': 'the med ball', pillow: 'a pillow', towel: 'a towel', chair: 'a chair', cushions: 'some cushions' };
+
+// Today's splits hold goes in its own block just before the cool-down, on a warm body.
+// The Splits session has the ladder as its own main block, so nothing is added there.
+function blocksOf(s, ctx) {
+  const own = s.blocks.findIndex((b) => b.name === 'Splits');
+  if (own >= 0) return ctx.ladder ? s.blocks.map((b, i) => (i === own ? { ...b, items: [ctx.ladder] } : b)) : s.blocks;
+  // Never on a game day: a long static stretch right before he plays takes power out of his legs.
+  if (!ctx.ladder || s.noLadder) return s.blocks;
+  return [...s.blocks.slice(0, -1), { name: 'Splits', items: [ctx.ladder] }, s.blocks.at(-1)];
+}
 
 export function buildSession(type, ctx) {
   const s = SESSIONS[type];
@@ -154,7 +169,7 @@ export function buildSession(type, ctx) {
   const steps = [];
   let first = true;
 
-  for (const block of s.blocks) {
+  for (const block of blocksOf(s, ctx)) {
     if (block.circuit) {
       const rounds = Math.max(1, block.circuit.rounds - (ctx.feel === 'tired' ? 1 : 0));
       const work = block.circuit.work;
@@ -228,6 +243,19 @@ export function phrasesOf(session) {
   const set = new Set([SAY.sessionDone]);
   for (const st of session.steps) for (const c of st.cues) if (c.say) c.say.forEach((p) => set.add(p));
   return [...set];
+}
+
+// Every rung of the splits ladder, in the Splits session and in a normal one. The rungs aren't in
+// everyContext (they aren't a version Dad sets), so the tests and the voice recorder read this too.
+export function everyLadder() {
+  const out = [];
+  for (const r of LADDER) {
+    const ladder = { id: r.id, as: { name: r.name, ...(r.how ? { how: r.how } : {}) } };
+    for (const type of ['splits', 'stretch', 'strength'])
+      for (const room of ['bedroom', 'big'])
+        out.push({ type, rung: r.n, tag: `rung${r.n}/${type}/${room}`, ctx: makeContext({ room, hour: 15, ladder }) });
+  }
+  return out;
 }
 
 // Every way a session can be built: both rooms, morning and afternoon, each version Dad can set,

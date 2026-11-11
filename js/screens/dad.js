@@ -8,6 +8,8 @@ import { scramble } from '../store.js';
 import { BUILD } from '../version.js';
 import { dayKey, counts, painRules, painText } from '../plan/decide.js';
 import { makeContext, resolveItem } from '../plan/build.js';
+import { splitsState, settleSplits, markWatched, setRung } from '../plan/splits.js';
+import { LADDER, TOP } from '../../data/splits.js';
 import { isTest, isPain, painZones, hurtToday } from './home.js';
 
 const GROUPS = [['warm-up', 'Warm-up'], ['strength', 'Strength'], ['power', 'Power'], ['stretch', 'Stretch']];
@@ -119,6 +121,8 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
   // A pain stop mid-session still counts, so lifting the lock then only frees Today, it doesn't add a session.
   const countedToday = s.log.some((e) => counts(e) && dayKey(new Date(e.date)) === dayKey(now));
   const checkin = s.days?.[todayKey];
+  if (settleSplits(s, now)) app.persist();
+  const sp = splitsState(s, now);
 
   const sessions = SESSION_ORDER.map((t) => `<button class="set-row" data-act="run" data-arg="${t}"><span>${esc(SESSIONS[t].name)}</span><small>Start now</small></button>`).join('');
   const drills = GROUPS.map(([g, title]) => {
@@ -171,6 +175,23 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
       ${sessions}
     </section>
     <section class="set-group">
+      <h2>Splits ladder</h2>
+      <p class="small">Rung ${sp.rung} of ${TOP}: <b>${esc(sp.r.name)}</b>${sp.r.how ? `. ${esc(sp.r.how)}` : '.'} Side splits, not front splits: his legs go out to the sides, the way they do in the butterfly. He climbs by doing the hold, one a day, ${sp.need} holds a rung. ${LADDER.filter((r) => r.watch).length} rungs wait for you.</p>
+      ${sp.pause ? `<p class="small">Resting: ${esc(zoneWord(sp.pause.zone))} hurt. It comes back on its own.</p>` : ''}
+      ${sp.waiting ? `
+        <div class="dad-watch">
+          <p><b>Ready for you to watch.</b> ${esc(sp.r.name)}, one hold. Look for: kneecaps and toes pointing up, feet not rolling in, no bouncing, and he can breathe the whole way through. If it looks forced, tap Not yet.</p>
+          <button class="btn btn-primary" data-act="watched">Watched — he's got it</button>
+          <button class="btn" data-act="notyet">Not yet</button>
+        </div>`
+    : `<p class="small">${sp.top ? 'He can do the splits.' : `${sp.holds} of ${sp.need} holds done on this rung.`}</p>`}
+      <ul class="ver-list"><li class="ver-row">
+        <span class="ver-name">Set the rung</span>
+        <span class="ver-seg sp-seg">${LADDER.map((r) => `<button data-act="rung" data-arg="${r.n}" aria-pressed="${r.n === sp.rung}" title="${esc(r.name)}">${r.n}</button>`).join('')}</span>
+        <span class="ver-what">Use this if he's further along than the app thinks, or if you want him back a rung.</span>
+      </li></ul>
+    </section>
+    <section class="set-group">
       <h2>Drill versions</h2>
       <p class="small">What he does in every session from now on. Easier if something bothers him, Harder once you've watched him do a clean set. Tap a name for its card.</p>
       <ul class="ver-list">${drills}</ul>
@@ -208,6 +229,22 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
       delete s.days[todayKey];
       app.persist();
       again({ note: 'Today\'s check-in is cleared. His next one starts fresh.' });
+    },
+    watched: () => {
+      markWatched(s, sp.rung, now);
+      app.persist();
+      again({ note: `Rung ${sp.rung} signed off. He's on ${splitsState(s, now).r.name}.`, scroll: window.scrollY });
+    },
+    // Not ready: he stays on this rung and the holds start again, so he works at it before you look again.
+    notyet: () => {
+      setRung(s, sp.rung, now);
+      app.persist();
+      again({ note: `He stays on ${sp.r.name}. ${sp.need} more holds before it asks you again.`, scroll: window.scrollY });
+    },
+    rung: (n) => {
+      setRung(s, +n, now);
+      app.persist();
+      again({ note: `Set to rung ${+n}: ${splitsState(s, now).r.name}.`, scroll: window.scrollY });
     },
     card: (id) => {
       const ctx = makeContext({ room: 'big', hour: 12, ball: s.settings.ball, band: s.settings.band, versions: s.versions });

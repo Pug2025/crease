@@ -4,6 +4,7 @@ import { esc, on, CREASE_MARK, today } from '../ui.js';
 import { SESSIONS } from '../../data/sessions.js';
 import { ROOM_HINT, spotOf, zoneWord } from '../../data/copy.js';
 import { doneByDay, dayKey, counts } from '../plan/decide.js';
+import { splitsState, settleSplits } from '../plan/splits.js';
 import { lightsStats } from './lights.js';
 
 // ---- His record (pure: tests.mjs runs these in Node) ----
@@ -96,6 +97,13 @@ export function weekStripHtml(w) {
   </section>`;
 }
 
+// "Splits · Split · 3 cushions" on Today, with a dot when Dad has one to watch.
+export function splitsLineHtml(st) {
+  const what = st.pause ? 'resting' : st.top ? 'done' : st.waiting ? 'ready for Dad' : st.r.name;
+  return `<button class="lights-line splits-line${st.waiting ? ' waiting' : ''}" data-act="splits">
+    <span class="ll-dot" aria-hidden="true"></span><span>Splits · <b>${esc(what)}</b></span></button>`;
+}
+
 export function lightsLineHtml(lights) {
   const { best } = lightsStats(lights);
   return `<button class="lights-line" data-act="lights"><span class="ll-dot" aria-hidden="true"></span><span>Lights · ${best === null ? 'no score yet' : `best <b>${best} ms</b>`}</span></button>`;
@@ -119,6 +127,8 @@ function lastSession(save) {
 export function render(root, app) {
   const s = app.save;
   const now = new Date();
+  if (settleSplits(s, now)) app.persist();
+  const splits = splitsState(s, now);
   if (!app.room) app.room = now.getHours() < 9 ? 'bedroom' : 'big';
   const hurts = hurtToday(s.log, now);
   const lockZone = hurts.length ? painZones(hurts[hurts.length - 1]).pop() : null;
@@ -158,6 +168,7 @@ export function render(root, app) {
       <button class="btn btn-go btn-start" data-act="start">Start today's training</button>
       <p class="small center">A few quick questions, then your session.</p>`}
     ${lightsLineHtml(s.lights)}
+    ${splitsLineHtml(splits)}
     ${weekStripHtml(weekStats(s.log, s.days, now))}
     <footer class="home-foot">
       <span>${last ? `Last: <b>${esc(last)}</b>` : 'No sessions yet'}</span>
@@ -170,6 +181,7 @@ export function render(root, app) {
     start: () => app.go('checkin', { step: 0, answers: {} }),
     stretch: () => app.go('preview', { type: 'stretch', reason: 'Extra stretching. It doesn\'t count as a session.', extra: true }),
     lights: () => app.go('lights'),
+    splits: () => app.go('splits'),
     settings: () => app.go('settings'),
   });
 }

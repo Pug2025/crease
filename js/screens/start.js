@@ -6,6 +6,7 @@ import { SESSIONS } from '../../data/sessions.js';
 import { byId } from '../../data/exercises.js';
 import { buildSession, makeContext, phrasesOf } from '../plan/build.js';
 import { settle, knownYesterdayGame, dayKey, painText, answersText, grabText } from '../plan/decide.js';
+import { ladderItem } from '../plan/splits.js';
 import * as audio from '../timer/audio.js';
 import { keepAwake } from '../timer/wakelock.js';
 
@@ -107,11 +108,11 @@ function whereItHurts(root, app, answers, trail) {
 export function preview(root, app, params) {
   const { type, reason = '', extra = false, dad = false, answers = null, avoid = [], noJumps = false, note = '' } = params;
   const s = app.save;
-  const ctx = makeContext({ room: app.room || 'big', hour: new Date().getHours(), versions: s.versions, avoid, noJumps });
+  const ctx = makeContext({ room: app.room || 'big', hour: new Date().getHours(), versions: s.versions, avoid, noJumps, ladder: ladderItem(s) });
   const session = buildSession(type, ctx);
 
   // What changes for the room or the hour (contract C10), said only when this session has such a drill.
-  const drills = SESSIONS[type].blocks.flatMap((b) => b.items.map((it) => byId[it.id])).filter((d) => d && !avoid.includes(d.id));
+  const drills = session.items.map((it) => it.drill);
   const notes = [];
   if (note) notes.push(note);
   if (ctx.small) { if (drills.some((d) => d.space === 'big')) notes.push('Bedroom: small-room versions.'); }

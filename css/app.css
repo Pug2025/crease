@@ -37,7 +37,7 @@
     color-scheme: dark;
   }
   /* Flip the whiteboard drawings to light lines on a dark board, so they don't glare at 7 am. */
-  .pl-draw, .board img, .drill-row img { filter: invert(.9) hue-rotate(180deg); }
+  .pl-draw, .board img, .drill-row img, .sp-draw { filter: invert(.9) hue-rotate(180deg); }
 }
 
 * { box-sizing: border-box; }
@@ -481,3 +481,38 @@ img { max-width: 100%; }
 .ver-name { background: none; border: 0; padding: 0; min-height: 32px; text-align: left; font-weight: 700; color: var(--ink); }
 .ver-name span { color: var(--crease-deep); }
 .ver-what { color: var(--ink2); font-size: .95rem; }
+
+/* The splits ladder */
+.splits-line.waiting .ll-dot { background: var(--kick); box-shadow: 0 0 0 3px rgba(242, 193, 46, .3); }
+.sp-now { display: flex; align-items: center; gap: 14px; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+.sp-draw { flex: none; width: 108px; height: 108px; object-fit: contain; background: var(--board); border-radius: 10px; }
+.sp-now-text { display: grid; gap: 3px; }
+.sp-now-text h2 { font-family: var(--display); font-weight: 900; font-size: 1.7rem; line-height: 1; text-transform: uppercase; letter-spacing: .02em; margin: 0; }
+.sp-how { font-weight: 700; }
+.sp-dose { color: var(--ink2); font-size: .95rem; font-variant-numeric: tabular-nums; }
+.sp-status { font-weight: 700; margin: 0 0 12px; }
+.sp-status.waiting { color: var(--crease-deep); }
+.sp-status.rest, .sp-status.top { color: var(--ink2); }
+.sp-ladder { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 4px; }
+.sp-rung { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 10px; border-radius: 10px; border: 2px solid transparent; color: var(--ink2); }
+.sp-rung.done { color: var(--ink); }
+.sp-rung.now { background: var(--card); border-color: var(--crease); color: var(--ink); }
+.sp-rung.ahead { opacity: .55; }
+.sp-n { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 1.1rem; background: var(--line); color: var(--ink); }
+.sp-rung.done .sp-n { background: var(--crease); color: #FFF; }
+.sp-rung.now .sp-n { background: var(--ink); color: #FFF; }
+.sp-what { flex: 1; display: grid; justify-items: start; gap: 2px; }
+.sp-name { font-weight: 700; }
+.sp-tag { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--crease-deep); background: var(--crease-soft); border-radius: 6px; padding: 1px 6px; }
+.sp-dots { flex: none; display: flex; gap: 4px; }
+.sp-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.sp-dots i.on { background: var(--crease); }
+.sp-note { margin-top: 20px; display: grid; gap: 8px; color: var(--ink2); }
+.sp-note p { margin: 0; }
+.sp-note b { color: var(--ink); }
+.sp-rules { margin: 0; padding-left: 20px; display: grid; gap: 3px; }
+.splits-done { color: var(--crease-deep); font-weight: 700; }
+.dad-watch { background: var(--card); border: 2px solid var(--crease); border-radius: 12px; padding: 12px; display: grid; gap: 8px; margin-bottom: 10px; }
+/* Ten rungs don't fit one row on a phone, so this seg wraps instead of stretching the screen. */
+.sp-seg { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(42px, 1fr)); }
+.sp-seg button { padding: 4px 0; }

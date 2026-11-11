@@ -21,6 +21,8 @@
 // noJump   what replaces a drill with jumps or hops when jumps are off: a version number or a drill id.
 // slam     true for ball slams: never before 9 am (Dad's rule, so the house can sleep).
 
+import { SPLIT_DRILLS } from './splits.js';
+
 export const DRILLS = [
   // Warm-up
   {
@@ -522,4 +524,6 @@ export const DRILLS = [
   },
 ];
 
-export const byId = Object.fromEntries(DRILLS.map((d) => [d.id, d]));
+// The splits ladder lives in its own file (data/splits.js) so this library stays the drills he
+// does in a session. Its holds are looked up the same way, so everything else works unchanged.
+export const byId = Object.fromEntries([...DRILLS, ...SPLIT_DRILLS].map((d) => [d.id, d]));

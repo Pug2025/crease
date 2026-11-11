@@ -9,6 +9,7 @@ import * as done from './screens/done.js';
 import * as settings from './screens/settings.js';
 import * as dad from './screens/dad.js';
 import * as lights from './screens/lights.js';
+import * as splits from './screens/splits.js';
 import { dayKey } from './plan/decide.js';
 
 const root = document.getElementById('app');
@@ -28,6 +29,7 @@ const screens = {
   done: done.render,
   settings: settings.render,
   lights: lights.render,
+  splits: splits.render,
 };
 
 export const app = {
