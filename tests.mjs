@@ -880,6 +880,13 @@ process.on('exit', (code) => {
     const st = splitsState(s, NOW);
     ok(st.waiting === true && st.ready === false, `rung ${watchRung} waits for Dad`);
     ok(settleSplits(s, NOW) === false && s.splits.rung === watchRung, 'it never climbs past Dad on its own');
+    // Waiting for Dad stops the climb, not the stretch: the hold stays in his sessions, so the
+    // Splits screen has to keep offering it too, or the two disagree.
+    ok(ladderItem(s, NOW) !== null, 'waiting for Dad: the hold is still in his sessions');
+    for (const type of ['strength', 'power', 'stretch']) {
+      const built = buildSession(type, makeContext({ room: 'big', hour: 15, ladder: ladderItem(s, NOW) }));
+      ok(built.items.some((it) => it.block === 'Splits'), `waiting for Dad: ${type} still has the hold`);
+    }
     markWatched(s, watchRung, NOW);
     ok(s.splits.rung === watchRung + 1, 'Dad taps Watched and he moves up');
   }

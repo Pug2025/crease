@@ -58,7 +58,7 @@ export function render(root, app) {
       </div>
     </section>
     ${status}
-    ${st.pause || st.waiting ? '' : `
+    ${st.pause ? '' : `
       <button class="btn btn-go" data-act="start">Do today's hold</button>
       <p class="small center">Warm up first, then the hold. About 3 minutes.</p>`}
     <ol class="sp-ladder">${rungRows(st)}</ol>

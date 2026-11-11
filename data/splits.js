@@ -136,7 +136,9 @@ export const SPLITS_COPY = {
     'Never cold. Warm up first.',
     'Flat is the end. Never go past it.',
   ],
-  watchHim: 'Dad watches this one before you go further.',
+  // Waiting for Dad stops the climb, never the stretch: the hold is still in every session, so
+  // the screen has to offer it too.
+  watchHim: 'Keep doing it until he has.',
   waiting: 'Ready for Dad to watch.',
   paused: 'The ladder is resting while that heals.',
   topped: 'You can do the side splits.',
