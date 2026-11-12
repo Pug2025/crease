@@ -6,22 +6,28 @@ import { SAY } from '../../data/copy.js';
 import { weekStats, weekStripHtml, seasonStats, isTest, maskImg } from './home.js';
 import { settleSplits, splitsState } from '../plan/splits.js';
 import { countsForStreak } from '../plan/streak.js';
-import { cardStats, cardGains, newMasks } from '../plan/card.js';
+import { cardStats, cardGains, pendingMasks, claimMasks } from '../plan/card.js';
 import * as audio from '../timer/audio.js';
 
 // What this one session changed: the card before it and after it. Pure, so tests.mjs checks it.
 // Only a counted session pays off, and a second one on the same day doesn't raise the streak again.
-export function payoff(save, log, now = new Date(), { test = false } = {}) {
+// claimed: the masks claimMasks just added for this session. Left out, it is the masks this
+// session newly met, so tests can check it without changing the save.
+export function payoff(save, log, now = new Date(), { test = false, claimed = null } = {}) {
   const none = { streak: null, ratings: [], overall: null, tier: null, masks: [], saveEarned: false, milestone: null, say: [] };
   if (test || isTest(log) || !countsForStreak(log) || !save.log.includes(log)) return none;
   // Judged on the day the session started, so one that runs past midnight still gets its milestone and save.
   const started = new Date(log.date);
   const at = Number.isNaN(started.getTime()) ? now : started;
-  const before = cardStats({ ...save, log: save.log.filter((e) => e !== log) }, at);
+  const without = { ...save, log: save.log.filter((e) => e !== log) };
+  const before = cardStats(without, at);
   const after = cardStats(save, at);
   const g = cardGains(before, after);
   const rose = after.streak.days > before.streak.days;
-  const masks = newMasks(before.streak.best, after.streak.best);
+  const masks = claimed ?? (() => {
+    const had = new Set(pendingMasks(without, at).map((m) => m.id));
+    return pendingMasks(save, at).filter((m) => !had.has(m.id));
+  })();
   const milestone = rose ? after.streak.milestone : null;
   const say = [];
   if (milestone && SAY.milestone[milestone]) say.push(SAY.milestone[milestone]);
@@ -111,7 +117,11 @@ export function render(root, app, { session, log, test = false }) {
   if (moved) app.persist();
   const splitsLine = splitsDone(splitsState(s), moved, didSplits);
   const now = new Date();
-  const p = payoff(s, log, now, { test: isTestRun });
+  // A counted session claims every mask he has newly met, so each "New mask" shows once.
+  const counted = !isTestRun && countsForStreak(log) && s.log.includes(log);
+  const claimed = counted ? claimMasks(s, now) : [];
+  if (claimed.length) app.persist();
+  const p = payoff(s, log, now, { test: isTestRun, claimed });
   const lines = payoffLines(p);
   const st = cardStats(s, now).streak;
 

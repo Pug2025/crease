@@ -15,16 +15,19 @@ export function cleanNumber(v) {
   return t === '' ? '' : String(Number(t));
 }
 
-const unlockText = (m) => `${m.streak}-day streak`;
-
+// The shelf: masks he has first, in list order, then the locked ones with what each needs.
 export function shelfHtml(masks) {
-  return masks.list.map((m) => {
+  const order = [...masks.list.filter((m) => m.unlocked), ...masks.list.filter((m) => !m.unlocked)];
+  return order.map((m) => {
     const on = m.id === masks.wearing.id;
     if (!m.unlocked) {
-      return `<li class="shelf-item locked" aria-label="${esc(m.name)}: locked, ${esc(unlockText(m))}">
+      const cls = m.secret ? 'locked secret' : 'locked';
+      const label = m.secret ? 'Secret mask: locked' : `${m.name}: locked, ${m.need}${m.progress ? `, ${m.progress}` : ''}`;
+      return `<li class="shelf-item ${cls}" aria-label="${esc(label)}">
         <span class="shelf-pic">${maskImg(m)}</span>
         <span class="shelf-name">${esc(m.name)}</span>
-        <span class="shelf-need">${esc(unlockText(m))}</span></li>`;
+        <span class="shelf-need">${esc(m.need)}</span>${m.progress ? `
+        <span class="shelf-prog">${esc(m.progress)}</span>` : ''}</li>`;
     }
     return `<li class="shelf-item"><button class="shelf-btn" data-act="wear" data-arg="${m.id}" aria-pressed="${on}">
       <span class="shelf-pic">${maskImg(m)}</span>
@@ -74,7 +77,7 @@ export function render(root, app, { edit = false } = {}) {
   const now = new Date();
   s.card = s.card || {};
   const card = cardStats(s, now);
-  const masks = maskState(s, now, card.streak.best);
+  const masks = maskState(s, now);
   const season = seasonStats(s.log, now).sessions;
 
   root.innerHTML = `
@@ -82,7 +85,7 @@ export function render(root, app, { edit = false } = {}) {
     <button class="back" data-act="back">Back</button>
     ${cardHtml(card, masks, { name: s.card.name, number: s.card.number, season }, edit)}
     <section class="shelf">
-      <h2>Masks</h2>
+      <h2>Masks <span class="shelf-count">${masks.count} of ${masks.list.length}</span></h2>
       <ul class="shelf-list">${shelfHtml(masks)}</ul>
     </section>
   </main>`;

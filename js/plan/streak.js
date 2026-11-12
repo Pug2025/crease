@@ -49,9 +49,12 @@ export function streakStats(log = [], streak = { gifts: [] }, now = new Date()) 
   let best = 0;
   let earnedToday = false;
   let savedDays = [];
+  // The Phoenix mask: a streak of 3 after losing one of 7 or more.
+  let lostBig = false;
+  let comeback = false;
   if (!keys.length) {
     for (const g of gifts) if (g <= todayKey) saves = Math.min(MAX_SAVES, saves + 1);
-    return { days: 0, best: 0, saves, savedDays: [], todayDone: false, nextSaveAt: SAVE_EVERY, milestone: null, saveEarned: false };
+    return { days: 0, best: 0, saves, savedDays: [], todayDone: false, nextSaveAt: SAVE_EVERY, milestone: null, saveEarned: false, comeback: false };
   }
   // Gifts from before his first session (or on that day) are in hand on day one.
   for (const g of gifts) if (g <= keys[0]) saves = Math.min(MAX_SAVES, saves + 1);
@@ -66,6 +69,7 @@ export function streakStats(log = [], streak = { gifts: [] }, now = new Date()) 
       broken = false;
       run++;
       best = Math.max(best, run);
+      if (lostBig && run >= 3) comeback = true;
       if (run % SAVE_EVERY === 0) {
         const had = saves;
         saves = Math.min(MAX_SAVES, saves + 1);
@@ -78,6 +82,7 @@ export function streakStats(log = [], streak = { gifts: [] }, now = new Date()) 
         saves = Math.min(MAX_SAVES, saves + gap.length);
         gap = [];
         broken = true;
+        if (run >= 7) lostBig = true;
         run = 0;
       }
     }
@@ -95,6 +100,7 @@ export function streakStats(log = [], streak = { gifts: [] }, now = new Date()) 
     nextSaveAt: (Math.floor(run / SAVE_EVERY) + 1) * SAVE_EVERY,
     milestone,
     saveEarned: earnedToday,
+    comeback,
   };
 }
 

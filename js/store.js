@@ -1,5 +1,6 @@
 // Everything Crease remembers lives on the phone, in one saved object.
 // Phase 1 keeps it in localStorage: a year of sessions is well under 1 MB.
+import { seedMasks } from './plan/card.js';
 
 const KEY = 'crease.save';
 const VERSION = 1;
@@ -17,14 +18,16 @@ export function blank() {
     dadPin: null, // scrambled, never the PIN itself
     versions: {}, // Dad's chosen version per drill: { ST1: 0 } (0 Easier, 1 Standard, 2 Harder)
     lights: [], // every Lights round: { date, ms, counted, taps }. It never counts as a session.
+    hands: [], // every Glove or Blocker round, the same way.
     // The splits ladder: which rung he's on, when it opened (holds before that don't count
     // toward it), and the rungs Dad has watched.
     splits: { rung: 1, since: new Date().toISOString(), watched: [] },
     // Days Dad gave him a save. The streak itself is replayed from the log, never stored.
     streak: { gifts: [] },
     // His card: name and number he typed (both optional), the mask he wears, and the highest
-    // splits rung he reached (so Dad moving him back never lowers Flex).
-    card: {},
+    // splits rung he reached (so Dad moving him back never lowers Flex), and the masks he has
+    // earned (kept for good, and each shown as new only once).
+    card: { earned: ['m0'] },
   };
 }
 
@@ -36,7 +39,7 @@ export function load() {
       if (s && s.v === VERSION) {
         const b = blank();
         migrateOldRecords(s);
-        return {
+        const out = {
           ...b,
           ...s,
           settings: { ...b.settings, ...s.settings, ball: 'dead' },
@@ -44,10 +47,14 @@ export function load() {
           days: s.days || {},
           versions: s.versions || {},
           lights: Array.isArray(s.lights) ? s.lights : [],
+          hands: Array.isArray(s.hands) ? s.hands : [],
           splits: { ...b.splits, ...(s.splits || {}), watched: Array.isArray(s.splits?.watched) ? s.splits.watched : [] },
           streak: { gifts: Array.isArray(s.streak?.gifts) ? s.streak.gifts.filter((g) => typeof g === 'string') : [] },
           card: s.card && typeof s.card === 'object' ? s.card : {},
         };
+        // A save from before masks were kept: every mask he has now is his, with no "New mask" for any.
+        if (!Array.isArray(out.card.earned)) { seedMasks(out); save(out); }
+        return out;
       }
     }
   } catch {}

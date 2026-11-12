@@ -25,7 +25,7 @@ export function render(root, app) {
           <div><dt>Streak</dt><dd>Days in a row with a session.</dd></div>
           <div><dt>Saves</dt><dd>A save covers a day you miss. You get one every 7 days and can hold 2.</dd></div>
           <div><dt>Card</dt><dd>Your ratings go up as you train. They never go down.</dd></div>
-          <div><dt>Masks</dt><dd>They come from your best streak.</dd></div>
+          <div><dt>Masks</dt><dd>You earn masks from streaks, sessions, the two games and the splits. Two are secret.</dd></div>
         </dl>
       </section>
       <section class="set-group">

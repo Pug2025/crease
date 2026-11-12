@@ -1,14 +1,13 @@
 // Today: one Start button. The check-in that follows decides the session; he never picks it.
 // Also here: the streak, the card tile, and the week strip that Done shows too.
-import { esc, on, CREASE_MARK, today } from '../ui.js';
+import { esc, on, CREASE_MARK, today, maskImg } from '../ui.js';
 import { SESSIONS } from '../../data/sessions.js';
 import { ROOM_HINT } from '../../data/copy.js';
 import { doneByDay, dayKey, counts } from '../plan/decide.js';
 import { splitsState, settleSplits } from '../plan/splits.js';
-import { lightsStats } from './lights.js';
+import { lightsStats, COUNTED_PER_DAY } from './lights.js';
 import { streakStats } from '../plan/streak.js';
-import { cardStats, maskState } from '../plan/card.js';
-import { maskSrc } from '../../data/masks.js';
+import { cardStats, maskState, claimMasks } from '../plan/card.js';
 
 // ---- His record (pure: tests.mjs runs these in Node) ----
 
@@ -94,19 +93,34 @@ export function cardTileHtml(card, mask) {
   </button>`;
 }
 
-// A mask picture. If the file isn't there yet, the empty frame shows instead of a broken image.
-export const maskImg = (m, cls = '') => `<img class="mask-img${cls ? ` ${cls}` : ''}" src="${esc(maskSrc(m.id))}" alt="" onerror="this.hidden=true">`;
+export { maskImg };
 
-// "Splits · Split · 3 cushions" on Today, with a dot when Dad has one to watch.
+// The Splits tile on Today, across the full width, with a yellow edge when Dad has one to watch.
 export function splitsLineHtml(st) {
   const what = st.top ? 'done' : st.waiting ? 'ready for Dad' : st.r.name;
   return `<button class="mini-tile splits-line${st.waiting ? ' waiting' : ''}" data-act="splits">
     <span class="mt-label">Splits</span><b>${esc(what)}</b></button>`;
 }
 
-export function lightsLineHtml(lights) {
-  const { best } = lightsStats(lights);
-  return `<button class="mini-tile" data-act="lights"><span class="mt-label">Lights${best === null ? '' : ' · best'}</span><b>${best === null ? 'No score yet' : `${best} ms`}</b></button>`;
+// A phone game's tile: its name, his best, and a dot for each counted round played today.
+export function gameTileHtml(act, label, rounds, now = new Date()) {
+  const { best, today: played } = lightsStats(rounds || [], now);
+  const n = Math.min(COUNTED_PER_DAY, played);
+  const dots = Array.from({ length: COUNTED_PER_DAY }, (_, k) => `<i${k < n ? ' class="on"' : ''}></i>`).join('');
+  return `<button class="mini-tile game-tile" data-act="${act}">
+    <span class="mt-label">${esc(label)}</span>
+    <b>${best === null ? 'No score yet' : `${best} ms`}</b>
+    <span class="mt-dots" role="img" aria-label="${n} of ${COUNTED_PER_DAY} rounds played today">${dots}</span></button>`;
+}
+
+export const lightsLineHtml = (lights, now) => gameTileHtml('lights', 'Lights', lights, now);
+export const handsLineHtml = (hands, now) => gameTileHtml('hands', 'Glove or Blocker', hands, now);
+
+// A mask he earned away from Done (Dad moved the splits rung, say). Opens the Card.
+export function maskNewsHtml(list = []) {
+  if (!list.length) return '';
+  return `<button class="mask-news" data-act="card">${list.map((m) => `
+    <span class="mn-row"><span class="mn-pic">${maskImg(m)}</span><span class="mn-text">New mask: ${esc(m.name)}!</span></span>`).join('')}</button>`;
 }
 
 function lastSession(save) {
@@ -134,7 +148,10 @@ export function render(root, app) {
   const last = lastSession(s);
   const card = cardStats(s, now);
   const st = card.streak;
-  const masks = maskState(s, now, st.best);
+  // Masks met since he last saw a "New mask" line. They stay on Today until he leaves it.
+  const fresh = claimMasks(s, now);
+  if (fresh.length) { app.persist(); app.maskNews = [...(app.maskNews || []), ...fresh]; }
+  const masks = maskState(s, now);
 
   root.innerHTML = `
   <main class="screen home">
@@ -146,6 +163,7 @@ export function render(root, app) {
       ${streakHtml(st)}
       ${cardTileHtml(card, masks.wearing)}
     </div>
+    ${maskNewsHtml(app.maskNews || [])}
     ${doneToday ? `
       <section class="today-done">
         <h2>Done for today.</h2>
@@ -162,7 +180,7 @@ export function render(root, app) {
       </section>
       <button class="btn btn-go btn-start" data-act="start">Start today's training</button>
       <p class="small center">A few quick questions, then your session.</p>`}
-    <div class="mini-tiles">${lightsLineHtml(s.lights)}${splitsLineHtml(splits)}</div>
+    <div class="mini-tiles">${lightsLineHtml(s.lights, now)}${handsLineHtml(s.hands, now)}${splitsLineHtml(splits)}</div>
     ${weekStripHtml(weekStats(s.log, s.days, now, st.savedDays))}
     <footer class="home-foot">
       <span>${last ? `Last: <b>${esc(last)}</b>` : 'No sessions yet'}</span>
@@ -175,8 +193,10 @@ export function render(root, app) {
     start: () => app.go('checkin', { step: 0, answers: {} }),
     stretch: () => app.go('preview', { type: 'stretch', reason: 'Extra stretching. It doesn\'t count as a session.', extra: true }),
     lights: () => app.go('lights'),
+    hands: () => app.go('hands'),
     splits: () => app.go('splits'),
     card: () => app.go('card'),
     settings: () => app.go('settings'),
   });
+  return () => { app.maskNews = null; };
 }

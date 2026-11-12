@@ -1060,10 +1060,12 @@ process.on('exit', (code) => {
   const cx = card.cardStats({ ...blankSave, log: noise }, day(12, 18));
   ok(cx.overall === 50, 'card: extras and test runs never move the card');
   const rf = (ms) => card.ratingsFrom({ lightsMs: ms }).ratings.find((r) => r.id === 'reflex').value;
-  ok(rf(450) === 50 && rf(600) === 50 && rf(200) === 99 && rf(150) === 99 && rf(null) === 50 && rf(325) === 75, `card: Reflex from Lights (450 ms 50, 200 ms 99; got ${rf(450)} ${rf(200)} ${rf(325)})`);
+  ok(rf(450) === 50 && rf(600) === 50 && rf(200) === 79 && rf(150) === 79 && rf(null) === 50 && rf(325) === 65, `card: Reflex from Lights alone is 60% of it (450 ms 50, 200 ms 79; got ${rf(450)} ${rf(200)} ${rf(325)})`);
+  const rb = (l, h) => card.ratingsFrom({ lightsMs: l, handsMs: h }).ratings.find((r) => r.id === 'reflex').value;
+  ok(rb(200, 300) === 99 && rb(null, 300) === 70 && rb(null, 600) === 50 && rb(null, 700) === 50 && rb(null, 250) === 70 && rb(null, 450) === 60, `card: Reflex from Glove or Blocker is 40% of it (600 ms 0, 300 ms all; got ${rb(200, 300)} ${rb(null, 300)} ${rb(null, 450)})`);
   ok(card.bestLights([{ ms: 250, counted: false }, { ms: 300, counted: true }]) === 300, 'card: practice rounds of Lights do not count');
   ok(card.tierOf(59).name === 'Bronze' && card.tierOf(60).name === 'Silver' && card.tierOf(70).name === 'Gold' && card.tierOf(80).name === 'Elite' && card.tierOf(90).name === 'Legend' && card.tierOf(99).name === 'Legend', 'card: tier boundaries');
-  ok(card.ratingsFrom({ strength: 1e6, power: 1e6, stretch: 1e6, rung: 10, lightsMs: 100, bestStreak: 1e6 }).overall === 99, 'card: everything maxed is 99, never more');
+  ok(card.ratingsFrom({ strength: 1e6, power: 1e6, stretch: 1e6, rung: 10, lightsMs: 100, handsMs: 100, bestStreak: 1e6 }).overall === 99, 'card: everything maxed is 99, never more');
   const flexAt = (sv) => card.cardStats(sv, day(12)).ratings.find((r) => r.id === 'flex').value;
   ok(flexAt({ ...blankSave, splits: { rung: 6 } }) === 50 + Math.round(19 * 5 / 9) && flexAt({ ...blankSave, splits: { rung: 3 }, card: { rungPeak: 6 } }) === flexAt({ ...blankSave, splits: { rung: 6 } }), 'card: Flex keeps the highest splits rung when Dad moves him back');
   const before = card.ratingsFrom({ strength: 10, power: 5 });
@@ -1072,7 +1074,8 @@ process.on('exit', (code) => {
   ok(gains.ratings.length === (after.ratings[0].value > before.ratings[0].value ? 1 : 0) && gains.ratings.every((r) => r.to > r.from), 'card: cardGains lists only what rose');
 
   // A simulated season (tools/sim-weeks.mjs): his real hockey week, 1 to 3 days off a week.
-  // Lights best drifts from about 380 ms to 300; the splits rung climbs a rung a week of training.
+  // Lights best drifts from about 380 ms to 300, Glove or Blocker from about 520 ms to 420 (the same
+  // share of its range); the splits rung climbs a rung a week of training.
   const TARGETS = [];
   for (const seed of [7, 11, 23]) {
     const rows = simulate({ weeks: 53, seed, skips: 'random' });
@@ -1080,7 +1083,7 @@ process.on('exit', (code) => {
     const at = (w) => { const e = rows[w * 7 - 1].date; return new Date(e.getFullYear(), e.getMonth(), e.getDate(), 23, 30); };
     const saveAt = (L, w) => {
       const daysTrained = new Set(L.map((e) => e.date.slice(0, 10))).size;
-      return { log: L, lights: [{ date: L[0]?.date, counted: true, ms: Math.round(300 + 80 * Math.exp(-w / 8)) }], splits: { rung: Math.min(10, 1 + Math.floor(daysTrained / 7)) }, streak: { gifts: [] }, card: {} };
+      return { log: L, lights: [{ date: L[0]?.date, counted: true, ms: Math.round(300 + 80 * Math.exp(-w / 8)) }], hands: [{ date: L[0]?.date, counted: true, ms: Math.round(420 + 110 * Math.exp(-w / 8)) }], splits: { rung: Math.min(10, 1 + Math.floor(daysTrained / 7)) }, streak: { gifts: [] }, card: {} };
     };
     const ovr = {};
     const firstWeek = {};
@@ -1092,9 +1095,10 @@ process.on('exit', (code) => {
       for (const t of ['Silver', 'Gold', 'Elite', 'Legend']) if (card.tierOf(c.overall).name === t || c.overall >= card.TIERS.find((x) => x.name === t).at) firstWeek[t] ??= w;
     }
     TARGETS.push({ seed, ovr, firstWeek });
-    ok(firstWeek.Silver >= 2 && firstWeek.Silver <= 4, `card season ${seed}: Silver in week 2 to 4 (week ${firstWeek.Silver})`);
-    ok(firstWeek.Gold >= 9 && firstWeek.Gold <= 16, `card season ${seed}: Gold around month 3 (week ${firstWeek.Gold})`);
-    ok(firstWeek.Elite >= 20 && firstWeek.Elite <= 32, `card season ${seed}: Elite around month 6 (week ${firstWeek.Elite})`);
+    ok(firstWeek.Silver >= 3 && firstWeek.Silver <= 4, `card season ${seed}: Silver in week 3 to 4 (week ${firstWeek.Silver})`);
+    ok(firstWeek.Gold >= 10 && firstWeek.Gold <= 12, `card season ${seed}: Gold in week 10 to 12 (week ${firstWeek.Gold})`);
+    // Compete counts every training day since 12 Nov 2026, so a kid who misses days gets there sooner than before.
+    ok(firstWeek.Elite >= 17 && firstWeek.Elite <= 22, `card season ${seed}: Elite in week 17 to 22 (week ${firstWeek.Elite})`);
     // No rating ever drops when a session is added.
     let prev = null;
     let dropped = null;
@@ -1110,13 +1114,13 @@ process.on('exit', (code) => {
   globalThis.CREASE_SEASON = TARGETS; // printed by: node tests.mjs season
 
   // ---- Masks ----
-  ok(MASKS.length === 7 && MASKS.map((m) => m.streak).join() === '0,3,7,14,30,60,100' && MASKS.every((m, i) => m.id === `m${i}`), 'masks: seven, at 0, 3, 7, 14, 30, 60, 100');
+  ok(MASKS.length === 17 && MASKS.every((m, i) => m.id === `m${i}`), 'masks: seventeen, m0 to m16');
+  ok(MASKS.slice(0, 7).map((m) => `${m.name}:${m.by}:${m.n}`).join() === 'Rookie:streak:0,Ice:streak:3,Bolt:streak:7,Shark:streak:14,Wolf:streak:30,Dragon:streak:60,Champ:streak:100', 'masks: the first seven are the streak masks, unchanged');
   const ms = card.maskState({ log: [...run(1, 7), ...run(20, 21)], streak: { gifts: [] }, card: {} }, day(21, 18));
   ok(ms.list.filter((m) => m.unlocked).map((m) => m.name).join() === 'Rookie,Ice,Bolt', 'masks: unlocked by his best streak, so a broken streak keeps them');
   ok(ms.wearing.id === 'm0', 'masks: Rookie until he picks one');
   ok(card.maskState({ log: [], card: { mask: 'm4' } }, day(1)).wearing.id === 'm0', 'masks: a locked pick falls back to Rookie');
   ok(card.maskState({ log: run(1, 3), card: { mask: 'm1' } }, day(3, 18)).wearing.id === 'm1', 'masks: wears the one he picked');
-  ok(card.newMasks(2, 3).map((m) => m.id).join() === 'm1' && card.newMasks(3, 3).length === 0 && card.newMasks(0, 0).length === 0, 'masks: newMasks');
   ok(fs.readFileSync('tools/stamp.mjs', 'utf8').includes("'media'") && fs.readFileSync('tools/stamp.mjs', 'utf8').includes("'js'"), 'deploy: stamp.mjs caches media/ (masks) and js/ (new files)');
 
   // ---- Done: the payoff ----
@@ -1170,6 +1174,163 @@ process.on('exit', (code) => {
 
 if (process.argv[2] === 'season') {
   for (const t of globalThis.CREASE_SEASON || []) console.log(`seed ${t.seed}: ` + [1, 2, 4, 12, 26, 52].map((w) => `week ${w} ${t.ovr[w]}`).join(', ') + ` | first Silver ${t.firstWeek.Silver}, Gold ${t.firstWeek.Gold}, Elite ${t.firstWeek.Elite}, Legend ${t.firstWeek.Legend ?? '-'}`);
+}
+
+// ===== Masks earned many ways, Glove or Blocker, Compete after a break (12 November 2026) =====
+{
+  const card = await import('./js/plan/card.js');
+  const { MASKS } = await import('./data/masks.js');
+  const { streakStats } = await import('./js/plan/streak.js');
+  const hands = await import('./js/screens/hands.js');
+  const home = await import('./js/screens/home.js');
+  const { shelfHtml } = await import('./js/screens/card.js');
+  const { payoff, payoffLines } = await import('./js/screens/done.js');
+  const { load, blank } = await import('./js/store.js');
+
+  const day = (n, h = 16) => new Date(2026, 10, n, h);
+  const s = (n, type = 'strength', more = {}) => ({ date: day(n, more.h ?? 16).toISOString(), type, completed: true, extra: false, dad: false, done: [], skipped: [], ...more });
+  const run = (from, to, type = 'strength') => Array.from({ length: to - from + 1 }, (_, k) => s(from + k, type));
+  // n sessions of one kind, a few a day so no streak mask gets in the way.
+  const many = (n, type = 'stretch') => Array.from({ length: n }, (_, k) => s(1 + (k % 2), type, { h: 8 + Math.floor(k / 2) % 12 }));
+  const mk = (more = {}) => ({ log: [], lights: [], hands: [], splits: { rung: 1 }, streak: { gifts: [] }, card: { earned: ['m0'] }, ...more });
+  const isOn = (sv, id, now = day(28, 23)) => card.masksFor(sv, now).find((m) => m.id === id).unlocked;
+  const rounds = (...ms) => ms.map((x, k) => ({ date: day(1 + k).toISOString(), ms: Math.abs(x), counted: x > 0, taps: [] }));
+
+  // Every rule: locked one short of it, unlocked at it.
+  for (const m of MASKS.filter((x) => x.by === 'streak' && x.n > 0)) {
+    ok(!isOn(mk({ log: run(1, m.n - 1) }), m.id, day(m.n - 1, 18)) && isOn(mk({ log: run(1, m.n) }), m.id, day(m.n, 18)), `masks: ${m.name} at a ${m.n}-day streak`);
+  }
+  for (const m of MASKS.filter((x) => x.by === 'sessions')) {
+    ok(!isOn(mk({ log: many(m.n - 1) }), m.id) && isOn(mk({ log: many(m.n) }), m.id), `masks: ${m.name} at ${m.n} counted sessions`);
+  }
+  for (const m of MASKS.filter((x) => x.by === 'type')) {
+    ok(!isOn(mk({ log: many(m.n - 1, m.type) }), m.id) && isOn(mk({ log: many(m.n, m.type) }), m.id), `masks: ${m.name} at ${m.n} ${m.type} sessions`);
+    ok(!isOn(mk({ log: [...many(m.n - 1, m.type), s(3, m.type, { extra: true }), s(3, m.type, { test: true })] }), m.id), `masks: extras and test runs never count toward ${m.name}`);
+  }
+  ok(!isOn(mk({ log: many(30, 'strength').slice(0, 11) }), 'm8') && isOn(mk({ log: many(12, 'strength') }), 'm8') && !isOn(mk({ log: many(30, 'stretch') }), 'm8'), 'masks: Bull counts Strength only');
+  ok(!isOn(mk({ splits: { rung: 4 } }), 'm10') && isOn(mk({ splits: { rung: 5 } }), 'm10') && isOn(mk({ splits: { rung: 3 }, card: { earned: ['m0'], rungPeak: 5 } }), 'm10'), 'masks: Spider at splits rung 5, his peak rung');
+  ok(!isOn(mk({ lights: rounds(400, 361) }), 'm11') && isOn(mk({ lights: rounds(400, 360) }), 'm11'), 'masks: Laser at Lights 10% faster than his first score');
+  ok(!isOn(mk({ lights: rounds(-500, 400, -300, 365) }), 'm11'), 'masks: Laser ignores practice rounds, first and best');
+  ok(!isOn(mk({ lights: rounds(400) }), 'm11') && !isOn(mk(), 'm11'), 'masks: Laser needs a first score and a faster one');
+  ok(!isOn(mk({ hands: rounds(500, 451) }), 'm12') && isOn(mk({ hands: rounds(500, 450) }), 'm12') && !isOn(mk({ lights: rounds(500, 300) }), 'm12'), 'masks: Hawk at Glove or Blocker 10% faster, Lights does not count');
+
+  // Phoenix: a 3-day streak after losing 7 or more. Losing 6 isn't enough.
+  const lost7 = [...run(1, 7), ...run(11, 13)]; // 7, then days 8 and 9 use his 2 saves, day 10 breaks it
+  ok(streakStats(lost7.slice(0, 7), { gifts: [] }, day(11, 7)).days === 0, 'Phoenix: the 7-day streak is lost on day 10');
+  ok(!isOn(mk({ log: lost7.slice(0, 9) }), 'm15', day(12, 18)) && isOn(mk({ log: lost7 }), 'm15', day(13, 18)), 'masks: Phoenix on the third day after losing 7');
+  const lost6 = [...run(1, 6), ...run(9, 11)]; // 6, day 7 uses his save, day 8 breaks it
+  ok(streakStats(lost6.slice(0, 6), { gifts: [] }, day(9, 7)).days === 0 && !isOn(mk({ log: lost6 }), 'm15', day(11, 18)), 'masks: no Phoenix after losing 6');
+  ok(!isOn(mk({ log: run(1, 10) }), 'm15', day(10, 18)), 'masks: no Phoenix without a loss');
+
+  // Secret masks show nothing until earned.
+  const fresh = card.masksFor(mk(), day(1));
+  for (const id of ['m14', 'm15']) {
+    const m = fresh.find((x) => x.id === id);
+    ok(m.secret && m.name === 'Secret' && m.need === '???' && !m.progress && m.have === undefined, `masks: ${id} is "Secret" and "???" while locked`);
+  }
+  const shelf0 = shelfHtml(card.maskState(mk(), day(1)));
+  ok(!/Ace|Phoenix|Game Day/.test(shelf0) && (shelf0.match(/locked secret/g) || []).length === 2, 'masks: the shelf never names a secret mask before he earns it');
+  const aceSave = mk({ log: many(5, 'gameday') });
+  ok(card.masksFor(aceSave, day(3)).find((m) => m.id === 'm14').name === 'Ace' && shelfHtml(card.maskState(aceSave, day(3))).includes('Ace'), 'masks: Ace shows its name once earned');
+  ok(card.masksFor(mk({ log: many(12) }), day(3)).find((m) => m.id === 'm7').progress === '12 / 20', 'masks: Viper shows "12 / 20"');
+  ok(card.masksFor(mk({ lights: rounds(400, 380) }), day(3)).find((m) => m.id === 'm11').progress === '360 ms or faster', 'masks: Laser shows the time to beat');
+  ok(card.masksFor(mk(), day(3)).find((m) => m.id === 'm11').need === 'Lights 10% faster' && card.masksFor(mk(), day(3)).find((m) => m.id === 'm12').need === 'Glove or Blocker 10% faster', 'masks: the two game masks say what they need');
+  const st0 = card.maskState(mk({ log: run(1, 3), card: { earned: ['m0', 'm1'], mask: 'm1' } }), day(3, 18));
+  ok(st0.count === 2 && st0.wearing.id === 'm1' && shelfHtml(st0).indexOf('Ice') < shelfHtml(st0).indexOf('Bolt'), 'masks: count, wearing, unlocked first');
+
+  // claimMasks: each mask once, and never lost.
+  const cs = mk({ log: run(1, 3) });
+  const c1 = card.claimMasks(cs, day(3, 18));
+  ok(c1.map((m) => m.name).join() === 'Ice' && cs.card.earned.includes('m1'), `claimMasks: claims Ice (got ${c1.map((m) => m.name)})`);
+  ok(card.claimMasks(cs, day(3, 19)).length === 0, 'claimMasks: never twice');
+  cs.splits.rung = 5;
+  ok(card.claimMasks(cs, day(4, 8)).map((m) => m.name).join() === 'Spider', 'claimMasks: Dad moving the rung claims Spider');
+  cs.splits.rung = 2;
+  ok(isOn(cs, 'm10', day(4, 9)), 'claimMasks: an earned mask stays when its rule no longer holds');
+  const unseeded = { log: run(1, 7), lights: [], splits: { rung: 1 }, streak: { gifts: [] }, card: {} };
+  ok(card.claimMasks(unseeded, day(7, 18)).length === 0 && unseeded.card.earned.join() === 'm0,m1,m2', 'claimMasks: a save with no list yet is seeded silently');
+  ok(blank().card.earned.join() === 'm0' && Array.isArray(blank().hands), 'save: a new save holds Rookie and an empty Glove or Blocker list');
+  ok(card.claimMasks(blank(), new Date()).length === 0, 'claimMasks: a new save gets no "New mask" for Rookie');
+
+  // Migration: an older save gets every mask it has now, with no "New mask" line for any.
+  localStorage.setItem('crease.save', JSON.stringify({ v: 1, setupDone: true, log: [...run(1, 7), ...many(14)], splits: { rung: 5 }, card: { mask: 'm2' } }));
+  const mig = load();
+  ok(['m0', 'm1', 'm2', 'm7', 'm10'].every((id) => mig.card.earned.includes(id)) && mig.card.mask === 'm2' && Array.isArray(mig.hands), `migration: earned seeded (got ${mig.card.earned})`);
+  ok(card.claimMasks(mig, new Date()).length === 0, 'migration: nothing new to show after seeding');
+  ok(Array.isArray(JSON.parse(localStorage.getItem('crease.save')).card.earned), 'migration: the seeded list is saved');
+
+  // Done: every kind of unlock shows, from the claimed list.
+  const dl = [...many(19, 'stretch'), s(5, 'power', { h: 18 })];
+  const dsv = mk({ log: dl });
+  const dp = payoff(dsv, dl.at(-1), day(5, 19));
+  ok(dp.masks.map((m) => m.name).join() === 'Viper' && dp.say.includes('New mask.'), `done: the 20th session shows Viper (got ${dp.masks.map((m) => m.name)})`);
+  const claimed = card.claimMasks(dsv, day(5, 19));
+  const dp2 = payoff(dsv, dl.at(-1), day(5, 19), { claimed });
+  ok(payoffLines(dp2).filter((l) => l.kind === 'mask').map((l) => l.text).join() === 'New mask: Viper!', 'done: the claimed list makes the lines');
+  ok(payoff(dsv, dl.at(-1), day(5, 19), { claimed: [] }).masks.length === 0 && payoff(dsv, dl.at(-1), day(5, 19), { claimed: [] }).say.length === 0, 'done: nothing claimed, no mask line and no voice');
+
+  // Compete: the same as before for a kid who never misses, rising for one who breaks streaks.
+  const comp = (sv, now) => card.cardStats(sv, now).ratings.find((r) => r.id === 'compete').value;
+  for (const n of [5, 14, 28]) ok(comp(mk({ log: run(1, n) }), day(n, 18)) === Math.round(50 + 49 * (1 - Math.exp(-n / card.K.compete))), `Compete: unchanged for ${n} days in a row`);
+  // Four days on, three off, for eight weeks: his best stays 4 (one save covers one day of three).
+  const choppy = [];
+  for (let w = 0; w < 8; w++) choppy.push(...run(1 + w * 7, 4 + w * 7));
+  ok(streakStats(choppy, { gifts: [] }, day(53, 18)).best === 4, 'Compete: the choppy kid\'s best streak stays 4');
+  const cw2 = comp(mk({ log: choppy.slice(0, 8) }), day(11, 18));
+  const cw8 = comp(mk({ log: choppy }), day(53, 18));
+  ok(cw8 > cw2 && cw8 > Math.round(50 + 49 * (1 - Math.exp(-4 / card.K.compete))), `Compete: keeps rising after broken streaks (week 2 ${cw2}, week 8 ${cw8})`);
+  let cPrev = 0, cDrop = false;
+  for (let i = 1; i <= choppy.length; i++) { const v = comp(mk({ log: choppy.slice(0, i) }), new Date(choppy[i - 1].date)); if (v < cPrev) cDrop = true; cPrev = v; }
+  ok(!cDrop, 'Compete: never drops as sessions are added');
+
+  // Reflex: the blend never drops when a round of either game is added, faster, slower or practice.
+  {
+    let seed = 5;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const sv = mk();
+    let prev = 50, drop = false;
+    for (let i = 0; i < 200; i++) {
+      const game = rnd() < 0.5 ? 'lights' : 'hands';
+      sv[game].push({ date: day(1 + (i % 28)).toISOString(), ms: Math.round((game === 'lights' ? 180 : 280) + rnd() * 400), counted: rnd() < 0.7, taps: [] });
+      const v = card.cardStats(sv, day(28)).ratings.find((r) => r.id === 'reflex').value;
+      if (v < prev) drop = true;
+      prev = v;
+    }
+    ok(!drop && prev > 50, `Reflex: never drops as rounds are added (ended at ${prev})`);
+  }
+
+  // Glove or Blocker: the round.
+  let hs = 3;
+  const hr = () => ((hs = (hs * 16807) % 2147483647) / 2147483647);
+  const r0 = hands.newRound(hr);
+  ok(r0.queue.length === 12 && r0.queue.filter((x) => x === 'L').length === 6, 'Glove or Blocker: 12 lights, 6 a side');
+  const other = (r) => (r.queue[0] === 'L' ? 'R' : 'L');
+  ok(hands.judge(r0, { lit: false, side: 'L' }) === 'early' && r0.queue.length === 12 && r0.wrong === 0, 'Glove or Blocker: a tap before the light is "Early." and changes nothing');
+  ok(hands.judge(r0, { lit: true, side: r0.queue[0], ms: 80 }) === 'early' && r0.taps.length === 0, 'Glove or Blocker: under 100 ms is "Early."');
+  ok(hands.judge(r0, { lit: true, side: other(r0), ms: 300 }) === 'wrong' && r0.wrong === 1 && r0.queue.length === 12 && r0.queue.filter((x) => x === 'L').length === 6, 'Glove or Blocker: a wrong side keeps that light in the round');
+  ok(hands.judge(r0, { lit: true, side: r0.queue[0], ms: 310 }) === 'hit' && r0.taps.length === 1 && r0.queue.length === 11, 'Glove or Blocker: a right side counts');
+  ok(hands.judge(r0, { lit: true, side: other(r0), ms: 300 }) === 'wrong' && hands.judge(r0, { lit: true, side: other(r0), ms: 300 }) === 'over', 'Glove or Blocker: the third wrong side ends the round');
+  const hsv = mk();
+  ok(hands.finish(hsv, r0, day(3)) === null && hsv.hands.length === 0 && hands.handsStats(hsv.hands, day(3)).left === 3, 'Glove or Blocker: a 3-wrong round saves nothing and uses no counted round');
+  const play = (base) => { const r = hands.newRound(hr); let out; for (let k = 0; k < 12; k++) out = hands.judge(r, { lit: true, side: r.queue[0], ms: base + k * 10 }); return { r, out }; };
+  const p1 = play(400);
+  ok(p1.out === 'done', 'Glove or Blocker: the 12th hit ends the round');
+  const f1 = hands.finish(hsv, p1.r, day(3, 9));
+  ok(f1.counted && f1.first && f1.ms === 455 && hsv.hands[0].taps.length === 12, `Glove or Blocker: the score is the median of 12 (got ${f1.ms})`);
+  const f2 = hands.finish(hsv, play(350).r, day(3, 10));
+  ok(f2.counted && f2.best && f2.was === 455, 'Glove or Blocker: a faster round is a new best');
+  hands.finish(hsv, play(380).r, day(3, 11));
+  const f4 = hands.finish(hsv, play(200).r, day(3, 12));
+  ok(!f4.counted && !f4.best && hands.handsStats(hsv.hands, day(3, 13)).best === 405, 'Glove or Blocker: 3 counted rounds a day, the 4th is practice');
+  ok(hands.handsStats(hsv.hands, day(4, 9)).left === 3, 'Glove or Blocker: 3 more count tomorrow');
+
+  // Today: the two game tiles and their dots.
+  const tile = home.handsLineHtml(hsv.hands, day(3, 13));
+  ok(tile.includes('Glove or Blocker') && tile.includes('<b>405 ms</b>') && tile.includes('aria-label="3 of 3 rounds played today"') && (tile.match(/class="on"/g) || []).length === 3, 'Today: Glove or Blocker tile, best and 3 dots');
+  ok(home.lightsLineHtml([], day(3)).includes('No score yet') && home.lightsLineHtml([], day(3)).includes('0 of 3 rounds played today'), 'Today: Lights tile with no score yet');
+  ok(home.maskNewsHtml([{ id: 'm10', name: 'Spider' }]).includes('New mask: Spider!') && home.maskNewsHtml([]) === '', 'Today: "New mask: Spider!" banner');
+  ok(fs.readFileSync('js/screens/settings.js', 'utf8').includes('You earn masks from streaks, sessions, the two games and the splits. Two are secret.'), 'Settings: the Masks row');
+  ok(fs.readFileSync('js/app.js', 'utf8').includes('hands: hands.render'), 'app: the hands route');
 }
 
 // The milestone lines are recorded.

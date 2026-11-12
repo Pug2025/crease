@@ -1,4 +1,5 @@
 // Small helpers shared by the screens.
+import { maskSrc } from '../data/masks.js';
 
 export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -44,3 +45,6 @@ export const CREASE_MARK = `<svg class="mark" viewBox="0 0 120 64" aria-hidden="
 
 export const today = () =>
   new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+
+// A mask picture. If the file isn't there yet, the empty frame shows instead of a broken image.
+export const maskImg = (m, cls = '') => `<img class="mask-img${cls ? ` ${cls}` : ''}" src="${esc(maskSrc(m.id))}" alt="" onerror="this.hidden=true">`;

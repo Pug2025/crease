@@ -9,6 +9,7 @@ import * as done from './screens/done.js';
 import * as settings from './screens/settings.js';
 import * as dad from './screens/dad.js';
 import * as lights from './screens/lights.js';
+import * as hands from './screens/hands.js';
 import * as splits from './screens/splits.js';
 import * as card from './screens/card.js';
 import { dayKey } from './plan/decide.js';
@@ -30,6 +31,7 @@ const screens = {
   done: done.render,
   settings: settings.render,
   lights: lights.render,
+  hands: hands.render,
   splits: splits.render,
   card: card.render,
 };

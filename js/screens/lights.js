@@ -2,8 +2,9 @@
 // Score: the median tap in ms. A tap before the light (or faster than a person can react)
 // shows "Early." and that light goes again. 3 counted rounds a day; more are practice.
 // Every round is saved with its date. It never counts as a session.
-import { esc, on } from '../ui.js';
+import { esc, on, maskImg } from '../ui.js';
 import { dayKey } from '../plan/decide.js';
+import { claimMasks } from '../plan/card.js';
 
 export const TAPS = 10;
 export const COUNTED_PER_DAY = 3;
@@ -40,6 +41,20 @@ export function recordRound(save, taps, now = new Date()) {
     was: before.best,
     fastest: Math.round(Math.min(...taps)),
   };
+}
+
+// "New mask: Laser!" on a game's result, with Wear it. Shared with Glove or Blocker.
+export function maskLinesHtml(list = []) {
+  return list.map((m) => `
+    <div class="lt-mask"><span class="lt-maskpic">${maskImg(m)}</span>
+      <p class="lt-line lt-gold">${esc(`New mask: ${m.name}!`)}</p>
+      <button class="btn lt-wear" data-act="wear" data-arg="${esc(m.id)}">Wear it</button></div>`).join('');
+}
+
+export function wearFrom(app, id, el) {
+  app.save.card = { ...(app.save.card || {}), mask: id };
+  app.persist();
+  el.outerHTML = '<p class="lt-status lt-worn">Wearing it.</p>';
 }
 
 export function render(root, app, { first = false } = {}) {
@@ -159,6 +174,7 @@ export function render(root, app, { first = false } = {}) {
 
   function result() {
     const r = recordRound(s, taps);
+    const masks = r.counted ? claimMasks(s) : [];
     app.persist();
     setKicker();
     board.dataset.state = 'result';
@@ -170,7 +186,8 @@ export function render(root, app, { first = false } = {}) {
       : `Best: ${r.was} ms.`;
     info.innerHTML = `
       <p class="lt-line${r.best ? ' lt-gold' : ''}">${esc(line)}</p>
-      <p class="lt-status">Middle of ${TAPS} taps · fastest ${r.fastest} ms${r.counted ? ` · round ${r.round} of ${COUNTED_PER_DAY} today` : ''}</p>`;
+      <p class="lt-status">Middle of ${TAPS} taps · fastest ${r.fastest} ms${r.counted ? ` · round ${r.round} of ${COUNTED_PER_DAY} today` : ''}</p>
+      ${maskLinesHtml(masks)}`;
     buttons.innerHTML = `
       <button class="btn lt-again" data-act="again">Go again</button>
       <button class="btn btn-primary lt-home" data-act="home">${first ? 'Go to Today' : 'Back to Today'}</button>`;
@@ -186,6 +203,7 @@ export function render(root, app, { first = false } = {}) {
     home: () => app.go('home'),
     go: () => go(),
     again: () => go(),
+    wear: (id, el) => wearFrom(app, id, el),
   });
   intro();
 
