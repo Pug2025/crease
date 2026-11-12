@@ -2,11 +2,10 @@
 // He never picks the session himself. Pure functions: tests.mjs runs them in Node.
 //
 // answers: { today: 'game' | 'practice' | 'none', when: 'before' | 'after' (game days only),
-//            tomorrow: 'game' | 'practice' | 'none', yesterdayGame: true | false | undefined, hurts: bool }
+//            tomorrow: 'game' | 'practice' | 'none', yesterdayGame: true | false | undefined }
 // log: the saved session log. days: saved check-in answers by date (see settle()).
 import { byId } from '../../data/exercises.js';
 import { SESSIONS } from '../../data/sessions.js';
-import { spotOf } from '../../data/copy.js';
 
 export function dayKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -21,10 +20,9 @@ function shift(d, n) {
 // Whole days from a to b, by the calendar (DST-proof).
 const daysFrom = (a, b) => Math.round((new Date(dayKey(b)) - new Date(dayKey(a))) / 86400000);
 
-// A session counts when it was finished, or stopped for pain. Extra stretching and Dad's test runs don't.
-export const counts = (e) => (e.completed || e.stopped?.why === 'pain') && !e.extra;
+// A session counts when it was finished. Extra stretching and Dad's test runs don't.
+export const counts = (e) => !!e.completed && !e.extra;
 const counted = counts;
-const testRun = (e) => e.dad && e.extra;
 
 // Session types done on each date, from the log.
 export function doneByDay(log) {
@@ -57,68 +55,6 @@ export function knownYesterdayGame(log, days, now = new Date()) {
   return undefined;
 }
 
-// Every pain report in the log: a pain stop, a "hurts" check-in, or a drill skipped because it hurt.
-// Dad's test runs aren't his. `cleared` is Dad's "He's OK to train today".
-export function painReports(log) {
-  const out = [];
-  for (const e of log) {
-    if (testRun(e)) continue;
-    const why = e.stopped?.why;
-    if ((why === 'pain' || why === 'hurt-before') && e.stopped.zone) out.push({ zone: e.stopped.zone, date: e.date, cleared: !!e.cleared });
-    for (const s of e.skipped || []) if (s.zone) out.push({ zone: s.zone, date: e.date, cleared: !!e.cleared });
-  }
-  return out;
-}
-
-// What a report in each zone takes out, for 7 days after it (PLAN section 2: Osgood-Schlatter
-// below the kneecap, Sever's in the heel, the lower back). Knee and ankle follow the same rules,
-// because a boy with pain below the kneecap may well tap Knee. These hold even after Dad clears the day.
-// noJumps turns Jumping Jacks into Step Jacks (its noJump version), so the warm-up keeps them.
-const KNEE = { noPower: true, noJumps: true, avoid: ['ST2', 'S3', 'S4', 'P13'] };
-const HEEL = { noPower: true, noJumps: true, avoid: [] };
-const PAIN_RULES = {
-  'below-kneecap': KNEE,
-  knee: KNEE,
-  heel: HEEL,
-  ankle: HEEL,
-  'lower-back': { avoid: ['P8', 'P12', 'C9'] },
-};
-export const PAIN_DAYS = 7;
-
-// The words for what's left out, in a fixed order.
-const LEFT_OUT = [
-  ['jumps', 'jumping'], ['ST2', 'wall sits'], ['S4', 'lunges'],
-  ['P8', 'slams'], ['P12', 'burpees'], ['C9', 'mountain climbers'],
-];
-
-// The pain rules in force today, or null.
-export function painRules(log, now = new Date()) {
-  let rule = null;
-  for (const r of painReports(log)) {
-    const z = PAIN_RULES[r.zone];
-    const date = new Date(r.date);
-    const n = daysFrom(date, now);
-    if (!z || n < 0 || n > PAIN_DAYS) continue;
-    rule ||= { noPower: false, noJumps: false, avoid: new Set(), zone: r.zone, date, back: shift(date, PAIN_DAYS + 1) };
-    rule.noPower ||= !!z.noPower;
-    rule.noJumps ||= !!z.noJumps;
-    z.avoid.forEach((id) => rule.avoid.add(id));
-    if (date >= rule.date) { rule.zone = r.zone; rule.date = date; }
-    const back = shift(date, PAIN_DAYS + 1);
-    if (back > rule.back) rule.back = back;
-  }
-  if (!rule) return null;
-  const what = LEFT_OUT.filter(([id]) => (id === 'jumps' ? rule.noJumps : rule.avoid.has(id))).map(([, w]) => w);
-  return { ...rule, avoid: [...rule.avoid], what };
-}
-
-// Something hurt today and Dad hasn't cleared it: no check-in today.
-export function hurtToday(log, now = new Date()) {
-  const k = dayKey(now);
-  return log.some((e) => !testRun(e) && !e.cleared && dayKey(new Date(e.date)) === k
-    && (e.stopped?.why === 'hurt-before' || e.stopped?.why === 'pain' || (e.skipped || []).some((s) => s.zone)));
-}
-
 export function decide(answers, log, days, now = new Date()) {
   const by = doneByDay(log);
   const on = (n, type) => (by[dayKey(shift(now, n))] || []).includes(type);
@@ -136,12 +72,9 @@ export function decide(answers, log, days, now = new Date()) {
     return last;
   };
 
-  const pain = painRules(log, now);
-  const rules = { avoid: pain?.avoid || [], noJumps: !!pain?.noJumps, pain };
-  const pick = (type, why, more = {}) => ({ type, why, ...more, ...rules });
+  const pick = (type, why, more = {}) => ({ type, why, ...more });
 
-  if (answers.hurts || hurtToday(log, now)) return { type: null, why: 'hurts', ...rules };
-  if (trained(0)) return { type: null, why: 'done', ...rules };
+  if (trained(0)) return { type: null, why: 'done' };
   // A Power that ended early after the jumps: no more jumping today.
   if (power(0)) return pick('stretch', 'jumped-today');
   if (answers.today === 'game') return answers.when === 'after' ? pick('stretch', 'after-game') : pick('gameday', 'game-today');
@@ -155,8 +88,7 @@ export function decide(answers, log, days, now = new Date()) {
   // No Power on Fridays and Saturdays: weekend games are the ones he gets wrong or hears about late.
   const powerThisWeek = [1, 2, 3, 4, 5, 6].filter((n) => power(-n)).length;
   const dow = now.getDay();
-  const noPower = pain?.noPower ? 'pain'
-    : answers.today === 'practice' ? 'practice-today'
+  const noPower = answers.today === 'practice' ? 'practice-today'
     : yesterdayGame ? 'game-yesterday'
     : dow === 5 || dow === 6 ? 'fri-sat'
     : power(-1) ? 'power-yesterday'
@@ -172,8 +104,8 @@ export function decide(answers, log, days, now = new Date()) {
 
   const strength = () => {
     if (firstEver) return pick('strength', 'first', { last: null });
-    // Say why it isn't Power when that's news: always for practice, a game or pain; otherwise only when Power was due.
-    if (noPower && (powerTurn || ['practice-today', 'game-yesterday', 'pain'].includes(noPower)) && noPower !== 'power-yesterday')
+    // Say why it isn't Power when that's news: always for practice or a game; otherwise only when Power was due.
+    if (noPower && (powerTurn || ['practice-today', 'game-yesterday'].includes(noPower)) && noPower !== 'power-yesterday')
       return pick('strength', 'no-power', { blocked: noPower, last: lastStrength });
     return pick('strength', lastStrength ? 'strength-turn' : 'strength-first', { last: lastStrength });
   };
@@ -188,25 +120,6 @@ export function decide(answers, log, days, now = new Date()) {
   return pick('stretch', 'easy', { blocked: noPower });
 }
 
-// "yesterday", "on Tuesday", "on November 3": a day before today.
-function before(date, now) {
-  const n = daysFrom(date, now);
-  if (n <= 0) return 'today';
-  if (n === 1) return 'yesterday';
-  if (n < 7) return `on ${date.toLocaleDateString('en-CA', { weekday: 'long' })}`;
-  return `on ${date.toLocaleDateString('en-CA', { month: 'long', day: 'numeric' })}`;
-}
-
-// "tomorrow", "Wednesday", "November 25": a day after today.
-function ahead(date, now) {
-  const n = daysFrom(now, date);
-  if (n <= 1) return 'tomorrow';
-  if (n < 7) return date.toLocaleDateString('en-CA', { weekday: 'long' });
-  return date.toLocaleDateString('en-CA', { month: 'long', day: 'numeric' });
-}
-
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const listOr = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} or ${xs.at(-1)}`);
 const listAnd = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
 
 // The line shown under today's session: what the app knew, not an order.
@@ -219,7 +132,6 @@ export function reasonText(d, now = new Date()) {
     return date.toLocaleDateString('en-CA', { month: 'long', day: 'numeric' });
   };
   const weekday = now.toLocaleDateString('en-CA', { weekday: 'long' });
-  const painSaid = d.pain ? `${cap(spotOf(d.pain.zone))} hurt ${before(d.pain.date, now)}` : 'Something hurt this week';
   switch (d.why) {
     case 'game-today': return 'Game today. Short and easy, just get loose.';
     case 'after-game': return 'You played today. Loosen up and you\'re done.';
@@ -234,7 +146,6 @@ export function reasonText(d, now = new Date()) {
     case 'strength-turn': return `Last Strength: ${last(d.last)}.`;
     case 'no-power':
       switch (d.blocked) {
-        case 'pain': return `${painSaid}, so no Power.`;
         case 'practice-today': return 'Practice today, so no Power.';
         case 'game-yesterday': return 'Game yesterday, so no Power.';
         case 'fri-sat': return `No Power on ${weekday}s.`;
@@ -246,21 +157,10 @@ export function reasonText(d, now = new Date()) {
         case 'practice-today': return 'Practice today and Strength yesterday. Today is an easy one.';
         case 'fri-sat': return `Strength yesterday, and no Power on ${weekday}s. Today is an easy one.`;
         case 'power-cap': return 'Strength yesterday, and Power twice this week. Today is an easy one.';
-        case 'pain': return `Strength yesterday. ${painSaid}, so no Power.`;
         default: return 'You\'ve trained hard lately. Today is an easy one.';
       }
     default: return '';
   }
-}
-
-// The preview line for the pain rules: what's left out and when it's back.
-export function painText(d, now = new Date()) {
-  const p = d.pain;
-  if (!p || !p.what.length) return '';
-  const rule = `No ${listOr(p.what)} until ${ahead(p.back, now)}.`;
-  // The reason line already says what hurt when the pain is why it isn't Power.
-  if (d.blocked === 'pain') return rule;
-  return `${cap(spotOf(p.zone))} hurt ${before(p.date, now)}. ${rule}`;
 }
 
 // His answers, for the preview: "No hockey today · Practice tomorrow".
@@ -290,7 +190,7 @@ const HOCKEY = { none: 0, practice: 1, game: 2 };
 const moreHockey = (a, b) => ((HOCKEY[b] ?? -1) > (HOCKEY[a] ?? -1) ? b : a);
 
 export function settle(answers, log, days, now = new Date()) {
-  // A record with no type (a "hurts" check-in, or answers from before this build) is no first check-in.
+  // A record with no type (a check-in after he'd already trained, or answers from before this build) is no first check-in.
   const saved = days[dayKey(now)];
   const prev = saved?.type ? saved : null;
   const a = { ...answers };

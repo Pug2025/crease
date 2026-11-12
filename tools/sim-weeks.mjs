@@ -91,7 +91,6 @@ export function simulate({ weeks = 43, seed = 7, skips = 'random', schedule = 'r
         if (row.dow === 5 && tomorrow === 'game' && rand() < fridayMistake) { a.tomorrow = 'practice'; row.wrong = true; }
       }
       if (a.today !== 'game' && a.tomorrow !== 'game' && knownYesterdayGame(save.log, save.days, now) === undefined) a.yesterdayGame = yesterday === 'game';
-      a.hurts = false;
       const { d: dec, day, reason } = settle(a, save.log, save.days, now);
       save.days[k] = day;
       Object.assign(row, { now, answers: a, type: dec.type, why: dec.why, reason });

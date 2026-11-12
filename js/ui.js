@@ -42,9 +42,5 @@ export function on(root, handlers) {
 
 export const CREASE_MARK = `<svg class="mark" viewBox="0 0 120 64" aria-hidden="true"><path d="M12 58 A48 48 0 0 1 108 58 Z" fill="#6CB4E4" stroke="#D21F2E" stroke-width="5" stroke-linejoin="round"/><line x1="0" y1="58" x2="120" y2="58" stroke="#D21F2E" stroke-width="5"/></svg>`;
 
-export function stopRuleHtml(rule) {
-  return `<div class="stop-rule"><p>${esc(rule.title)}</p><ul>${rule.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div>`;
-}
-
 export const today = () =>
   new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });

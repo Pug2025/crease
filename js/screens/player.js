@@ -1,14 +1,15 @@
 // The session player. Read from 2 m away: the whole screen's colour says work or rest,
 // the big number fills the width (seconds left, or his reps on a rep set), and the voice
 // says everything the screen says.
-import { esc, on, clock, mmss, stopRuleHtml } from '../ui.js';
+import { esc, on, clock, mmss } from '../ui.js';
 import { Runner } from '../timer/runner.js';
 import * as audio from '../timer/audio.js';
 import { keepAwake, letSleep, onLost } from '../timer/wakelock.js';
 import * as live from '../live.js';
+import { migrateOldRecords } from '../store.js';
 import { buildSession, phrasesOf } from '../plan/build.js';
 import { SESSIONS } from '../../data/sessions.js';
-import { PAIN_ZONES, STOP_RULE, SAY } from '../../data/copy.js';
+import { SAY } from '../../data/copy.js';
 
 const SIDE = { L: 'Left', R: 'Right' };
 
@@ -32,17 +33,15 @@ export function credit(session, doneNos) {
 }
 
 // Fills in how a session ended (contract C6): done, completed, reached, need, short.
-// A pain stop always counts (decide.js counts()), so it has no short.
 export function settle(session, log, doneNos, skippedNos, reached) {
   const skipped = new Set(skippedNos);
   const done = [...new Set(doneNos)].filter((n) => !skipped.has(n)).sort((a, b) => a - b);
   const c = credit(session, done);
-  const pain = log.stopped?.why === 'pain';
   log.done = done.map((n) => session.items[n - 1]?.drill.id).filter(Boolean);
   log.reached = reached;
   log.need = c.need;
-  log.short = pain ? null : c.short;
-  log.completed = !pain && !c.short;
+  log.short = c.short;
+  log.completed = !c.short;
   return log;
 }
 
@@ -81,12 +80,13 @@ export function resumeIndex(session, saved) {
 }
 
 // Contract C7: at start-up, a session iOS closed less than two hours ago reopens on Paused.
-// An older one is logged as ended, so what he did (and any pain skip) isn't lost.
+// An older one is logged as ended, so what he did isn't lost.
 export function resumeIfAny(app) {
   const saved = live.read();
   if (!saved) return false;
   live.clear();
   if (!saved.log || (saved.dad && saved.extra)) return false;
+  migrateOldRecords({ log: [saved.log] }); // a session saved by an older version
   if (app.save.log.some((e) => e.date === saved.log.date)) return false;
   let session = null;
   try { if (SESSIONS[saved.type] && saved.ctx) session = buildSession(saved.type, saved.ctx); } catch {}
@@ -315,7 +315,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     app.go('done', { session, log });
   }
 
-  // Sheets: pause, stop, end, skip, pain.
+  // Sheets: pause and end.
   function sheet(html, kind = '') {
     el.sheet.innerHTML = `<div class="sheet-card${kind ? ` sheet-${kind}` : ''}">${html}</div>`;
     el.sheet.hidden = false;
@@ -328,14 +328,6 @@ export function render(root, app, { session, extra = false, dad = false, resume 
       <button class="btn btn-go" data-act="resume">Resume</button>
       <button class="btn" data-act="skip">Skip this drill</button>
       <button class="btn" data-act="endSession">End the session</button>`);
-  }
-
-  function stopSheet() {
-    sheet(`
-      <h2>Why are you stopping?</h2>
-      <button class="btn btn-stop" data-act="hurts">Something hurts</button>
-      <button class="btn" data-act="endSession">I'm done for today</button>
-      <button class="btn" data-act="resume">Keep going</button>`);
   }
 
   // Ending asks once, with how far he got. Keep going sits where the last tap was.
@@ -353,27 +345,6 @@ export function render(root, app, { session, extra = false, dad = false, resume 
       <button class="btn btn-go" data-act="resume">Keep going</button>`);
   }
 
-  function skipSheet() {
-    sheet(`
-      <h2>Skip ${esc(runner.current().r?.name || 'this drill')}?</h2>
-      <button class="btn" data-act="skipWhy" data-arg="here">Can't do it here</button>
-      <button class="btn btn-stop" data-act="skipWhy" data-arg="hurts">It hurts</button>
-      <button class="btn" data-act="resume">Back</button>`);
-  }
-
-  // Nothing is logged until he picks a spot; Back goes to the sheet he came from.
-  let pending = null;
-  let backTo = null;
-  let lastZone = null;
-  function zonesSheet(then, back) {
-    pending = then;
-    backTo = back;
-    sheet(`
-      <h2>Where does it hurt?</h2>
-      <div class="zones">${PAIN_ZONES.map((z) => `<button class="choice" data-act="zone" data-arg="${z.id}"><span>${esc(z.label)}</span></button>`).join('')}</div>
-      <button class="btn" data-act="zonesBack">Back</button>`);
-  }
-
   function skipToNextDrill() {
     runner.jumpTo(runner.nextDrillIndex());
     closeSheet();
@@ -387,39 +358,16 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     done: () => { audio.hush(); runner.jumpTo(runner.afterCurrent()); },
     nextStep: () => { if (!test) return; audio.hush(); runner.jumpTo(runner.afterCurrent()); },
     nextDrill: () => { if (!test) return; audio.hush(); runner.jumpTo(runner.nextDrillIndex()); },
-    stop: () => { runner.pause(); audio.hush(); stopSheet(); keep(); },
-    hurts: () => zonesSheet((zone) => { log.stopped = { why: 'pain', zone }; finish(false); }, stopSheet),
+    stop: () => { runner.pause(); audio.hush(); endSheet(); keep(); },
     endSession: () => endSheet(),
     endNow: () => { log.stopped = { why: 'ended' }; finish(false); },
-    skip: () => skipSheet(),
-    skipWhy: (why) => {
+    // One tap: the drill is skipped and the next one starts.
+    skip: () => {
       const st = runner.current();
-      const id = st.r?.drill.id;
-      const no = st.drillNo;
-      if (why === 'hurts') {
-        zonesSheet((zone) => {
-          log.skipped.push({ id, no, why, zone });
-          skippedNos.add(no);
-          lastZone = zone;
-          pending = null;
-          keep();
-          sheet(`
-            <h2>Skipped.</h2>
-            <p>If it still hurts, stop and tell Dad.</p>
-            ${stopRuleHtml(STOP_RULE)}
-            <button class="btn btn-go" data-act="afterSkip">Next drill</button>
-            <button class="btn btn-stop" data-act="hurtsStop">Stop the session</button>`, 'skipped');
-        }, skipSheet);
-        return;
-      }
-      log.skipped.push({ id, no, why });
-      skippedNos.add(no);
+      log.skipped.push({ id: st.r?.drill.id, no: st.drillNo, why: 'here' });
+      skippedNos.add(st.drillNo);
       skipToNextDrill();
     },
-    afterSkip: () => skipToNextDrill(),
-    hurtsStop: () => { log.stopped = { why: 'pain', zone: lastZone }; finish(false); },
-    zone: (z) => pending?.(z),
-    zonesBack: () => { pending = null; backTo?.(); },
     fixSound: async () => {
       await audio.unlock();
       if (audio.soundOn()) el.sound.hidden = true;

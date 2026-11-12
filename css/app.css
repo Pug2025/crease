@@ -102,7 +102,6 @@ img { max-width: 100%; }
 .btn-go { background: var(--crease); border-color: var(--crease); color: #FFFFFF; min-height: 80px; font-size: 2rem; }
 .btn-stop { background: var(--red); border-color: var(--red); color: #FFFFFF; }
 .btn-big { min-height: 80px; }
-.btn-small { min-height: 44px; font-size: 1.2rem; padding: 6px 16px; }
 .btn:disabled { opacity: .6; }
 .screen > .btn-primary:last-child { margin-top: auto; }
 
@@ -117,15 +116,6 @@ img { max-width: 100%; }
 .choice small { color: var(--ink2); font-size: .95rem; }
 .choice[aria-pressed="true"] { border-color: var(--crease); box-shadow: inset 0 0 0 2px var(--crease); }
 .choices.row .choice { align-items: center; text-align: center; }
-
-/* Stop rule */
-.stop-rule { border: 2px solid var(--red); border-radius: 14px; background: var(--card); padding: 12px 16px; }
-.stop-rule p { font-weight: 700; margin: 0 0 4px; }
-.stop-rule ul { margin: 0; padding-left: 20px; }
-.stop-rule li { margin: 2px 0; }
-
-.alert { display: flex; gap: 12px; align-items: center; justify-content: space-between; background: var(--card); border: 2px solid var(--red); border-radius: 14px; padding: 12px 14px; }
-.alert p { flex: 1; }
 
 /* Install */
 .steps { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 14px; }
@@ -305,8 +295,6 @@ img { max-width: 100%; }
 .sheet-card h2 { font-family: var(--display); font-weight: 900; font-size: 2.4rem; line-height: 1; text-transform: uppercase; margin: 0 0 4px; }
 .sheet-card > p { margin: 0; }
 .sheet-line { margin: 0 0 4px; font-size: 1.25rem; font-weight: 700; }
-.zones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.zones .choice { min-height: 60px; }
 
 /* Phone on its side, propped on its long edge: three columns. Clock and drill name on the left,
    the drawing in the middle, Pause, Done and Stop stacked on the right. No cue line: the voice says it.
@@ -352,11 +340,6 @@ img { max-width: 100%; }
   .pl-dad { margin-top: 8px; }
   .sheet-card { max-width: 42rem; padding-top: 16px; }
   .sheet-card h2 { font-size: 2rem; }
-  .zones { grid-template-columns: repeat(4, 1fr); }
-  /* After an "It hurts" skip: the stop rule beside the two buttons, so both stay on screen. */
-  .sheet-skipped { grid-template-columns: 1fr 1fr; column-gap: 20px; align-items: start; }
-  .sheet-skipped > * { grid-column: 1; }
-  .sheet-skipped > .stop-rule { grid-column: 2; grid-row: 1 / span 4; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -370,15 +353,7 @@ img { max-width: 100%; }
 #app { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 #app > .screen { flex: 1 0 auto; width: 100%; }
 
-/* Sore or hurt, on the welcome screen under the stop rule */
-.sore-hurt { border: 2px solid var(--line); border-radius: 14px; background: var(--card); padding: 12px 16px; display: grid; gap: 6px; }
-.sh-title { font-weight: 700; }
-.sh-label { font-family: var(--display); font-weight: 900; font-size: 1.3rem; line-height: 1; text-transform: uppercase; letter-spacing: .02em; }
-.sh-sore .sh-label { color: var(--crease-deep); }
-.sh-hurt .sh-label { color: var(--red); }
-
 /* Today */
-.today-done.locked { border-color: var(--red); }
 .lights-line {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   min-height: 48px; padding: 6px 0; background: none; border: 0;
@@ -459,11 +434,8 @@ img { max-width: 100%; }
 .dad-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .build { color: var(--ink2); font-size: .9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .dad-note { background: var(--crease-soft); border-radius: 12px; padding: 10px 14px; font-weight: 700; }
-.dad-lock { border: 2px solid var(--red); border-radius: 16px; background: var(--card); padding: 16px; display: grid; gap: 10px; }
-.dad-lock h2 { font-family: var(--display); font-weight: 900; font-size: 2rem; line-height: 1; text-transform: uppercase; margin: 0; }
 .dd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .dd-row { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; }
-.dd-row.unseen { border-color: var(--red); box-shadow: inset 5px 0 0 var(--red); padding-left: 16px; }
 .dd-row.dd-empty { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 6px 12px; background: transparent; }
 .dd-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 30px; }
 .dd-date { font-family: var(--display); font-weight: 900; font-size: 1.3rem; line-height: 1; text-transform: uppercase; }
@@ -473,11 +445,7 @@ img { max-width: 100%; }
 .dd-entry + .dd-entry { border-top: 1px solid var(--line); padding-top: 4px; }
 .dd-sess { font-weight: 700; }
 .dd-end, .dd-skip { font-size: .98rem; }
-.dd-row .pain { font-weight: 700; }
-.dd-row.unseen .pain { color: var(--red); }
 .dd-none { color: var(--ink2); font-size: .95rem; }
-.dd-seen { min-height: 40px; font-size: 1.1rem; padding: 4px 14px; }
-.dd-seen-done { color: var(--ink2); font-weight: 700; font-size: .9rem; }
 .ver-name { background: none; border: 0; padding: 0; min-height: 32px; text-align: left; font-weight: 700; color: var(--ink); }
 .ver-name span { color: var(--crease-deep); }
 .ver-what { color: var(--ink2); font-size: .95rem; }
@@ -492,7 +460,7 @@ img { max-width: 100%; }
 .sp-dose { color: var(--ink2); font-size: .95rem; font-variant-numeric: tabular-nums; }
 .sp-status { font-weight: 700; margin: 0 0 12px; }
 .sp-status.waiting { color: var(--crease-deep); }
-.sp-status.rest, .sp-status.top { color: var(--ink2); }
+.sp-status.top { color: var(--ink2); }
 .sp-ladder { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 4px; }
 .sp-rung { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 10px; border-radius: 10px; border: 2px solid transparent; color: var(--ink2); }
 .sp-rung.done { color: var(--ink); }

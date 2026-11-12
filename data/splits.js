@@ -18,8 +18,7 @@
 // him to tell the app a rung was easy.
 //
 // Safety, from the research in PLAN section 2: no bouncing, no forcing, nothing past flat (no
-// oversplits ever), stretches only on a warm body, and a 7-day pause after any pain in the
-// groin, hip, knee or lower back. Every hold is both legs at once, so none of them is a set per
+// oversplits ever), and stretches only on a warm body. Every hold is both legs at once, so none of them is a set per
 // side and none runs past the 40-second cap.
 
 // --- The drills. Seven drawings; four of the rungs share the cushion-stack one. ---
@@ -120,7 +119,6 @@ export const LADDER = [
 
 export const TOP = LADDER.length;
 export const HOLDS = 6; // clean holds on a rung before the next one opens
-export const PAUSE_ZONES = ['groin', 'hip', 'knee', 'below-kneecap', 'lower-back'];
 
 // What the screen says. Short lines, grade 5, no praise.
 export const SPLITS_COPY = {
@@ -132,7 +130,7 @@ export const SPLITS_COPY = {
   growth: 'Some months it gets harder, not easier. That\'s your bones growing faster than your muscles. It comes back.',
   rules: [
     'Never bounce. Sink and hold still.',
-    'Stretch, never pain. Back off if it hurts.',
+    'Ease in. Never force it.',
     'Never cold. Warm up first.',
     'Flat is the end. Never go past it.',
   ],
@@ -140,6 +138,5 @@ export const SPLITS_COPY = {
   // the screen has to offer it too.
   watchHim: 'Keep doing it until he has.',
   waiting: 'Ready for Dad to watch.',
-  paused: 'The ladder is resting while that heals.',
   topped: 'You can do the side splits.',
 };

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { DRILLS, byId } from './data/exercises.js';
 import { SESSIONS, SESSION_ORDER } from './data/sessions.js';
 import { DEMOS } from './data/demos.js';
-import { SPLIT_DRILLS, LADDER, TOP, HOLDS, PAUSE_ZONES } from './data/splits.js';
+import { SPLIT_DRILLS, LADDER, TOP, HOLDS } from './data/splits.js';
 import { buildSession, makeContext, phrasesOf, resolveItem, everyContext, everyLadder } from './js/plan/build.js';
 
 let failed = 0;
@@ -101,7 +101,6 @@ for (const p of allPhrases) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `
   ok(pick({}, [ago(1, 'strength'), ago(2, 'power')]) === 'stretch', 'two hard days in a row: Stretch');
   ok(pick({}, [ago(3, 'strength'), ago(5, 'power')]) === 'power', 'Power when it was done longest ago');
   ok(pick({}, [ago(3, 'power'), ago(5, 'strength')]) === 'strength', 'Strength when it was done longest ago');
-  ok(decide({ today: 'none', tomorrow: 'none', hurts: true }, [], {}, NOW).type === null, 'something hurts: no session');
   ok(decide({ today: 'none', tomorrow: 'none' }, [ago(0, 'strength')], {}, NOW).why === 'done', 'already trained today');
   ok(pick({}, [1, 2, 3, 4, 5, 6].map((n) => ago(n, n % 2 ? 'gameday' : 'strength'))) === 'stretch', 'six days in a row with no easy day: Stretch');
   ok(pick({}, [ago(1, 'stretch'), ago(2, 'stretch'), ago(3, 'stretch'), ago(4, 'strength'), ago(5, 'power'), ago(6, 'stretch')]) !== 'stretch', 'easy days in the last six: not stuck on Stretch');
@@ -109,11 +108,11 @@ for (const p of allPhrases) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `
 }
 
 // ===== RULES =====
-// The check-in rules, the check-in record (C5), the pain rules (C4, C9), the preview words,
+// The check-in rules, the check-in record (C5), the preview words,
 // and 300 days of his real week through the rules.
 {
   const D = await import('./js/plan/decide.js');
-  const { decide, settle, reasonText, painText, answersText, grabText, counts, jumpedPower, hurtToday, dayKey } = D;
+  const { decide, settle, reasonText, answersText, grabText, counts, jumpedPower, dayKey } = D;
   const { simulate, summary } = await import('./tools/sim-weeks.mjs');
   const day = (d, h = 16) => new Date(2026, 10, d, h, 0); // November 2026
   const WED = day(18), THU = day(19), FRI = day(20), SAT = day(21);
@@ -156,47 +155,24 @@ for (const p of allPhrases) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `
   ok(go({}, [did(WED, 3, 'strength'), ended(WED, 1, JUMPED)], WED).type !== 'power', 'rules: jumps done yesterday: no Power today');
   ok(go({}, [did(WED, 5, 'power'), ended(WED, 2, JUMPED), did(WED, 4, 'strength')], WED).type !== 'power', 'rules: ended Power counts toward 2 in 7');
   ok(go({}, [did(WED, 3, 'strength'), { ...ended(WED, 0, JUMPED), date: back(WED, 0, 9) }], WED).type === 'stretch', 'rules: jumps done earlier today: Stretch, not Power again');
-  ok(counts({ completed: true }) && counts({ stopped: { why: 'pain' } }) && !counts({ completed: true, extra: true }) && !counts({ completed: false, stopped: { why: 'ended' } }), 'rules: counts(e) keeps its meaning (C8)');
+  ok(counts({ completed: true }) && !counts({ completed: false }) && !counts({ completed: true, extra: true }) && !counts({ completed: false, stopped: { why: 'ended' } }), 'rules: counts(e) keeps its meaning (C8)');
   // PLAYER: an ended session that reached half counts (completed: true, stopped.why 'ended'); log.done holds drills started.
   const countedEnd = did(WED, 1, 'power', { stopped: { why: 'ended' }, done: [...JUMPED, 'P13', 'P12'] });
   ok(counts(countedEnd) && jumpedPower(countedEnd) && go({}, [did(WED, 3, 'strength'), countedEnd], WED).type !== 'power', 'rules: a counted ended Power is Power for the limits');
   ok(go({}, [did(WED, 3, 'strength'), did(WED, 2, 'strength', { stopped: { why: 'ended' } })], WED).type === 'power', 'rules: a counted ended Strength is Strength for the turn order');
 
-  // Item 2, rules side: the 7-day pain rules (PLAN section 2). Zones come from the log (C9).
-  const hurt = (now, n, zone, more = {}) => ({ date: back(now, n), type: null, completed: false, done: [], skipped: [], stopped: { why: 'hurt-before', zone }, ...more });
-  const knee = go({}, [...powerDue(WED), hurt(WED, 2, 'below-kneecap')], WED);
-  ok(knee.type === 'strength', 'rules: below the kneecap 2 days ago, Power due: Strength');
-  ok(knee.noJumps === true && ['ST2', 'S4', 'P13'].every((id) => knee.avoid.includes(id)), 'rules: below the kneecap: no jumping, wall sits or lunges');
+  // build.js still takes avoid and noJumps: Jumping Jacks turn into Step Jacks.
   {
-    const s = buildSession('strength', makeContext({ room: 'big', hour: 16, avoid: knee.avoid, noJumps: knee.noJumps }));
-    ok(s.items.some((it) => it.name === 'Step Jacks') && !s.items.some((it) => it.name === 'Jumping Jacks') && s.jumps === 0, 'rules: knee week keeps the warm-up as Step Jacks, no jumps');
+    const s = buildSession('strength', makeContext({ room: 'big', hour: 16, avoid: ['ST2', 'S4', 'P13'], noJumps: true }));
+    ok(s.items.some((it) => it.name === 'Step Jacks') && !s.items.some((it) => it.name === 'Jumping Jacks') && s.jumps === 0, 'build: noJumps keeps the warm-up as Step Jacks, no jumps');
   }
-  ok(reasonText(knee, WED) === 'The spot below your kneecap hurt on Monday, so no Power.', 'rules: pain reason line');
-  ok(painText(knee, WED) === 'No jumping, wall sits or lunges until Tuesday.', 'rules: pain note on the preview');
-  const kneeGame = go({ today: 'game', when: 'before' }, [hurt(WED, 2, 'knee')], WED);
-  ok(kneeGame.type === 'gameday' && kneeGame.noJumps && kneeGame.avoid.includes('P13'), 'rules: knee pain: Game Day without jumps or lunges');
-  ok(go({}, [...powerDue(WED), hurt(WED, 7, 'heel')], WED).type === 'strength', 'rules: heel 7 days ago: still no Power');
-  ok(go({}, [...powerDue(WED), hurt(WED, 8, 'heel')], WED).type === 'power', 'rules: heel 8 days ago: Power is back');
-  ok(go({}, [hurt(WED, 3, 'heel')], WED).noJumps && go({}, [hurt(WED, 3, 'ankle')], WED).noJumps, 'rules: heel or ankle: no jumping');
-  const lowBack = go({}, [...powerDue(WED), hurt(WED, 1, 'lower-back')], WED);
-  ok(lowBack.type === 'power' && !lowBack.noJumps && ['P8', 'P12', 'C9'].every((id) => lowBack.avoid.includes(id)), 'rules: lower back: Power still on, no slams, burpees or climbers');
-  ok(painText(lowBack, WED) === 'Your lower back hurt yesterday. No slams, burpees or mountain climbers until November 25.', 'rules: lower back note');
-  ok(go({}, [...powerDue(WED), hurt(WED, 1, 'groin')], WED).avoid.length === 0, 'rules: groin has no 7-day rule (Dad sees it on his list)');
-  ok(go({}, [...powerDue(WED), did(WED, 2, 'strength', { completed: false, stopped: { why: 'pain', zone: 'heel' } })], WED).noJumps, 'rules: a pain stop is a report');
-  ok(go({}, [...powerDue(WED), did(WED, 2, 'strength', { skipped: [{ id: 'ST2', why: 'hurts', zone: 'knee' }] })], WED).noJumps, 'rules: a skip because it hurt is a report');
-  ok(go({}, [...powerDue(WED), hurt(WED, 1, 'knee', { extra: true, dad: true })], WED).type === 'power', 'rules: pain in Dad\'s test run is not his');
-  // Hurt today locks the check-in until Dad clears it. The 7-day rules stay after he clears it.
-  ok(go({}, [...powerDue(WED), hurt(WED, 0, 'groin')], WED).type === null, 'rules: hurt earlier today: no session');
-  ok(hurtToday([hurt(WED, 0, 'groin')], WED) && !hurtToday([hurt(WED, 0, 'groin', { cleared: true })], WED), 'rules: Dad\'s clear lifts today\'s lock');
-  const cleared = go({}, [...powerDue(WED), hurt(WED, 0, 'knee', { cleared: true })], WED);
-  ok(cleared.type === 'strength' && cleared.noJumps, 'rules: cleared knee: he trains, still no Power or jumping');
 
   // Item 11 and C5: the first check-in of the day sticks; later ones can only make it easier.
   {
     const k = dayKey(WED);
     const log = powerDue(WED);
     const days = {};
-    const step = (answers) => { const r = settle({ hurts: false, ...answers }, log, days, WED); days[k] = r.day; return r; };
+    const step = (answers) => { const r = settle(answers, log, days, WED); days[k] = r.day; return r; };
     const s1 = step({ today: 'none', tomorrow: 'none' });
     ok(s1.d.type === 'power', 'C5: first check-in: Power');
     ok(['today', 'tomorrow', 'when', 'type', 'at'].every((f) => f in s1.day) && s1.day.type === 'power', 'C5: the record has today, tomorrow, when, type, at');
@@ -217,12 +193,11 @@ for (const p of allPhrases) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `
   {
     const k = dayKey(WED);
     const days = {};
-    const a = settle({ today: 'game', when: 'before', hurts: false }, powerDue(WED), days, WED);
+    const a = settle({ today: 'game', when: 'before' }, powerDue(WED), days, WED);
     days[k] = a.day;
     ok(a.d.type === 'gameday' && settle({ today: 'none', tomorrow: 'none' }, powerDue(WED), days, WED).d.type === 'gameday', 'C5: game today, then "No hockey": still Game Day');
-    const h = settle({ today: 'none', tomorrow: 'game', hurts: true }, [], {}, WED);
-    ok(h.d.type === null && h.day.type === null && h.day.tomorrow === 'game', 'item 15: a "hurts" check-in saves his answers first, no session');
-    const fresh = settle({ today: 'none', tomorrow: 'none' }, [], { [k]: h.day }, WED);
+    const noType = { today: 'none', tomorrow: 'game', when: null, yesterdayGame: null, type: null, reason: '', at: WED.toISOString(), tries: 1 };
+    const fresh = settle({ today: 'none', tomorrow: 'none' }, [], { [k]: noType }, WED);
     ok(fresh.d.type === 'strength' && fresh.day.tries === 1, 'C5: a record with no type is no first check-in');
   }
 
@@ -325,8 +300,8 @@ process.on('exit', (code) => {
   ok(!e5.completed && e5.short === 'half' && !counts(e5), 'player: Strength ended at drill 5 of 15 does not count');
   const e4 = ended(str, upTo(str, 4));
   ok(e4.short === 'half' && !counts(e4), 'player: quitting after the warm-up does not count');
-  const pain1 = ended(str, [1], [], { why: 'pain', zone: 'knee' });
-  ok(!pain1.completed && pain1.short === null && counts(pain1), 'player: a pain stop at drill 1 of 15 still counts');
+  const e1 = ended(str, [1]);
+  ok(!e1.completed && e1.short === 'half' && !counts(e1), 'player: any stop at drill 1 of 15 does not count');
   // Skipping every circuit drill but doing the rest (9 of 15) used to give "Done.": not now.
   const circuit = str.items.map((it, k) => (it.block === 'Circuit' ? k + 1 : 0)).filter(Boolean);
   ok(circuit.length === 6, `player: Strength circuit should be 6 drills, is ${circuit.length}`);
@@ -438,7 +413,7 @@ process.on('exit', (code) => {
 {
   const store = new Map();
   globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
-  const { load, blank } = await import('./js/store.js');
+  const { load, blank, migrateOldRecords } = await import('./js/store.js');
   const home = await import('./js/screens/home.js');
   const { doneWords } = await import('./js/screens/done.js');
   const dad = await import('./js/screens/dad.js');
@@ -451,15 +426,10 @@ process.on('exit', (code) => {
   store.set('crease.save', JSON.stringify({ v: 1, setupDone: true, log: [{ date: '2026-11-01T20:00:00.000Z', type: 'strength', completed: true }], days: { '2026-11-01': { today: 'none' } }, dadPin: 'abc' }));
   const old = load();
   ok(old.setupDone && old.log.length === 1 && old.dadPin === 'abc' && old.days['2026-11-01'], 'save: an older save keeps its log, days and PIN');
-  ok(Array.isArray(old.lights) && Array.isArray(old.seenAlerts) && old.versions && old.settings.ball === 'dead', 'save: an older save gets lights, versions and settings');
+  ok(Array.isArray(old.lights) && old.versions && old.settings.ball === 'dead', 'save: an older save gets lights, versions and settings');
 
   // Words (items 3 and 13).
-  ok(copy.STOP_RULE.lines.includes('pain (not sore muscles) still there the next day'), 'stop rule: "pain (not sore muscles) still there the next day"');
-  ok(!copy.STOP_RULE.lines.some((l) => l.includes('something still hurts')), 'stop rule: the old "still hurts" line is gone');
-  ok(copy.SORE_OR_HURT.sore.join(' ') === 'Sore: your muscles ache a day or two after training. That\'s normal. Train.', 'welcome: the Sore line');
-  ok(copy.SORE_OR_HURT.hurt.join(' ') === 'Hurt: sharp pain, pain in a joint, below your kneecap or in your heel, or pain that makes you limp. Stop and tell Dad.', 'welcome: the Hurt line');
   ok(copy.ROOM_HINT.bedroom === 'Small room: nothing that needs 3 metres.' && copy.ROOM_HINT.big === 'Full versions. Clear about 3 metres around you.', 'Today: room hints');
-  ok(copy.zoneWord('below-kneecap') === 'just below the kneecap' && copy.zoneWord('knee') === 'knee', 'zone words for "Last time it hurt"');
 
   // A week to work with: Friday 13 November 2026, 4:30 pm.
   const NOW = new Date(2026, 10, 13, 16, 30);
@@ -468,11 +438,11 @@ process.on('exit', (code) => {
   const log = [
     run(9, 26, 'strength'), run(9, 27, 'power'), run(9, 29, 'stretch'), run(9, 31, 'gameday'), // a full week
     run(10, 2, 'strength'), run(10, 3, 'stretch'), run(10, 5, 'power'), run(10, 7, 'strength'), // another
-    run(10, 9, 'strength', { secs: 1205, skipped: [{ id: 'S4', why: 'hurts', zone: 'groin' }] }),
+    run(10, 9, 'strength', { secs: 1205, skipped: [{ id: 'S4', no: 6, why: 'here' }] }),
     run(10, 10, 'power', { completed: false, stopped: { why: 'ended' }, reached: 5, need: 8, short: 'half' }), // didn't count
     run(10, 11, 'gameday', { secs: 300 }),
     run(10, 12, 'stretch', { extra: true }), // extra: never counts
-    run(10, 12, 'power', { dad: true, extra: true, stopped: { why: 'pain', zone: 'heel' }, completed: false }), // an old test run
+    run(10, 12, 'power', { dad: true, extra: true, stopped: { why: 'ended' }, completed: false }), // an old test run
   ];
   const days = { '2026-11-09': { today: 'practice', tomorrow: 'none' }, '2026-11-11': { today: 'game', when: 'before' }, '2026-11-12': { today: 'none', tomorrow: 'game' } };
 
@@ -498,19 +468,6 @@ process.on('exit', (code) => {
   ok(season.mins === Math.round((8 * 1200 + 1205 + 300) / 60), `season: minutes of counted sessions add up, got ${season.mins}`);
   ok(home.seasonStats(log, new Date(2027, 7, 31)).sessions === 10 && home.seasonStats(log, new Date(2027, 8, 1)).sessions === 0, 'season: a new season starts on 1 September');
 
-  // Pain records (items 2, 16, 36 and C9).
-  const hurtBefore = { date: at(10, 13, 15), type: null, completed: false, done: [], skipped: [], stopped: { why: 'hurt-before', zone: 'knee' } };
-  const painStop = run(10, 13, 'power', { stopped: { why: 'pain', zone: 'groin' }, completed: false });
-  const painSkip = run(10, 13, 'strength', { skipped: [{ id: 'S4', why: 'hurts', zone: 'hip' }] });
-  ok(home.painZones(hurtBefore)[0] === 'knee' && home.painZones(painStop)[0] === 'groin' && home.painZones(painSkip)[0] === 'hip', 'pain: check-in, stop and skip all count as pain');
-  ok(!home.isPain(log[12]), 'pain: Dad\'s test runs never count as his pain');
-  for (const e of [hurtBefore, painStop, painSkip]) ok(home.hurtToday([e], NOW).length === 1, `lock: ${e.stopped?.why || 'a hurts skip'} today locks Today`);
-  ok(home.hurtToday([{ ...painStop, cleared: true }], NOW).length === 0, 'lock: Dad\'s "He\'s OK to train today" unlocks it');
-  ok(home.hurtToday([painStop], new Date(2026, 10, 14, 7)).length === 0, 'lock: lasts until tomorrow');
-  ok(home.unseenPain(log) === log[8], 'notice: the groin skip waits for Dad');
-  ok(home.unseenPain(log.map((e) => (e === log[8] ? { ...e, dadSeen: true } : e))) === null, 'notice: clears only when Dad taps Seen');
-  ok(home.unseenPain([run(5, 1, 'power', { stopped: { why: 'pain', zone: 'heel' } })]) !== null, 'notice: no 36-hour cutoff');
-
   // Done screen words (items 6 and 36, C6).
   const dw = (more) => doneWords({ planned: 15, done: [], skipped: [], stopped: null, completed: true, extra: false, dad: false, ...more });
   ok(dw({}).title === 'Done.' && dw({}).line === '', 'done: a finished session');
@@ -519,21 +476,18 @@ process.on('exit', (code) => {
   ok(dw({ completed: false, stopped: { why: 'ended' }, reached: 5, need: 8, short: 'half' }).line === 'Do 8 of 15 drills and it counts.', 'done: "Do 8 of 15 drills and it counts."');
   ok(dw({ completed: false, stopped: { why: 'ended' }, reached: 11, need: 8, short: 'main' }).line === 'Do half the main drills and it counts.', 'done: the main-block rule');
   ok(dw({ dad: true, extra: true }).line === 'Test run. Nothing saved.' && doneWords({ planned: 15, completed: true }, { test: true }).line === 'Test run. Nothing saved.', 'done: "Test run. Nothing saved."');
-  ok(dw({ dad: true, extra: true, completed: false, stopped: { why: 'pain', zone: 'knee' } }).line === 'Test run. Nothing saved.', 'done: a test run stopped for pain is still a test run');
-  ok(dw({ completed: false, stopped: { why: 'pain', zone: 'knee' } }).title === 'Stopped.', 'done: a pain stop');
+  ok(dw({ dad: true, extra: true, completed: false, stopped: { why: 'ended' } }).title === 'Ended.', 'done: a test run he ended says "Ended."');
 
   // Dad's last 14 days (item 2) and today's check-in (item 11).
-  const dlog = [...log.slice(4), hurtBefore, run(9, 1, 'power', { stopped: { why: 'pain', zone: 'heel' }, completed: false }), run(10, 12, 'strength', { dad: true })];
+  const dlog = [...log.slice(4), run(9, 1, 'power'), run(10, 12, 'strength', { dad: true })];
   const rows = dad.dadDays({ log: dlog, days: { ...days, '2026-11-13': { today: 'none', tomorrow: 'practice', type: null } } }, NOW);
-  ok(rows.length === 15 && rows[0].label === 'Today' && rows[1].label === 'Yesterday' && rows[13].key === '2026-10-31', `Dad: 14 days, newest first, then older unseen pain (got ${rows.length})`);
-  ok(rows[14].key === '2026-10-01' && rows[14].unseen, 'Dad: an older pain report he hasn\'t seen still shows');
-  ok(rows[0].unseen && rows[0].entries[0].ending === 'Hurt before training: knee', 'Dad: "Hurt before training: knee", red until Seen');
+  ok(rows.length === 14 && rows[0].label === 'Today' && rows[1].label === 'Yesterday' && rows[13].key === '2026-10-31', `Dad: 14 days, newest first, nothing older (got ${rows.length})`);
+  ok(rows[0].answers === 'No hockey today · Practice tomorrow' && rows[0].entries.length === 0, 'Dad: today\'s answers with no session yet');
   const mon = rows.find((r) => r.key === '2026-11-09');
-  ok(mon.answers === 'Practice today · No hockey tomorrow' && mon.entries[0].skips[0].text === 'Skipped Side Lunges: groin' && mon.entries[0].skips[0].pain, 'Dad: answers, and "Skipped Side Lunges: groin" in red');
+  ok(mon.answers === 'Practice today · No hockey tomorrow' && mon.entries[0].skips[0] === 'Skipped Side Lunges: can\'t do it here', 'Dad: answers, and "Skipped Side Lunges: can\'t do it here"');
   ok(rows.find((r) => r.key === '2026-11-10').entries[0].ending === 'Ended at 5 of 15 · didn\'t count', 'Dad: "Ended at 5 of 15 · didn\'t count"');
   ok(rows.find((r) => r.key === '2026-11-12').entries.some((x) => x.ending === 'Done · Picked by Dad'), 'Dad: "Picked by Dad"');
   ok(!rows.some((r) => r.entries.some((x) => x.e.extra && x.e.dad)), 'Dad: his own test runs aren\'t in the list');
-  ok(dad.endingText({ stopped: { why: 'pain', zone: 'groin' } }) === 'Stopped: groin', 'Dad: "Stopped: groin"');
   ok(dad.answersText({ today: 'game', when: 'after', tomorrow: 'none', type: 'stretch' }) === 'Game today, already played · No hockey tomorrow → Stretch', 'Dad: answers read in words');
 
   // Dad's version lines (item 37).
@@ -556,7 +510,7 @@ process.on('exit', (code) => {
   ok(lights.lightsStats(ls.lights, new Date(2026, 10, 14, 9)).left === 3, 'Lights: 3 more count tomorrow');
   ok(ls.lights.every((l) => l.date && Number.isFinite(l.ms) && l.taps.length === lights.TAPS), 'Lights: every round saved with its date and taps');
   ok(home.lightsLineHtml(ls.lights).includes('best <b>298 ms</b>') && home.lightsLineHtml([]).includes('no score yet'), 'Today: "Lights · best 298 ms"');
-  ok(!home.isPain({ ...ls.lights[0] }) && !log.some((e) => e.type === 'lights'), 'Lights never become a session');
+  ok(!log.some((e) => e.type === 'lights'), 'Lights never become a session');
 
   // The icon (item 35): solid PNGs at 180, 192 and 512.
   for (const size of [180, 192, 512]) {
@@ -788,7 +742,7 @@ process.on('exit', (code) => {
 // Side splits, not front splits: a goalie's legs go out to the sides (Dad, 10 November 2026).
 {
   const SP = await import('./js/plan/splits.js');
-  const { splitsState, settleSplits, markWatched, setRung, ladderItem, splitsPause, rungAt } = SP;
+  const { splitsState, settleSplits, markWatched, setRung, ladderItem, rungAt } = SP;
   const NOW = new Date(2026, 10, 18, 16, 0);
   const day = (n) => new Date(2026, 10, 18 - n, 15).toISOString();
   const fresh = (over = {}) => ({ log: [], splits: { rung: 1, since: day(60), watched: [] }, ...over });
@@ -906,25 +860,11 @@ process.on('exit', (code) => {
     ok(s.splits.rung === 1, 'Dad can\'t set a rung below 1');
   }
 
-  // --- Pain rests it ---
-  for (const zone of PAUSE_ZONES) {
-    const s = fresh();
-    s.log = [{ date: day(1), type: 'strength', completed: false, done: [], skipped: [], stopped: { why: 'pain', zone } }];
-    ok(splitsPause(s.log, NOW), `${zone}: rests the ladder`);
-    ok(ladderItem(s, NOW) === null, `${zone}: no splits hold while it rests`);
-    ok(splitsState(s, NOW).pause, `${zone}: the screen says it's resting`);
-    const over = { ...s, log: [{ ...s.log[0], date: day(9) }] };
-    ok(ladderItem(over, NOW) !== null, `${zone}: the ladder comes back after 7 days`);
-  }
+  // --- Nothing pauses it: an ended session leaves the hold in place ---
   {
-    // A heel or an ankle doesn't stop him stretching his hips.
     const s = fresh();
-    s.log = [{ date: day(1), type: 'power', completed: false, done: [], skipped: [], stopped: { why: 'pain', zone: 'heel' } }];
-    ok(ladderItem(s, NOW) !== null, 'heel pain: the ladder carries on');
-    // A skipped drill that hurt counts as a report too.
-    const sk = fresh();
-    sk.log = [{ date: day(1), type: 'stretch', completed: true, done: [], skipped: [{ id: 'M5', why: 'hurts', zone: 'groin' }] }];
-    ok(ladderItem(sk, NOW) === null, 'a drill skipped for groin pain rests the ladder');
+    s.log = [{ date: day(1), type: 'strength', completed: false, done: [], skipped: [], stopped: { why: 'ended' } }];
+    ok(ladderItem(s, NOW) !== null && !('pause' in splitsState(s, NOW)), 'the ladder never rests');
   }
 
   // --- The Done line ---
@@ -938,15 +878,64 @@ process.on('exit', (code) => {
 }
 
 // ===== LEAD =====
-// Fixes from the final check: Done after a hurt skip, Dad's version line, Wall Sit Easier's cue.
+// Fixes from the final check: Done after a skip, Dad's version line, Wall Sit Easier's cue.
 {
   const { doneWords } = await import('./js/screens/done.js');
   const { versionLine } = await import('./js/screens/dad.js');
   const { DRILLS: ALL } = await import('./data/exercises.js');
-  const w = doneWords({ completed: true, planned: 15, skipped: [{ id: 'S4', no: 6, why: 'hurts', zone: 'groin' }], stopped: null });
-  ok(w.title === 'Done.' && /tell Dad now/.test(w.line) && /groin/.test(w.line), `done: a hurt skip says to tell Dad (${w.line})`);
-  ok(!/tell Dad/.test(doneWords({ completed: true, planned: 15, skipped: [{ id: 'S4', no: 6, why: 'here' }], stopped: null }).line), 'done: a "can\'t do it here" skip says nothing about Dad');
+  const w = doneWords({ completed: true, planned: 15, skipped: [{ id: 'S4', no: 6, why: 'here' }], stopped: null });
+  ok(w.title === 'Done.' && w.line === '', 'done: a skip adds nothing to the Done line');
   for (const d of ALL) d.versions.forEach((v, k) => ok(!/sets/.test(versionLine(d, k)), `dad: ${d.id} ${v.name} version line names sets`));
   const easierWall = buildSession('strength', makeContext({ room: 'big', hour: 16, versions: { ST2: 0 } }));
   ok(phrasesOf(easierWall).includes('Hands off your legs.'), 'Wall Sit Easier (20 s) says "Hands off your legs."');
+}
+
+// ===== No hurt handling =====
+// Dad, 12 November 2026: the app never asks, records, shows or reacts to anything hurting.
+{
+  // Old saves: hurt records turn into plain ones on load.
+  const mem = new Map();
+  globalThis.localStorage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => mem.delete(k) };
+  const { load, migrateOldRecords } = await import('./js/store.js');
+  const { counts } = await import('./js/plan/decide.js');
+  const t = (d) => new Date(2026, 10, d, 16).toISOString();
+  const oldSave = {
+    v: 1, setupDone: true, seenAlerts: ['x'],
+    log: [
+      { date: t(2), type: null, completed: false, done: [], skipped: [], stopped: { why: 'hurt-before', zone: 'knee' }, dadSeen: true },
+      { date: t(3), type: 'power', completed: false, short: null, done: ['W2'], skipped: [], stopped: { why: 'pain', zone: 'heel' }, dadSeen: true, cleared: true },
+      { date: t(4), type: 'strength', completed: true, done: [], stopped: null, skipped: [{ id: 'S4', no: 6, why: 'hurts', zone: 'groin' }, { id: 'ST2', no: 7, why: 'here' }] },
+      { date: t(5), type: 'stretch', completed: false, done: [], stopped: { why: 'ended' }, skipped: [] },
+    ],
+    days: { '2026-11-02': { today: 'none', tomorrow: 'none', hurts: true, type: null }, '2026-11-04': { today: 'practice', type: 'strength' } },
+  };
+  mem.set('crease.save', JSON.stringify(oldSave));
+  const m = load();
+  ok(m.log.length === 3 && !m.log.some((e) => e.stopped?.why === 'hurt-before'), 'migration: a "hurt before training" entry is dropped');
+  const p = m.log[0];
+  ok(p.type === 'power' && p.completed === true && !('stopped' in p) && counts(p), 'migration: a pain stop becomes a finished session that still counts');
+  ok(!('dadSeen' in p) && !('cleared' in p), 'migration: dadSeen and cleared are gone');
+  ok(m.log[1].skipped.every((k) => !('zone' in k) && k.why === 'here'), 'migration: skips lose their spot and read "here"');
+  ok(m.log[2].stopped.why === 'ended' && !m.log[2].completed, 'migration: an ended session is left alone');
+  ok(!('seenAlerts' in m) && Object.values(m.days).every((d) => !('hurts' in d)), 'migration: seenAlerts and days[...].hurts are gone');
+  ok(m.days['2026-11-04'].type === 'strength', 'migration: the rest of the day record stays');
+  ok(!/hurt|pain|zone|dadSeen|cleared|seenAlerts/i.test(JSON.stringify(m)), 'migration: nothing about hurting is left in the save');
+  ok(migrateOldRecords({ v: 1 }).v === 1 && migrateOldRecords(null) === null, 'migration: a save with no log is fine');
+
+  // The guard: hurt handling never comes back.
+  const HURT = /hurt|pain|\bsore\b|tell dad/i;
+  const dir = (d) => fs.readdirSync(d).filter((f) => f.endsWith('.js')).map((f) => `${d}/${f}`);
+  const files = [...dir('js/screens'), ...dir('js/plan'), 'js/store.js', 'data/copy.js', 'data/splits.js', 'data/sessions.js', 'audio/clips.json'];
+  for (const f of files) {
+    let text = fs.readFileSync(f, 'utf8');
+    // The one exempt part: the marked migration function in store.js, which has to name the old keys.
+    if (f === 'js/store.js') {
+      const a = text.indexOf('// MIGRATION ONLY');
+      const b = text.indexOf('// END MIGRATION');
+      ok(a >= 0 && b > a, 'guard: store.js keeps its migration between the two markers');
+      if (a >= 0 && b > a) text = text.slice(0, a) + text.slice(b);
+    }
+    const hit = text.split('\n').find((l) => HURT.test(l));
+    ok(!hit, `guard: ${f} mentions hurting: ${hit?.trim()}`);
+  }
 }

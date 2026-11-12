@@ -1,21 +1,21 @@
-// For Dad, behind a 4-digit PIN: his last 14 days with any pain in red until Seen,
-// "He's OK to train today", redo today's check-in, start any session, and each drill's version.
+// For Dad, behind a 4-digit PIN: his last 14 days, redo today's check-in, start any session,
+// the splits ladder, and each drill's version.
 import { esc, on, minutes } from '../ui.js';
 import { SESSIONS, SESSION_ORDER } from '../../data/sessions.js';
 import { DRILLS, byId } from '../../data/exercises.js';
-import { targetText, zoneWord } from '../../data/copy.js';
+import { targetText } from '../../data/copy.js';
 import { scramble } from '../store.js';
 import { BUILD } from '../version.js';
-import { dayKey, counts, painRules, painText } from '../plan/decide.js';
+import { dayKey, counts } from '../plan/decide.js';
 import { makeContext, resolveItem } from '../plan/build.js';
 import { splitsState, settleSplits, markWatched, setRung } from '../plan/splits.js';
 import { LADDER, TOP } from '../../data/splits.js';
-import { isTest, isPain, painZones, hurtToday } from './home.js';
+import { isTest } from './home.js';
 
 const GROUPS = [['warm-up', 'Warm-up'], ['strength', 'Strength'], ['power', 'Power'], ['stretch', 'Stretch']];
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const SKIP_WHY = { hard: 'too hard', here: 'can\'t do it here', hurts: 'it hurts' };
+const SKIP_WHY = { hard: 'too hard', here: 'can\'t do it here' };
 const dayAt = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 const fromKey = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -36,8 +36,6 @@ export function answersText(d) {
 
 // How one log entry ended, in Dad's words.
 export function endingText(e) {
-  if (e.stopped?.why === 'hurt-before') return `Hurt before training: ${zoneWord(e.stopped.zone)}`;
-  if (e.stopped?.why === 'pain') return `Stopped: ${zoneWord(e.stopped.zone)}`;
   const ended = e.stopped?.why === 'ended';
   const at = e.reached ? `Ended at ${e.reached} of ${e.planned}` : `Ended early, ${e.done?.length ?? 0} of ${e.planned} done`;
   let t = ended ? at : e.completed ? 'Done' : 'Too many skips';
@@ -47,34 +45,26 @@ export function endingText(e) {
   return t;
 }
 
-// One row a day, newest first: the last 14 days, plus any older day with pain Dad hasn't seen.
+// One row a day, newest first: the last 14 days.
 export function dadDays(save, now = new Date()) {
   const byDay = {};
   for (const e of save.log) if (!isTest(e)) (byDay[dayKey(new Date(e.date))] ||= []).push(e);
   const keys = [];
   for (let n = 0; n < 14; n++) keys.push(dayKey(dayAt(now, -n)));
-  const older = Object.keys(byDay).filter((k) => k < keys[13] && byDay[k].some((e) => isPain(e) && !e.dadSeen)).sort().reverse();
-  return [...keys, ...older].map((k, n) => {
+  return keys.map((k, n) => {
     const d = fromKey(k);
     const entries = (byDay[k] || []).map((e) => ({
       e,
       session: SESSIONS[e.type] ? `${SESSIONS[e.type].name} · ${minutes(e.secs || 0)} min` : '',
       ending: endingText(e),
-      endPain: e.stopped?.why === 'pain' || e.stopped?.why === 'hurt-before',
-      skips: (e.skipped || []).map((sk) => ({
-        text: `Skipped ${byId[sk.id]?.name || sk.id}: ${sk.zone ? zoneWord(sk.zone) : SKIP_WHY[sk.why] || sk.why}`,
-        pain: !!sk.zone,
-      })),
+      skips: (e.skipped || []).map((sk) => `Skipped ${byId[sk.id]?.name || sk.id}: ${SKIP_WHY[sk.why] || sk.why}`),
     }));
-    const pains = (byDay[k] || []).filter(isPain);
     return {
       key: k,
       label: n === 0 ? 'Today' : n === 1 ? 'Yesterday' : `${WD[d.getDay()]} ${MO[d.getMonth()]} ${d.getDate()}`,
       date: `${WD[d.getDay()]} ${MO[d.getMonth()]} ${d.getDate()}`,
       answers: answersText(save.days?.[k]),
       entries,
-      unseen: pains.some((e) => !e.dadSeen),
-      seen: pains.length > 0 && pains.every((e) => e.dadSeen),
     };
   });
 }
@@ -86,14 +76,13 @@ function dayRowHtml(r) {
   const entries = r.entries.map((x) => `
     <div class="dd-entry">
       ${x.session ? `<span class="dd-sess">${esc(x.session)}</span>` : ''}
-      <span class="dd-end${x.endPain ? ' pain' : ''}">${esc(x.ending)}</span>
-      ${x.skips.map((k) => `<span class="dd-skip${k.pain ? ' pain' : ''}">${esc(k.text)}</span>`).join('')}
+      <span class="dd-end">${esc(x.ending)}</span>
+      ${x.skips.map((t) => `<span class="dd-skip">${esc(t)}</span>`).join('')}
     </div>`).join('');
   return `
-  <li class="dd-row${r.unseen ? ' unseen' : ''}">
+  <li class="dd-row">
     <div class="dd-head">
       <span class="dd-date">${esc(r.label)}${r.label !== r.date ? ` <small>${esc(r.date)}</small>` : ''}</span>
-      ${r.unseen ? `<button class="btn btn-small dd-seen" data-act="seen" data-arg="${esc(r.key)}">Seen</button>` : r.seen ? '<span class="dd-seen-done">Seen</span>' : ''}
     </div>
     ${r.answers ? `<p class="dd-ans">${esc(r.answers)}</p>` : ''}
     ${entries || '<span class="dd-none">No session.</span>'}
@@ -116,10 +105,6 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
   const asCounted = app.dadCounts === true;
   const again = (p = {}) => render(root, app, { unlocked: true, ...p });
 
-  const hurts = hurtToday(s.log, now);
-  const lockZone = hurts.length ? painZones(hurts[hurts.length - 1]).pop() : null;
-  // A pain stop mid-session still counts, so lifting the lock then only frees Today, it doesn't add a session.
-  const countedToday = s.log.some((e) => counts(e) && dayKey(new Date(e.date)) === dayKey(now));
   const checkin = s.days?.[todayKey];
   if (settleSplits(s, now)) app.persist();
   const sp = splitsState(s, now);
@@ -145,17 +130,9 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
     <p class="kicker">For Dad</p>
     <h1>Dad</h1>
     ${note ? `<p class="dad-note" role="status">${esc(note)}</p>` : ''}
-    ${hurts.length ? `
-      <section class="dad-lock">
-        <h2>Today is locked.</h2>
-        <p>Pain today: ${esc(zoneWord(lockZone))}. ${countedToday
-          ? 'His session today already counts, so this only lifts the lock. Today will say Done for today.'
-          : 'If you\'ve checked and he\'s fine, this gives him today back. He still does his normal check-in, so the rules pick the session.'}</p>
-        <button class="btn btn-primary" data-act="ok">He's OK to train today</button>
-      </section>` : ''}
     <section class="set-group">
       <h2>Last 14 days</h2>
-      <p class="small">What he answered, what he did and how it ended. Pain stays red here, and on his Today screen, until you tap Seen.</p>
+      <p class="small">What he answered, what he did and how it ended.</p>
       <ol class="dd-list">${dadDays(s, now).map(dayRowHtml).join('')}</ol>
     </section>
     ${checkin ? `
@@ -177,7 +154,6 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
     <section class="set-group">
       <h2>Splits ladder</h2>
       <p class="small">Rung ${sp.rung} of ${TOP}: <b>${esc(sp.r.name)}</b>${sp.r.how ? `. ${esc(sp.r.how)}` : '.'} Side splits, not front splits: his legs go out to the sides, the way they do in the butterfly. He climbs by doing the hold, one a day, ${sp.need} holds a rung. ${LADDER.filter((r) => r.watch).length} rungs wait for you.</p>
-      ${sp.pause ? `<p class="small">Resting: ${esc(zoneWord(sp.pause.zone))} hurt. It comes back on its own.</p>` : ''}
       ${sp.waiting ? `
         <div class="dad-watch">
           <p><b>Ready for you to watch.</b> ${esc(sp.r.name)}, one hold. Look for: kneecaps and toes pointing up, feet not rolling in, no bouncing, and he can breathe the whole way through. If it looks forced, tap Not yet.</p>
@@ -204,27 +180,10 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
     counts: (v) => { app.dadCounts = v === 'yes'; again({ scroll: window.scrollY }); },
     // dad stays true for his counted runs too, so the 14-day list can say "Picked by Dad".
     // The player gives skip buttons only to test runs (dad && extra).
-    // His counted runs follow the 7-day pain rules too; test runs show any session as it is.
-    run: (type) => {
-      const pain = asCounted ? painRules(s.log, new Date()) : null;
-      app.go('preview', {
-        type, extra: !asCounted, dad: true,
-        reason: asCounted ? 'Picked by Dad.' : 'Test run. It doesn\'t count as a session.',
-        avoid: pain ? pain.avoid : [], noJumps: !!pain?.noJumps, note: pain ? painText({ pain }, new Date()) : '',
-      });
-    },
-    seen: (k) => {
-      for (const e of s.log) if (isPain(e) && dayKey(new Date(e.date)) === k) e.dadSeen = true;
-      app.persist();
-      again({ scroll: window.scrollY });
-    },
-    ok: () => {
-      for (const e of hurtToday(s.log, now)) { e.cleared = true; e.dadSeen = true; }
-      // A check-in that ended at "it hurts" picked no session, so his next one starts fresh.
-      if (s.days[todayKey] && !s.days[todayKey].type) delete s.days[todayKey];
-      app.persist();
-      again({ note: 'Today is open again. He does his normal check-in.' });
-    },
+    run: (type) => app.go('preview', {
+      type, extra: !asCounted, dad: true,
+      reason: asCounted ? 'Picked by Dad.' : 'Test run. It doesn\'t count as a session.',
+    }),
     redo: () => {
       delete s.days[todayKey];
       app.persist();

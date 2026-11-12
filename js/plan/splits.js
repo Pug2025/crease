@@ -5,31 +5,13 @@
 // (one a day, counted from the log itself), or Dad tapping Watched. He is never asked whether a
 // rung was easy, because an 11-year-old asked that question answers it the way that gets him out
 // of work. Dad's test runs don't count.
-import { LADDER, TOP, HOLDS, PAUSE_ZONES } from '../../data/splits.js';
-import { dayKey, painReports, PAIN_DAYS } from './decide.js';
+import { LADDER, TOP, HOLDS } from '../../data/splits.js';
+import { dayKey } from './decide.js';
 
 export { TOP, HOLDS };
 
 const clamp = (n) => Math.min(Math.max(1, Number.isFinite(n) ? n : 1), TOP);
 export const rungAt = (n) => LADDER[clamp(n) - 1];
-
-const daysFrom = (a, b) => Math.round((new Date(dayKey(b)) - new Date(dayKey(a))) / 86400000);
-
-// Pain in the groin, hip, knee or lower back rests the ladder for 7 days. Returns the newest
-// report still in force, or null.
-export function splitsPause(log = [], now = new Date()) {
-  let out = null;
-  for (const r of painReports(log)) {
-    if (!PAUSE_ZONES.includes(r.zone)) continue;
-    const date = new Date(r.date);
-    const n = daysFrom(date, now);
-    if (n < 0 || n > PAIN_DAYS) continue;
-    const back = new Date(date);
-    back.setDate(back.getDate() + PAIN_DAYS + 1);
-    if (!out || date > out.date) out = { zone: r.zone, date, back };
-  }
-  return out;
-}
 
 // Days he held the current rung since it opened. One a day: five Splits sessions in an evening
 // are one hold. A session Dad ran as a test isn't his.
@@ -53,10 +35,9 @@ export function splitsState(save, now = new Date()) {
   const r = rungAt(rung);
   const holds = holdsOn(save, now);
   const watched = (sp.watched || []).includes(rung);
-  const pause = splitsPause(save.log || [], now);
   const full = holds >= HOLDS;
   return {
-    rung, r, holds, watched, pause,
+    rung, r, holds, watched,
     need: HOLDS,
     left: Math.max(0, HOLDS - holds),
     // Held it enough, and Dad still has to watch it.
@@ -94,18 +75,15 @@ export function setRung(save, rung, now = new Date()) {
   save.splits.since = now.toISOString();
 }
 
-// The session item for today's hold, or null while the ladder rests.
+// The session item for today's hold.
 export function ladderItem(save, now = new Date()) {
-  const st = splitsState(save, now);
-  if (st.pause) return null;
-  const r = st.r;
+  const r = splitsState(save, now).r;
   return { id: r.id, as: { name: r.name, ...(r.how ? { how: r.how } : {}) } };
 }
 
 // "Split · 3 cushions" for Today, or what's holding the ladder up.
 export function splitsLine(save, now = new Date()) {
   const st = splitsState(save, now);
-  if (st.pause) return 'resting';
   if (st.top) return 'done';
   if (st.waiting) return 'ready for Dad';
   return st.r.name;

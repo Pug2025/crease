@@ -1,11 +1,9 @@
 // Before a session: the check-in that decides it, then the preview with Start.
-import { esc, on, minutes, stopRuleHtml } from '../ui.js';
-// A namespace import, so a line copy.js doesn't have yet falls back instead of breaking the module.
-import * as COPY from '../../data/copy.js';
+import { esc, on, minutes } from '../ui.js';
 import { SESSIONS } from '../../data/sessions.js';
 import { byId } from '../../data/exercises.js';
 import { buildSession, makeContext, phrasesOf } from '../plan/build.js';
-import { settle, knownYesterdayGame, dayKey, painText, answersText, grabText } from '../plan/decide.js';
+import { settle, knownYesterdayGame, dayKey, answersText, grabText } from '../plan/decide.js';
 import { ladderItem } from '../plan/splits.js';
 import * as audio from '../timer/audio.js';
 import { keepAwake } from '../timer/wakelock.js';
@@ -15,7 +13,7 @@ const HOCKEY = [
   { id: 'practice', label: 'Practice or clinic' },
   { id: 'none', label: 'No hockey' },
 ];
-// No on the left on both yes/no questions.
+// No on the left.
 const NO_YES = [{ id: 'no', label: 'No' }, { id: 'yes', label: 'Yes' }];
 
 // The questions, in order. Each is asked only when it matters.
@@ -31,18 +29,13 @@ const QUESTIONS = [
     only: (a, app) => a.today !== 'game' && a.tomorrow !== 'game' && knownYesterdayGame(app.save.log, app.save.days) === undefined,
     choices: NO_YES,
   },
-  {
-    key: 'hurts', title: 'Does anything hurt right now?',
-    note: COPY.HURT_QUESTION_NOTE ?? 'Sore muscles are normal. Tap Yes for sharp pain, or pain in a joint, below the kneecap or in your heel.',
-    choices: NO_YES,
-  },
 ];
 
 // trail: the questions already answered, so Back goes to the one before and a mis-tap is never saved.
 export function checkin(root, app, { step = 0, answers = {}, trail = [] }) {
   let i = step;
   while (i < QUESTIONS.length && QUESTIONS[i].only && !QUESTIONS[i].only(answers, app)) i++;
-  if (i >= QUESTIONS.length) { finish(root, app, answers, trail); return; }
+  if (i >= QUESTIONS.length) { finish(app, answers); return; }
   const q = QUESTIONS[i];
 
   root.innerHTML = `
@@ -50,7 +43,6 @@ export function checkin(root, app, { step = 0, answers = {}, trail = [] }) {
     <button class="back" data-act="back">Back</button>
     <p class="kicker">Check-in</p>
     <h1>${esc(q.title)}</h1>
-    ${q.note ? `<p class="lead">${esc(q.note)}</p>` : ''}
     <div class="choices ${q.choices.length === 2 ? 'row' : ''}">
       ${q.choices.map((c) => `<button class="choice" data-act="pick" data-arg="${c.id}"><span>${esc(c.label)}</span></button>`).join('')}
     </div>
@@ -58,63 +50,34 @@ export function checkin(root, app, { step = 0, answers = {}, trail = [] }) {
   on(root, {
     back: () => (trail.length ? app.go('checkin', { ...trail.at(-1), trail: trail.slice(0, -1) }) : app.go('home')),
     pick: (id) => {
-      const value = q.key === 'yesterdayGame' || q.key === 'hurts' ? id === 'yes' : id;
+      const value = q.key === 'yesterdayGame' ? id === 'yes' : id;
       app.go('checkin', { step: i + 1, answers: { ...answers, [q.key]: value }, trail: [...trail, { step: i, answers }] });
     },
   });
 }
 
-function finish(root, app, answers, trail) {
+function finish(app, answers) {
   const s = app.save;
   const now = new Date();
-  // Today's answers are saved first, even when something hurts. The first check-in of the day
-  // sticks: a later one can only make the session easier (settle, contract C5).
+  // Today's answers are saved first. The first check-in of the day sticks: a later one can only
+  // make the session easier (settle, contract C5).
   const { d, day } = settle(answers, s.log, s.days, now);
   s.days[dayKey(now)] = day;
   app.persist();
-  if (answers.hurts) { whereItHurts(root, app, answers, trail); return; }
   if (!d.type) { app.go('home'); return; }
-  app.go('preview', { type: d.type, reason: day.reason, answers: day, avoid: d.avoid, noJumps: d.noJumps, note: painText(d, now) });
+  app.go('preview', { type: d.type, reason: day.reason, answers: day });
 }
 
-function whereItHurts(root, app, answers, trail) {
-  root.innerHTML = `
-  <main class="screen hurts">
-    <button class="back" data-act="back">Back</button>
-    <p class="kicker">Check-in</p>
-    <h1>Where does it hurt?</h1>
-    <div class="zones">${COPY.PAIN_ZONES.map((z) => `<button class="choice" data-act="zone" data-arg="${z.id}"><span>${esc(z.label)}</span></button>`).join('')}</div>
-  </main>`;
-  on(root, {
-    // Back to "Does anything hurt?". Nothing is logged until he picks a spot.
-    back: () => app.go('checkin', { ...trail.at(-1), trail: trail.slice(0, -1) }),
-    zone: (zone) => {
-      app.save.log.push({ date: new Date().toISOString(), type: null, completed: false, done: [], skipped: [], stopped: { why: 'hurt-before', zone } });
-      app.persist();
-      root.innerHTML = `
-      <main class="screen message">
-        <h1>No training today.</h1>
-        <p class="lead">Show Dad ${esc(zone === 'other' ? 'where it hurts' : COPY.spotOf(zone))} and tell him how it feels. Train again once he's had a look.</p>
-        ${stopRuleHtml(COPY.STOP_RULE)}
-        <button class="btn btn-primary" data-act="home">Back to Today</button>
-      </main>`;
-      on(root, { home: () => app.go('home') });
-    },
-  });
-}
-
-// params: { type, reason, extra, dad, answers (the day's check-in record), avoid, noJumps, note }.
-// avoid and noJumps come from decide() (contract C4); Dad's runs and the extra Stretch don't pass them.
+// params: { type, reason, extra, dad, answers (the day's check-in record) }.
 export function preview(root, app, params) {
-  const { type, reason = '', extra = false, dad = false, answers = null, avoid = [], noJumps = false, note = '' } = params;
+  const { type, reason = '', extra = false, dad = false, answers = null } = params;
   const s = app.save;
-  const ctx = makeContext({ room: app.room || 'big', hour: new Date().getHours(), versions: s.versions, avoid, noJumps, ladder: ladderItem(s) });
+  const ctx = makeContext({ room: app.room || 'big', hour: new Date().getHours(), versions: s.versions, ladder: ladderItem(s) });
   const session = buildSession(type, ctx);
 
   // What changes for the room or the hour (contract C10), said only when this session has such a drill.
   const drills = session.items.map((it) => it.drill);
   const notes = [];
-  if (note) notes.push(note);
   if (ctx.small) { if (drills.some((d) => d.space === 'big')) notes.push('Bedroom: small-room versions.'); }
   else if (ctx.early && drills.some((d) => d.slam)) notes.push('Before 9 am: no slams.');
   const said = answersText(answers);
@@ -144,7 +107,6 @@ export function preview(root, app, params) {
     ${grab ? `<p class="hint">${esc(grab)}</p>` : ''}
     <p class="small">Tap a drill to see how it's done.</p>
     <ul class="drill-list">${rows}</ul>
-    ${stopRuleHtml(COPY.STOP_RULE)}
     <p class="small">Lean the phone against the wall, low down, screen facing you.</p>
     <div class="start-bar"><button class="btn btn-go" data-act="start">Start</button></div>
   </main>`;

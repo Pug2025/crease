@@ -38,51 +38,14 @@ export function targetSay(drill, dose) {
 export const setsSay = (n) => `${cap(word(n))} sets.`;
 export const setSay = (n) => `Set ${word(n)}.`;
 
-export const STOP_RULE = {
-  title: 'Stop and tell Dad if:',
-  lines: [
-    'something hurts sharp',
-    'your knee hurts just below the kneecap',
-    'your heel hurts',
-    'pain (not sore muscles) still there the next day',
-    'you feel dizzy or can\'t catch your breath',
-  ],
-};
-
-// Shown once on the welcome screen, under the stop rule. Jamie, 10 November 2026:
-// "we should also explain to him the difference between soreness and pain".
-export const SORE_OR_HURT = {
-  title: 'Sore or hurt?',
-  sore: ['Sore:', 'your muscles ache a day or two after training. That\'s normal. Train.'],
-  hurt: ['Hurt:', 'sharp pain, pain in a joint, below your kneecap or in your heel, or pain that makes you limp. Stop and tell Dad.'],
-};
-// The line under "Does anything hurt right now?" in the check-in.
-export const HURT_QUESTION_NOTE = 'Sore muscles are normal. Tap Yes for sharp pain, or pain in a joint, below the kneecap or in your heel.';
-
 // Today's room hint. The bedroom swaps only the drills that need space; before 9 am only slams swap.
 export const ROOM_HINT = {
   bedroom: 'Small room: nothing that needs 3 metres.',
   big: 'Full versions. Clear about 3 metres around you.',
 };
 
-// label: the button. spot: how it reads in a sentence ("You stopped for ___").
-export const PAIN_ZONES = [
-  { id: 'below-kneecap', label: 'Just below the kneecap', spot: 'the spot below your kneecap' },
-  { id: 'knee', label: 'Knee', spot: 'your knee' },
-  { id: 'heel', label: 'Heel', spot: 'your heel' },
-  { id: 'groin', label: 'Groin', spot: 'your groin' },
-  { id: 'hip', label: 'Hip', spot: 'your hip' },
-  { id: 'lower-back', label: 'Lower back', spot: 'your lower back' },
-  { id: 'ankle', label: 'Ankle', spot: 'your ankle' },
-  { id: 'other', label: 'Somewhere else', spot: 'something that hurt' },
-];
-export const spotOf = (id) => PAIN_ZONES.find((z) => z.id === id)?.spot || 'something that hurt';
-// "knee", "just below the kneecap", "somewhere else": for "Last time it hurt: ___."
-export const zoneWord = (id) => (PAIN_ZONES.find((z) => z.id === id)?.label || 'Somewhere else').toLowerCase();
-
 export const FEEL = [
   { id: 'good', label: 'Good' },
   { id: 'tired', label: 'Tired', note: 'Shorter version today.' },
-  { id: 'sore', label: 'Sore', note: 'Stretch only today.' },
   { id: 'sick', label: 'Sick', note: 'No training today. Rest up.' },
 ];

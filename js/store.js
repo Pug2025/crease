@@ -12,9 +12,7 @@ export function blank() {
     setupDone: false,
     // His med ball doesn't bounce (Jamie, 10 November 2026), so slams are always allowed. No band drills remain.
     settings: { ball: 'dead', band: false },
-    // Sessions. A pain entry can also carry dadSeen (Dad tapped Seen) and cleared (Dad: he's OK to train today).
-    log: [],
-    seenAlerts: [], // old saves only: notices he closed himself. Only Dad's Seen clears a pain notice now.
+    log: [], // sessions
     days: {}, // first check-in of each day: { '2026-11-10': { today, tomorrow, when, type, at } }
     dadPin: null, // scrambled, never the PIN itself
     versions: {}, // Dad's chosen version per drill: { ST1: 0 } (0 Easier, 1 Standard, 2 Harder)
@@ -32,6 +30,7 @@ export function load() {
       const s = JSON.parse(raw);
       if (s && s.v === VERSION) {
         const b = blank();
+        migrateOldRecords(s);
         return {
           ...b,
           ...s,
@@ -47,6 +46,33 @@ export function load() {
   } catch {}
   return blank();
 }
+
+// MIGRATION ONLY (hurt-guard exempt: tests.mjs skips this function). Older saves can hold
+// records from a feature the app no longer has. Turns them into plain records so nothing
+// about them is ever shown or acted on. Changes s in place and returns it.
+export function migrateOldRecords(s) {
+  if (!s || typeof s !== 'object') return s;
+  if (Array.isArray(s.log)) {
+    s.log = s.log.filter((e) => e && e.stopped?.why !== 'hurt-before');
+    for (const e of s.log) {
+      // A pain stop counted before, so it still counts.
+      if (e.stopped?.why === 'pain') { e.completed = true; delete e.stopped; delete e.short; }
+      if (Array.isArray(e.skipped)) {
+        for (const sk of e.skipped) {
+          if (!sk) continue;
+          delete sk.zone;
+          if (sk.why === 'hurts') sk.why = 'here';
+        }
+      }
+      delete e.dadSeen;
+      delete e.cleared;
+    }
+  }
+  delete s.seenAlerts;
+  if (s.days && typeof s.days === 'object') for (const d of Object.values(s.days)) if (d && typeof d === 'object') delete d.hurts;
+  return s;
+}
+// END MIGRATION
 
 export function save(s) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}

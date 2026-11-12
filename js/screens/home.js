@@ -1,8 +1,8 @@
 // Today: one Start button. The check-in that follows decides the session; he never picks it.
-// Also here: the pain records Dad's screen reads, and the week strip that Done shows too.
+// Also here: the week strip that Done shows too.
 import { esc, on, CREASE_MARK, today } from '../ui.js';
 import { SESSIONS } from '../../data/sessions.js';
-import { ROOM_HINT, spotOf, zoneWord } from '../../data/copy.js';
+import { ROOM_HINT } from '../../data/copy.js';
 import { doneByDay, dayKey, counts } from '../plan/decide.js';
 import { splitsState, settleSplits } from '../plan/splits.js';
 import { lightsStats } from './lights.js';
@@ -11,26 +11,6 @@ import { lightsStats } from './lights.js';
 
 // Dad's test runs. New ones never reach save.log; older saves may still hold some.
 export const isTest = (e) => !!(e.test || (e.dad && e.extra));
-
-// The spots a log entry reports as hurting: a pain stop, "hurts" before training, an "It hurts" skip.
-export function painZones(e) {
-  if (!e || isTest(e)) return [];
-  const z = [];
-  if (e.stopped && (e.stopped.why === 'pain' || e.stopped.why === 'hurt-before')) z.push(e.stopped.zone || 'other');
-  for (const sk of e.skipped || []) if (sk.zone) z.push(sk.zone);
-  return z;
-}
-export const isPain = (e) => painZones(e).length > 0;
-
-// Anything that hurt today and Dad hasn't cleared locks Today, the same as a "hurts" check-in.
-export const hurtToday = (log, now = new Date()) =>
-  log.filter((e) => isPain(e) && !e.cleared && dayKey(new Date(e.date)) === dayKey(now));
-
-// The newest pain report Dad hasn't marked Seen. It stays on Today until he does.
-export function unseenPain(log) {
-  for (let i = log.length - 1; i >= 0; i--) if (isPain(log[i]) && !log[i].dadSeen) return log[i];
-  return null;
-}
 
 const dayAt = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 const mondayOf = (d) => dayAt(d, -((d.getDay() + 6) % 7));
@@ -99,7 +79,7 @@ export function weekStripHtml(w) {
 
 // "Splits · Split · 3 cushions" on Today, with a dot when Dad has one to watch.
 export function splitsLineHtml(st) {
-  const what = st.pause ? 'resting' : st.top ? 'done' : st.waiting ? 'ready for Dad' : st.r.name;
+  const what = st.top ? 'done' : st.waiting ? 'ready for Dad' : st.r.name;
   return `<button class="lights-line splits-line${st.waiting ? ' waiting' : ''}" data-act="splits">
     <span class="ll-dot" aria-hidden="true"></span><span>Splits · <b>${esc(what)}</b></span></button>`;
 }
@@ -130,10 +110,6 @@ export function render(root, app) {
   if (settleSplits(s, now)) app.persist();
   const splits = splitsState(s, now);
   if (!app.room) app.room = now.getHours() < 9 ? 'bedroom' : 'big';
-  const hurts = hurtToday(s.log, now);
-  const lockZone = hurts.length ? painZones(hurts[hurts.length - 1]).pop() : null;
-  const notice = hurts.length ? null : unseenPain(s.log);
-  const noticeZone = notice ? painZones(notice).pop() : null;
   const doneToday = (doneByDay(s.log)[dayKey(now)] || []).length > 0;
   const last = lastSession(s);
 
@@ -143,15 +119,7 @@ export function render(root, app) {
       ${CREASE_MARK}
       <div><h1>Crease</h1><p class="date">${esc(today())}</p></div>
     </header>
-    ${notice ? `
-      <div class="alert" role="status">
-        <p>Last time it hurt: ${esc(zoneWord(noticeZone))}. Still hurts? Tell Dad before you train.</p>
-      </div>` : ''}
-    ${hurts.length ? `
-      <section class="today-done locked">
-        <h2>No training today.</h2>
-        <p>${lockZone && lockZone !== 'other' ? `You said ${esc(spotOf(lockZone))} hurts.` : 'You said something hurts.'} Show Dad, and train again once he's had a look.</p>
-      </section>` : doneToday ? `
+    ${doneToday ? `
       <section class="today-done">
         <h2>Done for today.</h2>
         <p>Next session tomorrow.</p>

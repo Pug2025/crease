@@ -4,20 +4,12 @@ import { esc, on } from '../ui.js';
 import { LADDER, TOP, SPLITS_COPY as C } from '../../data/splits.js';
 import { byId } from '../../data/exercises.js';
 import { splitsState, settleSplits } from '../plan/splits.js';
-import { spotOf } from '../../data/copy.js';
-
-const ahead = (date, now) => {
-  const n = Math.round((new Date(date.toDateString()) - new Date(now.toDateString())) / 86400000);
-  if (n <= 1) return 'tomorrow';
-  if (n < 7) return date.toLocaleDateString('en-CA', { weekday: 'long' });
-  return date.toLocaleDateString('en-CA', { month: 'long', day: 'numeric' });
-};
 
 // One row per rung: done, where he is now, or still ahead.
 export function rungRows(st) {
   return LADDER.map((r) => {
     const state = r.n < st.rung ? 'done' : r.n === st.rung ? 'now' : 'ahead';
-    const dots = r.n === st.rung && !st.pause
+    const dots = r.n === st.rung
       ? `<span class="sp-dots" aria-label="${st.holds} of ${st.need} holds">${
         Array.from({ length: st.need }, (_, k) => `<i${k < st.holds ? ' class="on"' : ''}></i>`).join('')}</span>`
       : '';
@@ -36,9 +28,7 @@ export function render(root, app) {
   const st = splitsState(s, now);
   const drill = byId[st.r.id];
 
-  const status = st.pause
-    ? `<p class="sp-status rest">${esc(C.paused)} ${esc(spotOf(st.pause.zone))} hurt. Back ${esc(ahead(st.pause.back, now))}.</p>`
-    : st.top
+  const status = st.top
       ? `<p class="sp-status top">${esc(C.topped)}</p>`
       : st.waiting
         ? `<p class="sp-status waiting">${esc(C.waiting)} ${esc(C.watchHim)}</p>`
@@ -58,9 +48,8 @@ export function render(root, app) {
       </div>
     </section>
     ${status}
-    ${st.pause ? '' : `
-      <button class="btn btn-go" data-act="start">Do today's hold</button>
-      <p class="small center">Warm up first, then the hold. About 3 minutes.</p>`}
+    <button class="btn btn-go" data-act="start">Do today's hold</button>
+    <p class="small center">Warm up first, then the hold. About 3 minutes.</p>
     <ol class="sp-ladder">${rungRows(st)}</ol>
     <section class="sp-note">
       <p>${esc(C.why)}</p>
