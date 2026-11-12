@@ -25,7 +25,7 @@ const outDir = path.resolve('audio');
 fs.mkdirSync(outDir, { recursive: true });
 
 // Every line any session can say, in every way it can be built.
-const phrases = new Set([SAY.soundCheck, SAY.sessionDone]);
+const phrases = new Set([SAY.soundCheck, SAY.sessionDone, ...Object.values(SAY.milestone), SAY.newMask]);
 for (const { type, ctx } of everyContext()) phrasesOf(buildSession(type, ctx)).forEach((p) => phrases.add(p));
 // And every rung of the splits ladder, which isn't a version Dad sets.
 for (const { type, ctx } of everyLadder()) phrasesOf(buildSession(type, ctx)).forEach((p) => phrases.add(p));

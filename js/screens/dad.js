@@ -1,5 +1,5 @@
-// For Dad, behind a 4-digit PIN: his last 14 days, redo today's check-in, start any session,
-// the splits ladder, and each drill's version.
+// For Dad, behind a 4-digit PIN: his streak and saves, his last 14 days, redo today's check-in,
+// start any session, the splits ladder, and each drill's version.
 import { esc, on, minutes } from '../ui.js';
 import { SESSIONS, SESSION_ORDER } from '../../data/sessions.js';
 import { DRILLS, byId } from '../../data/exercises.js';
@@ -11,6 +11,8 @@ import { makeContext, resolveItem } from '../plan/build.js';
 import { splitsState, settleSplits, markWatched, setRung } from '../plan/splits.js';
 import { LADDER, TOP } from '../../data/splits.js';
 import { isTest } from './home.js';
+import { MAX_SAVES, giveSave } from '../plan/streak.js';
+import { cardStats, rungFor } from '../plan/card.js';
 
 const GROUPS = [['warm-up', 'Warm-up'], ['strength', 'Strength'], ['power', 'Power'], ['stretch', 'Stretch']];
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -108,6 +110,8 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
   const checkin = s.days?.[todayKey];
   if (settleSplits(s, now)) app.persist();
   const sp = splitsState(s, now);
+  const card = cardStats(s, now);
+  const st = card.streak;
 
   const sessions = SESSION_ORDER.map((t) => `<button class="set-row" data-act="run" data-arg="${t}"><span>${esc(SESSIONS[t].name)}</span><small>Start now</small></button>`).join('');
   const drills = GROUPS.map(([g, title]) => {
@@ -130,6 +134,17 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
     <p class="kicker">For Dad</p>
     <h1>Dad</h1>
     ${note ? `<p class="dad-note" role="status">${esc(note)}</p>` : ''}
+    <section class="set-group dad-streak">
+      <h2>Streak</h2>
+      <dl class="stats">
+        <div><dt>Streak</dt><dd>${st.days}</dd></div>
+        <div><dt>Best</dt><dd>${st.best}</dd></div>
+        <div><dt>Saves</dt><dd>${st.saves}<small> of ${MAX_SAVES}</small></dd></div>
+      </dl>
+      <p class="small">A save covers a day he doesn't train, so the streak keeps going. It's spent on its own when a day passes with no session. He earns one every 7 days in a row and holds 2 at most. Give him one for a tournament weekend or a sick day, before or during the days off.</p>
+      <button class="set-row" data-act="gift" ${st.saves >= MAX_SAVES ? 'disabled' : ''}><span>Give him a save</span><small>${st.saves >= MAX_SAVES ? 'He has 2' : ''}</small></button>
+      <p class="small">His card: <b>${card.overall}</b> overall, ${esc(card.tier)}.</p>
+    </section>
     <section class="set-group">
       <h2>Last 14 days</h2>
       <p class="small">What he answered, what he did and how it ended.</p>
@@ -184,6 +199,11 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
       type, extra: !asCounted, dad: true,
       reason: asCounted ? 'Picked by Dad.' : 'Test run. It doesn\'t count as a session.',
     }),
+    gift: () => {
+      if (!giveSave(s, now)) return;
+      app.persist();
+      again({ note: `Save given. He has ${cardStats(s, now).streak.saves}.` });
+    },
     redo: () => {
       delete s.days[todayKey];
       app.persist();
@@ -201,6 +221,8 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
       again({ note: `He stays on ${sp.r.name}. ${sp.need} more holds before it asks you again.`, scroll: window.scrollY });
     },
     rung: (n) => {
+      // Flex on his card keeps the highest rung he reached.
+      s.card = { ...(s.card || {}), rungPeak: rungFor(s) };
       setRung(s, +n, now);
       app.persist();
       again({ note: `Set to rung ${+n}: ${splitsState(s, now).r.name}.`, scroll: window.scrollY });

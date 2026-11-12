@@ -15,6 +15,9 @@ export const SAY = {
   soundCheck: 'Sound check. If you can hear me, you\'re set.',
   start: { leg: 'Left leg first.', side: 'Left side first.', way: 'Going left first.' },
   switch: { leg: 'Switch legs.', side: 'Switch sides.', way: 'Now the other way.' },
+  // Said on Done when his streak reaches one of these, and when a mask unlocks.
+  milestone: { 3: 'Three in a row.', 7: 'Seven in a row.', 14: 'Fourteen in a row.', 30: 'Thirty in a row.', 60: 'Sixty in a row.', 100: 'One hundred in a row.' },
+  newMask: 'New mask.',
 };
 
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];

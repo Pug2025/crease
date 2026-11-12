@@ -20,6 +20,11 @@ export function blank() {
     // The splits ladder: which rung he's on, when it opened (holds before that don't count
     // toward it), and the rungs Dad has watched.
     splits: { rung: 1, since: new Date().toISOString(), watched: [] },
+    // Days Dad gave him a save. The streak itself is replayed from the log, never stored.
+    streak: { gifts: [] },
+    // His card: name and number he typed (both optional), the mask he wears, and the highest
+    // splits rung he reached (so Dad moving him back never lowers Flex).
+    card: {},
   };
 }
 
@@ -40,6 +45,8 @@ export function load() {
           versions: s.versions || {},
           lights: Array.isArray(s.lights) ? s.lights : [],
           splits: { ...b.splits, ...(s.splits || {}), watched: Array.isArray(s.splits?.watched) ? s.splits.watched : [] },
+          streak: { gifts: Array.isArray(s.streak?.gifts) ? s.streak.gifts.filter((g) => typeof g === 'string') : [] },
+          card: s.card && typeof s.card === 'object' ? s.card : {},
         };
       }
     }

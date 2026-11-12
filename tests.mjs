@@ -453,13 +453,9 @@ process.on('exit', (code) => {
   ok(w.count === 2, `week strip: "This week: 2", got ${w.count}`);
   ok(w.boxes[0].mark === 'P' && w.boxes[2].mark === 'G' && w.boxes[4].mark === 'G' && w.boxes[1].mark === '', 'week strip: G and P from his check-ins, including "game tomorrow"');
   ok(w.boxes[4].today && w.boxes[5].future && !w.boxes[3].future, 'week strip: knows today and the days ahead');
-  ok(!w.full && w.inARow === 2 && w.best === 2, `week strip: this week isn't over, so the run of 2 full weeks stands (got ${w.inARow}/${w.best})`);
-  ok(!home.weekStripHtml(w).includes('Full week.') && !/ of 4/.test(home.weekStripHtml(w)), 'week strip: no "Full week." under 4, and never "of 4"');
-  const w4 = home.weekStats([...log, run(10, 13, 'strength'), run(10, 12, 'stretch')], days, NOW);
-  ok(w4.count === 4 && w4.full && w4.inARow === 3 && w4.best === 3, `week strip: 4 in a week is a full week, 3 in a row (got ${w4.count} ${w4.inARow}/${w4.best})`);
-  ok(home.weekStripHtml(w4).includes('Full week.') && home.weekStripHtml(w4).includes('wk-full'), 'week strip: "Full week." at 4');
-  const gap = home.weekStats([run(9, 19, 'strength'), run(9, 20, 'strength'), run(9, 21, 'strength'), run(9, 22, 'strength'), ...log.slice(4)], days, NOW);
-  ok(gap.inARow === 1 && gap.best === 1, `week strip: a short week breaks the run, best stays (got ${gap.inARow}/${gap.best})`);
+  ok(!home.weekStripHtml(w).includes('Full week') && !('full' in w) && !('inARow' in w), 'week strip: the streak replaced "Full week." and full weeks in a row');
+  const ws = home.weekStats(log, days, NOW, ['2026-11-10', '2026-11-09']);
+  ok(ws.boxes[1].saved && !ws.boxes[0].saved && home.weekStripHtml(ws).includes('Tuesday: saved'), 'week strip: a saved day gets its own box, labelled "saved" (never over a session)');
   ok(!home.weekStripHtml(w).includes('red'), 'week strip: missed days are never red');
 
   // Season line (item 21): from 1 September, counted sessions only.
@@ -938,4 +934,247 @@ process.on('exit', (code) => {
     const hit = text.split('\n').find((l) => HURT.test(l));
     ok(!hit, `guard: ${f} mentions hurting: ${hit?.trim()}`);
   }
+}
+
+// ===== Streak, card and masks (12 November 2026) =====
+{
+  const { streakStats, giveSave, MAX_SAVES } = await import('./js/plan/streak.js');
+  const card = await import('./js/plan/card.js');
+  const { MASKS } = await import('./data/masks.js');
+  const { payoff, payoffLines } = await import('./js/screens/done.js');
+  const { streakLine } = await import('./js/screens/home.js');
+  const { cleanName, cleanNumber } = await import('./js/screens/card.js');
+  const { SAY } = await import('./data/copy.js');
+  const { simulate } = await import('./tools/sim-weeks.mjs');
+
+  // Day n of November 2026 (n can run past 30 into December), at 4 pm.
+  const day = (n, h = 16) => new Date(2026, 10, n, h);
+  const s = (n, type = 'strength', more = {}) => ({ date: day(n, more.h ?? 16).toISOString(), type, completed: true, extra: false, dad: false, done: [], skipped: [], ...more });
+  const run = (from, to, type = 'strength') => Array.from({ length: to - from + 1 }, (_, k) => s(from + k, type));
+  const st = (log, now, gifts = []) => streakStats(log, { gifts }, now);
+
+  // The basics.
+  let x = st([], day(12));
+  ok(x.days === 0 && x.best === 0 && x.saves === 1 && !x.todayDone && x.milestone === null, `streak: nothing yet is 0 with 1 save (got ${JSON.stringify(x)})`);
+  ok(streakLine(x) === 'Day 1 starts today.', 'Today: "Day 1 starts today." with no streak');
+  x = st(run(10, 12), day(12, 18));
+  ok(x.days === 3 && x.todayDone && x.milestone === 3 && x.best === 3, `streak: three days ending today is 3, milestone 3 (got ${x.days}/${x.milestone})`);
+  x = st(run(6, 11), day(12, 7));
+  ok(x.days === 6 && !x.todayDone && x.milestone === null && x.savedDays.length === 0, `streak: in the morning the streak runs to yesterday, not broken (got ${x.days})`);
+  ok(streakLine(x) === 'Train today to make it 7.', `Today: "Train today to make it 7." (got ${streakLine(x)})`);
+  ok(streakLine(st(run(10, 12), day(12, 18))) === '', 'Today: no line once he has trained today');
+  x = st([...run(10, 12), s(12, 'stretch', { h: 19 })], day(12, 20));
+  ok(x.days === 3, 'streak: two sessions on one day count once');
+
+  // What never counts.
+  const noise = [
+    s(9, 'stretch', { extra: true }), // extra stretching
+    s(9, 'splits', { extra: true }), // the 3-minute Splits
+    s(9, 'power', { dad: true, extra: true }), // Dad's test run
+    s(9, 'strength', { test: true }), // an older test run
+    s(9, 'power', { completed: false, stopped: { why: 'ended' } }), // ended before it counted
+    s(9, null), // no session type
+  ];
+  x = st([...noise, ...run(10, 12)], day(12, 18));
+  ok(x.days === 3 && x.best === 3 && x.saves === 1, `streak: extras, Splits, test runs and sessions that didn't count are ignored (got ${x.days}, saves ${x.saves})`);
+  x = st(noise, day(9, 20));
+  ok(x.days === 0 && !x.todayDone, 'streak: a day of only extras and test runs is not a day');
+
+  // Saves: spent, earned, capped.
+  x = st([...run(1, 3), ...run(5, 6)], day(6, 18));
+  ok(x.days === 5 && x.saves === 0 && x.savedDays.join() === '2026-11-04' && x.best === 5, `streak: a missed day spends his save and the saved day doesn't add (got ${x.days}, saves ${x.saves}, ${x.savedDays})`);
+  x = st([...run(1, 3), ...run(6, 7)], day(7, 18));
+  ok(x.days === 2 && x.saves === 1 && x.savedDays.length === 0 && x.best === 3, `streak: a gap longer than his saves spends nothing, goes to 0 and keeps the best (got ${x.days}, saves ${x.saves}, best ${x.best})`);
+  x = st(run(1, 3), day(5, 8));
+  ok(x.days === 3 && x.saves === 0 && x.savedDays.join() === '2026-11-04', `streak: a gap still open this morning is covered (got ${x.days}, saves ${x.saves})`);
+  x = st(run(1, 3), day(6, 8));
+  ok(x.days === 0 && x.saves === 1 && x.savedDays.length === 0 && x.best === 3, `streak: two days missed with one save: 0, and the save comes back (got ${x.days}, saves ${x.saves})`);
+  x = st(run(1, 7), day(7, 18));
+  ok(x.days === 7 && x.saves === 2 && x.saveEarned && x.milestone === 7 && x.nextSaveAt === 14, `streak: 7 in a row earns a save (got saves ${x.saves}, earned ${x.saveEarned})`);
+  x = st(run(1, 14), day(14, 18));
+  ok(x.saves === MAX_SAVES && !x.saveEarned && x.milestone === 14, `streak: saves stop at 2 (got ${x.saves}, earned ${x.saveEarned})`);
+  x = st([...run(1, 7), ...run(10, 16)], day(16, 18));
+  ok(x.days === 14 && x.saves === 1 && x.savedDays.join() === '2026-11-08,2026-11-09', `streak: two saves cover two days, and 14 (7 counted days after them) earns one back (got ${x.days}, saves ${x.saves})`);
+  x = st([...run(1, 6), ...run(8, 13)], day(13, 18));
+  ok(x.days === 12 && x.saves === 1, `streak: the 7th counted day earns, saved days don't (got ${x.days}, saves ${x.saves})`);
+  x = st([...run(1, 7), ...run(11, 12)], day(12, 18));
+  ok(x.days === 2 && x.saves === 2 && x.best === 7, `streak: three days off with two saves: back to 0, saves kept (got ${x.days}, saves ${x.saves})`);
+  x = st([...run(1, 3), ...run(5, 9)], day(9, 18));
+  ok(x.days === 8 && x.saves === 1, `streak: the 7th counted day earns the spent save back (got ${x.days}, saves ${x.saves})`);
+  x = st([...run(1, 3), ...run(5, 8)], day(8, 18));
+  ok(x.days === 7 && x.saves === 1 && x.saveEarned, `streak: 7 counted days with a saved day between them earns a save (got ${x.days}, ${x.saves})`);
+
+  // Dad's gifts.
+  x = st([...run(1, 3), ...run(6, 7)], day(7, 18), ['2026-11-05']);
+  ok(x.days === 5 && x.saves === 0 && x.savedDays.join() === '2026-11-04,2026-11-05', `streak: Dad's save during the days off covers the second one (got ${x.days}, saves ${x.saves})`);
+  x = st(run(5, 6), day(6, 18), ['2026-11-01']);
+  ok(x.saves === 2, `streak: a save Dad gave before the first session is in hand (got ${x.saves})`);
+  x = st(run(5, 6), day(6, 18), ['2026-11-05', '2026-11-05']);
+  ok(x.saves === 2, `streak: gifts stop at 2 (got ${x.saves})`);
+  x = st([], day(6), ['2026-11-06']);
+  ok(x.saves === 2, 'streak: a gift with no sessions yet');
+  x = st(run(1, 3), day(6, 8), ['2026-11-06']);
+  ok(x.days === 0, 'streak: a save given after the streak already broke does not bring it back');
+  const gs = { log: run(1, 3), streak: { gifts: [] } };
+  ok(giveSave(gs, day(3, 18)) && gs.streak.gifts.join() === '2026-11-03', 'Dad: giving a save records today\'s date');
+  ok(!giveSave(gs, day(3, 19)) && gs.streak.gifts.length === 1, 'Dad: no gift once he holds 2');
+
+  // Dates: a new year, and the clocks changing.
+  const ny = [new Date(2026, 11, 30, 21), new Date(2026, 11, 31, 23, 50), new Date(2027, 0, 1, 0, 10), new Date(2027, 0, 2, 9)].map((d) => ({ date: d.toISOString(), type: 'stretch', completed: true }));
+  x = st(ny, new Date(2027, 0, 2, 12));
+  ok(x.days === 4 && x.milestone === null, `streak: runs across New Year (got ${x.days})`);
+  x = st(ny.slice(0, 2), new Date(2027, 0, 2, 7));
+  ok(x.days === 2 && x.saves === 0 && x.savedDays.join() === '2027-01-01', `streak: a save across New Year (got ${x.days} ${x.savedDays})`);
+  const tz = process.env.TZ;
+  process.env.TZ = 'America/Toronto';
+  {
+    // Clocks went back 1 November 2026 and go forward 14 March 2027. Late and early sessions.
+    const fall = [[10, 31, 23, 30], [11, 1, 0, 30], [11, 2, 23, 59], [11, 3, 6, 0]].map(([m, d, h, mi]) => ({ date: new Date(2026, m - 1, d, h, mi).toISOString(), type: 'strength', completed: true }));
+    const xs = st(fall, new Date(2026, 10, 3, 12));
+    ok(xs.days === 4 && xs.savedDays.length === 0, `streak: the November clock change (got ${xs.days})`);
+    const spring = [[3, 13, 23, 30], [3, 14, 0, 30], [3, 15, 22, 0], [3, 16, 7, 0]].map(([m, d, h, mi]) => ({ date: new Date(2027, m - 1, d, h, mi).toISOString(), type: 'strength', completed: true }));
+    const xp = st(spring, new Date(2027, 2, 16, 12));
+    ok(xp.days === 4 && xp.savedDays.length === 0, `streak: the March clock change (got ${xp.days})`);
+    const xg = st(spring.filter((_, i) => i !== 2), new Date(2027, 2, 16, 12));
+    ok(xg.days === 3 && xg.savedDays.join() === '2027-03-15', `streak: a save on the day after the clocks go forward (got ${xg.days} ${xg.savedDays})`);
+  }
+  if (tz === undefined) delete process.env.TZ; else process.env.TZ = tz;
+
+  // An older save replays cleanly: a migrated stop that counts, and junk dates are skipped.
+  x = st([{ date: day(1).toISOString(), type: 'power', completed: true }, { date: 'nonsense', type: 'power', completed: true }, s(2)], day(2, 18));
+  ok(x.days === 2, 'streak: an older save with a bad date still replays');
+  ok(st(run(10, 12), day(12, 18), undefined).days === 3 && streakStats(run(10, 12), undefined, day(12, 18)).days === 3, 'streak: a save with no streak record works');
+
+  // ---- The card ----
+  const blankSave = { log: [], lights: [], splits: { rung: 1 }, streak: { gifts: [] }, card: {} };
+  const c0 = card.cardStats(blankSave, day(12));
+  ok(c0.overall === 50 && c0.tier === 'Bronze' && c0.ratings.every((r) => r.value === 50) && c0.nextTier.name === 'Silver' && c0.nextTier.at === 60, 'card: a new card is 50s, Bronze, Silver at 60');
+  ok(c0.ratings.map((r) => r.id).join() === 'strength,power,flex,reflex,compete', 'card: five ratings in order');
+  for (const type of ['strength', 'power', 'stretch']) {
+    const c1 = card.cardStats({ ...blankSave, log: [s(12, type)] }, day(12, 18));
+    const moved = c1.ratings.filter((r) => r.value > 50).map((r) => r.id);
+    ok(moved.length >= 1, `card: the first ${type} session moves a rating (moved ${moved})`);
+  }
+  const cg = card.cardStats({ ...blankSave, log: [s(12, 'gameday')] }, day(12, 18));
+  ok(cg.ratings.filter((r) => r.value > 50).map((r) => r.id).join() === 'compete', 'card: Game Day feeds only the streak (Compete)');
+  const cx = card.cardStats({ ...blankSave, log: noise }, day(12, 18));
+  ok(cx.overall === 50, 'card: extras and test runs never move the card');
+  const rf = (ms) => card.ratingsFrom({ lightsMs: ms }).ratings.find((r) => r.id === 'reflex').value;
+  ok(rf(450) === 50 && rf(600) === 50 && rf(200) === 99 && rf(150) === 99 && rf(null) === 50 && rf(325) === 75, `card: Reflex from Lights (450 ms 50, 200 ms 99; got ${rf(450)} ${rf(200)} ${rf(325)})`);
+  ok(card.bestLights([{ ms: 250, counted: false }, { ms: 300, counted: true }]) === 300, 'card: practice rounds of Lights do not count');
+  ok(card.tierOf(59).name === 'Bronze' && card.tierOf(60).name === 'Silver' && card.tierOf(70).name === 'Gold' && card.tierOf(80).name === 'Elite' && card.tierOf(90).name === 'Legend' && card.tierOf(99).name === 'Legend', 'card: tier boundaries');
+  ok(card.ratingsFrom({ strength: 1e6, power: 1e6, stretch: 1e6, rung: 10, lightsMs: 100, bestStreak: 1e6 }).overall === 99, 'card: everything maxed is 99, never more');
+  const flexAt = (sv) => card.cardStats(sv, day(12)).ratings.find((r) => r.id === 'flex').value;
+  ok(flexAt({ ...blankSave, splits: { rung: 6 } }) === 50 + Math.round(19 * 5 / 9) && flexAt({ ...blankSave, splits: { rung: 3 }, card: { rungPeak: 6 } }) === flexAt({ ...blankSave, splits: { rung: 6 } }), 'card: Flex keeps the highest splits rung when Dad moves him back');
+  const before = card.ratingsFrom({ strength: 10, power: 5 });
+  const after = card.ratingsFrom({ strength: 11, power: 5 });
+  const gains = card.cardGains(before, after);
+  ok(gains.ratings.length === (after.ratings[0].value > before.ratings[0].value ? 1 : 0) && gains.ratings.every((r) => r.to > r.from), 'card: cardGains lists only what rose');
+
+  // A simulated season (tools/sim-weeks.mjs): his real hockey week, 1 to 3 days off a week.
+  // Lights best drifts from about 380 ms to 300; the splits rung climbs a rung a week of training.
+  const TARGETS = [];
+  for (const seed of [7, 11, 23]) {
+    const rows = simulate({ weeks: 53, seed, skips: 'random' });
+    const slog = rows.filter((r) => r.did && r.did !== 'power-ended').map((r) => ({ date: r.now.toISOString(), type: r.did, completed: true }));
+    const at = (w) => { const e = rows[w * 7 - 1].date; return new Date(e.getFullYear(), e.getMonth(), e.getDate(), 23, 30); };
+    const saveAt = (L, w) => {
+      const daysTrained = new Set(L.map((e) => e.date.slice(0, 10))).size;
+      return { log: L, lights: [{ date: L[0]?.date, counted: true, ms: Math.round(300 + 80 * Math.exp(-w / 8)) }], splits: { rung: Math.min(10, 1 + Math.floor(daysTrained / 7)) }, streak: { gifts: [] }, card: {} };
+    };
+    const ovr = {};
+    const firstWeek = {};
+    for (let w = 1; w <= 52; w++) {
+      const now = at(w);
+      const L = slog.filter((e) => new Date(e.date) <= now);
+      const c = card.cardStats(saveAt(L, w), now);
+      ovr[w] = c.overall;
+      for (const t of ['Silver', 'Gold', 'Elite', 'Legend']) if (card.tierOf(c.overall).name === t || c.overall >= card.TIERS.find((x) => x.name === t).at) firstWeek[t] ??= w;
+    }
+    TARGETS.push({ seed, ovr, firstWeek });
+    ok(firstWeek.Silver >= 2 && firstWeek.Silver <= 4, `card season ${seed}: Silver in week 2 to 4 (week ${firstWeek.Silver})`);
+    ok(firstWeek.Gold >= 9 && firstWeek.Gold <= 16, `card season ${seed}: Gold around month 3 (week ${firstWeek.Gold})`);
+    ok(firstWeek.Elite >= 20 && firstWeek.Elite <= 32, `card season ${seed}: Elite around month 6 (week ${firstWeek.Elite})`);
+    // No rating ever drops when a session is added.
+    let prev = null;
+    let dropped = null;
+    for (let i = 1; i <= slog.length; i += 1) {
+      const L = slog.slice(0, i);
+      const now = new Date(L[i - 1].date);
+      const c = card.cardStats({ ...saveAt(L, 1), lights: [] }, now);
+      if (prev && (c.overall < prev.overall || c.ratings.some((r, k) => r.value < prev.ratings[k].value))) dropped ??= L[i - 1].date;
+      prev = c;
+    }
+    ok(!dropped, `card season ${seed}: no rating drops when a session is added (dropped at ${dropped})`);
+  }
+  globalThis.CREASE_SEASON = TARGETS; // printed by: node tests.mjs season
+
+  // ---- Masks ----
+  ok(MASKS.length === 7 && MASKS.map((m) => m.streak).join() === '0,3,7,14,30,60,100' && MASKS.every((m, i) => m.id === `m${i}`), 'masks: seven, at 0, 3, 7, 14, 30, 60, 100');
+  const ms = card.maskState({ log: [...run(1, 7), ...run(20, 21)], streak: { gifts: [] }, card: {} }, day(21, 18));
+  ok(ms.list.filter((m) => m.unlocked).map((m) => m.name).join() === 'Rookie,Ice,Bolt', 'masks: unlocked by his best streak, so a broken streak keeps them');
+  ok(ms.wearing.id === 'm0', 'masks: Rookie until he picks one');
+  ok(card.maskState({ log: [], card: { mask: 'm4' } }, day(1)).wearing.id === 'm0', 'masks: a locked pick falls back to Rookie');
+  ok(card.maskState({ log: run(1, 3), card: { mask: 'm1' } }, day(3, 18)).wearing.id === 'm1', 'masks: wears the one he picked');
+  ok(card.newMasks(2, 3).map((m) => m.id).join() === 'm1' && card.newMasks(3, 3).length === 0 && card.newMasks(0, 0).length === 0, 'masks: newMasks');
+  ok(fs.readFileSync('tools/stamp.mjs', 'utf8').includes("'media'") && fs.readFileSync('tools/stamp.mjs', 'utf8').includes("'js'"), 'deploy: stamp.mjs caches media/ (masks) and js/ (new files)');
+
+  // ---- Done: the payoff ----
+  const mk = (log) => ({ log, lights: [], splits: { rung: 1 }, streak: { gifts: [] }, card: {} });
+  const sixDays = run(5, 10);
+  const today7 = s(11, 'power', { h: 18 });
+  const sv = mk([...sixDays, today7]);
+  const p7 = payoff(sv, today7, day(11, 19));
+  ok(p7.streak?.from === 6 && p7.streak?.to === 7, `done: the streak counts up from yesterday's number (got ${JSON.stringify(p7.streak)})`);
+  ok(p7.milestone === 7 && p7.masks.map((m) => m.name).join() === 'Bolt' && p7.saveEarned, 'done: day 7 is a milestone, Bolt and a save');
+  ok(p7.say.join('|') === 'Seven in a row.|New mask.', `done: the coach says the milestone (got ${p7.say})`);
+  const lines = payoffLines(p7);
+  const kinds = lines.map((l) => l.kind);
+  ok(kinds[0] === 'streak' && kinds.indexOf('mask') > kinds.lastIndexOf('rating') && kinds.at(-1) === 'save', `done: lines in order (got ${kinds})`);
+  ok(lines.some((l) => l.text === 'Power 50 → 52' || /^Power \d+ → \d+$/.test(l.text)) && lines.some((l) => l.text === 'New mask: Bolt!') && lines.some((l) => l.text === 'Save earned.'), `done: rating, mask and save words (got ${lines.map((l) => l.text)})`);
+  ok(lines.filter((l) => l.text.includes('!')).every((l) => l.kind === 'mask'), 'done: the only exclamation mark is a new mask');
+  for (const l of lines) ok(!/awesome|great job|crushing|keep it up|almost/i.test(l.text), `done: no cheerleading in "${l.text}"`);
+  const second = s(11, 'stretch', { h: 20 });
+  const sv2 = mk([...sixDays, today7, second]);
+  const p2 = payoff(sv2, second, day(11, 21));
+  ok(p2.streak === null && p2.milestone === null && p2.masks.length === 0 && !p2.saveEarned && p2.say.length === 0, 'done: a second session the same day does not raise the streak again');
+  const ext = s(11, 'stretch', { extra: true });
+  ok(payoffLines(payoff(mk([...sixDays, ext]), ext, day(11, 19))).length === 0, 'done: an extra shows none of it');
+  const tr = s(11, 'power', { dad: true, extra: true });
+  ok(payoffLines(payoff(mk([...sixDays, tr]), tr, day(11, 19))).length === 0, 'done: a test run shows none of it');
+  const notIn = s(11, 'power');
+  ok(payoffLines(payoff(mk(sixDays), notIn, day(11, 19), { test: true })).length === 0, 'done: a test run that never reached the log shows none of it');
+  const short = s(11, 'power', { completed: false, stopped: { why: 'ended' } });
+  ok(payoffLines(payoff(mk([...sixDays, short]), short, day(11, 19))).length === 0, 'done: a session that did not count shows none of it');
+  // A tier change: build a save sitting just under Silver.
+  {
+    let tierLine = null;
+    const L = [];
+    for (let n = 1; n <= 40 && !tierLine; n++) {
+      const e = s(n, ['strength', 'power', 'stretch'][n % 3]);
+      L.push(e);
+      const p = payoff(mk([...L]), e, new Date(e.date));
+      tierLine = payoffLines(p).find((l) => l.kind === 'tier') || null;
+    }
+    ok(tierLine?.text === 'Silver card.', `done: a tier change says "Silver card." (got ${tierLine?.text})`);
+  }
+  ok(SAY.milestone[3] === 'Three in a row.' && SAY.milestone[100] === 'One hundred in a row.' && SAY.newMask === 'New mask.', 'voice: milestone lines');
+
+  // ---- The card's name and number ----
+  ok(cleanName('  wall-e 2000 ') === 'wall-e' && cleanName('ABCDEFGHIJKLMNOP') === 'ABCDEFGHIJKL' && cleanName('') === '', 'card: names are letters, 12 at most');
+  ok(cleanNumber('031') === '3' && cleanNumber('99') === '99' && cleanNumber('a') === '' && cleanNumber('7x') === '7', 'card: numbers 0 to 99');
+  for (const f of ['js/screens/card.js', 'js/plan/card.js', 'js/plan/streak.js', 'data/masks.js', 'js/screens/home.js', 'js/screens/done.js']) {
+    ok(!/placeholder="[A-Z][a-z]+"|name:\s*'[A-Z][a-z]+'\s*,\s*number/.test(fs.readFileSync(f, 'utf8')), `card: no default name in ${f}`);
+  }
+}
+
+if (process.argv[2] === 'season') {
+  for (const t of globalThis.CREASE_SEASON || []) console.log(`seed ${t.seed}: ` + [1, 2, 4, 12, 26, 52].map((w) => `week ${w} ${t.ovr[w]}`).join(', ') + ` | first Silver ${t.firstWeek.Silver}, Gold ${t.firstWeek.Gold}, Elite ${t.firstWeek.Elite}, Legend ${t.firstWeek.Legend ?? '-'}`);
+}
+
+// The milestone lines are recorded.
+{
+  const { SAY } = await import('./data/copy.js');
+  const clips = JSON.parse(fs.readFileSync('audio/clips.json', 'utf8'));
+  for (const p of [...Object.values(SAY.milestone), SAY.newMask]) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `voice: no clip for "${p}"`);
 }

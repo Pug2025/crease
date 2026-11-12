@@ -484,3 +484,122 @@ img { max-width: 100%; }
 /* Ten rungs don't fit one row on a phone, so this seg wraps instead of stretching the screen. */
 .sp-seg { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(42px, 1fr)); }
 .sp-seg button { padding: 4px 0; }
+
+/* ===== Streak, card and masks, 12 November 2026 ===== */
+
+/* Tier colours: the card's frame. --tier is the frame, --tier-ink the text on it. */
+.tier-bronze { --tier: #A86A35; --tier-ink: #FFFFFF; }
+.tier-silver { --tier: #8D9AA7; --tier-ink: #0D1520; }
+.tier-gold { --tier: #F2C12E; --tier-ink: #0D1520; }
+.tier-elite { --tier: #2E7CC0; --tier-ink: #FFFFFF; }
+.tier-legend { --tier: #0D1520; --tier-ink: #F2C12E; }
+@media (prefers-color-scheme: dark) {
+  .tier-bronze { --tier: #C9844A; --tier-ink: #0D1520; }
+  .tier-silver { --tier: #B3C0CC; --tier-ink: #0D1520; }
+  .tier-elite { --tier: #4E9BDD; --tier-ink: #0D1520; }
+  .tier-legend { --tier: #F1F5F8; --tier-ink: #0D1520; }
+}
+
+/* Today: the streak and the card tile share the first row. */
+.home-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: stretch; }
+.streak { display: grid; align-content: center; gap: 2px; }
+.st-num { display: flex; align-items: baseline; gap: 8px; }
+.st-num b { font-family: var(--display); font-weight: 900; font-size: 4rem; line-height: .85; font-variant-numeric: tabular-nums; }
+.st-num span { font-family: var(--display); font-weight: 800; font-size: 1.45rem; text-transform: uppercase; letter-spacing: .02em; color: var(--ink2); }
+.st-saves { color: var(--ink2); font-weight: 700; font-size: 1rem; }
+.st-saves b { color: var(--ink); }
+.st-line { font-weight: 700; font-size: 1rem; }
+
+.card-tile {
+  display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 8px;
+  min-width: 132px; min-height: var(--tap); padding: 8px 12px 8px 8px;
+  background: var(--card); border: 3px solid var(--tier); border-radius: 14px; text-align: left;
+}
+.card-tile:active { transform: scale(.985); }
+.ct-mask { grid-row: 1 / 3; width: 54px; height: 54px; border-radius: 10px; background: var(--ice); overflow: hidden; display: grid; place-items: center; }
+.ct-mask img, .gc-mask img, .shelf-pic img, .po-maskpic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.ct-ovr { font-family: var(--display); font-weight: 900; font-size: 2.3rem; line-height: .9; font-variant-numeric: tabular-nums; }
+.ct-tier { align-self: start; font-family: var(--display); font-weight: 800; font-size: .95rem; text-transform: uppercase; letter-spacing: .05em; background: var(--tier); color: var(--tier-ink); border-radius: 5px; padding: 1px 6px 0; justify-self: start; }
+
+/* A day a save covered: an outline in crease blue with a slash, so it never reads as a session. */
+.wk-day.saved .wk-box { border-color: var(--crease); border-style: dashed; background: var(--crease-soft); color: var(--crease-deep); }
+
+/* The card: a hockey card in the app's palette. The frame follows the tier. */
+.card-screen { gap: 12px; }
+.gcard {
+  position: relative; display: grid; gap: 10px;
+  background: var(--card); border: 8px solid var(--tier); border-radius: 22px; padding: 14px 16px 16px;
+  box-shadow: 0 0 0 2px var(--line);
+}
+.gc-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.gc-ovr { display: grid; justify-items: start; }
+.gc-ovr b { font-family: var(--display); font-weight: 900; font-size: 5.2rem; line-height: .8; font-variant-numeric: tabular-nums; }
+.gc-ovr span { margin-top: 6px; font-family: var(--display); font-weight: 900; font-size: 1.2rem; text-transform: uppercase; letter-spacing: .06em; background: var(--tier); color: var(--tier-ink); border-radius: 6px; padding: 2px 8px 1px; }
+.gc-pos { font-family: var(--display); font-weight: 900; font-size: 3rem; line-height: .85; color: var(--ink2); }
+.gc-mask { justify-self: center; width: 100%; max-width: 190px; aspect-ratio: 1; display: grid; place-items: center; }
+.gc-id { border-top: 3px solid var(--tier); padding-top: 8px; }
+.gc-who { display: flex; align-items: baseline; gap: 10px; width: 100%; min-height: 52px; background: none; border: 0; padding: 0; text-align: left; }
+.gc-num, .gc-name { font-family: var(--display); font-weight: 900; text-transform: uppercase; line-height: 1; }
+.gc-num { font-size: 2.4rem; font-variant-numeric: tabular-nums; }
+.gc-name { font-size: 2.4rem; letter-spacing: .02em; overflow-wrap: anywhere; }
+.gc-num.empty, .gc-name.empty { color: var(--ink2); opacity: .55; font-size: 1.6rem; }
+.gc-edit { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: end; }
+.gc-edit label { display: grid; gap: 2px; font-weight: 700; font-size: .9rem; color: var(--ink2); }
+.gc-edit input { font: inherit; font-family: var(--display); font-weight: 900; font-size: 1.8rem; text-transform: uppercase; min-height: 52px; padding: 4px 10px; border: 2px solid var(--line); border-radius: 12px; background: var(--ice); color: var(--ink); width: 100%; }
+.gc-edit input:focus { outline: 3px solid var(--crease); outline-offset: 1px; }
+.gc-save { grid-column: 1 / -1; min-height: 52px; font-size: 1.4rem; }
+.gc-ratings { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.gc-ratings li { display: grid; grid-template-columns: 5.6em minmax(0, 1fr) 2.2em; gap: 10px; align-items: center; }
+.gc-label { font-weight: 700; }
+.gc-bar { height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.gc-bar i { display: block; height: 100%; min-width: 4px; background: var(--crease); border-radius: 6px; }
+.gc-val { font-family: var(--display); font-weight: 900; font-size: 1.8rem; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; }
+.gc-foot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 0; padding-top: 10px; border-top: 3px solid var(--tier); }
+.gc-foot div { display: grid; }
+.gc-foot dt { color: var(--ink2); font-weight: 700; font-size: .85rem; }
+.gc-foot dd { margin: 0; font-family: var(--display); font-weight: 900; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* The mask shelf. Locked masks are a dark silhouette of their own picture. */
+.shelf h2 { font-family: var(--display); font-weight: 900; font-size: 1.8rem; text-transform: uppercase; margin: 6px 0 8px; }
+.shelf-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.shelf-item { display: grid; }
+.shelf-btn, .shelf-item.locked { display: grid; justify-items: center; gap: 2px; padding: 8px 6px 10px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); text-align: center; min-height: var(--tap); }
+.shelf-btn[aria-pressed="true"] { border-color: var(--crease); box-shadow: inset 0 0 0 2px var(--crease); }
+.shelf-pic { width: 100%; aspect-ratio: 1; display: grid; place-items: center; }
+.shelf-item.locked .shelf-pic img { filter: brightness(0); opacity: .4; }
+.shelf-name { font-family: var(--display); font-weight: 900; font-size: 1.25rem; text-transform: uppercase; line-height: 1.05; }
+.shelf-need { font-size: .85rem; font-weight: 700; color: var(--ink2); }
+.shelf-btn[aria-pressed="true"] .shelf-need { color: var(--crease-deep); }
+.shelf-item.locked { background: transparent; }
+@media (prefers-color-scheme: dark) {
+  .shelf-item.locked .shelf-pic img { filter: brightness(0) invert(.25); opacity: .7; }
+}
+
+/* Done: the payoff. Each line comes in a beat after the last; nothing covers Back to Today. */
+@property --n { syntax: '<integer>'; initial-value: 0; inherits: false; }
+.payoff { display: grid; gap: 6px; margin: 4px 0; }
+.po { animation: po-in .35s ease-out both; animation-delay: var(--d, 0s); font-weight: 700; font-size: 1.2rem; }
+.po-streak { display: flex; align-items: baseline; gap: 10px; }
+.po-count { font-family: var(--display); font-weight: 900; font-size: 4.4rem; line-height: .85; font-variant-numeric: tabular-nums; --n: var(--to); counter-reset: n var(--n); animation: po-count 1s ease-out both; animation-delay: var(--d, 0s); }
+.po-count::after { content: counter(n); }
+.po-streak span { font-family: var(--display); font-weight: 800; font-size: 1.6rem; text-transform: uppercase; color: var(--ink2); }
+.po-rating { font-variant-numeric: tabular-nums; }
+.po-from { color: var(--ink2); }
+.po-to { display: inline-block; font-family: var(--display); font-weight: 900; font-size: 1.6rem; line-height: 1; animation: po-pop .4s ease-out both; animation-delay: calc(var(--d, 0s) + .25s); }
+.po-overall { font-size: 1.35rem; }
+.po-tier, .po-save { font-family: var(--display); font-weight: 900; font-size: 1.8rem; text-transform: uppercase; line-height: 1; }
+.po-tier { color: var(--ink); background: var(--kick); color: #0D1520; justify-self: start; padding: 4px 10px 2px; border-radius: 8px; }
+.po-mask { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: center; background: var(--card); border: 2px solid var(--kick); border-radius: 14px; padding: 10px; }
+.po-maskpic { width: 96px; height: 96px; display: grid; place-items: center; }
+.po-big { font-family: var(--display); font-weight: 900; font-size: 1.8rem; text-transform: uppercase; line-height: 1; margin-bottom: 8px !important; }
+.po-wear { min-height: 52px; font-size: 1.3rem; padding: 8px 16px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@keyframes po-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes po-count { from { --n: var(--from); } }
+@keyframes po-pop { 0% { transform: scale(1); } 50% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .po, .po-count, .po-to { animation: none; }
+}
+
+/* Dad */
+.set-row:disabled { opacity: .55; }

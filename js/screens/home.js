@@ -1,11 +1,14 @@
 // Today: one Start button. The check-in that follows decides the session; he never picks it.
-// Also here: the week strip that Done shows too.
+// Also here: the streak, the card tile, and the week strip that Done shows too.
 import { esc, on, CREASE_MARK, today } from '../ui.js';
 import { SESSIONS } from '../../data/sessions.js';
 import { ROOM_HINT } from '../../data/copy.js';
 import { doneByDay, dayKey, counts } from '../plan/decide.js';
 import { splitsState, settleSplits } from '../plan/splits.js';
 import { lightsStats } from './lights.js';
+import { streakStats } from '../plan/streak.js';
+import { cardStats, maskState } from '../plan/card.js';
+import { maskSrc } from '../../data/masks.js';
 
 // ---- His record (pure: tests.mjs runs these in Node) ----
 
@@ -14,12 +17,12 @@ export const isTest = (e) => !!(e.test || (e.dad && e.extra));
 
 const dayAt = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 const mondayOf = (d) => dayAt(d, -((d.getDay() + 6) % 7));
-export const FULL_WEEK = 4;
 
-// Monday to Sunday: a box for each day with a counted session, G or P on hockey days.
-// Missed days stay blank. Full weeks (4 or more) in a row, and the best run.
-export function weekStats(log, days = {}, now = new Date()) {
-  const by = doneByDay(log);
+// Monday to Sunday: a box for each day with a counted session, G or P on hockey days, and the
+// days a save covered. Missed days stay blank.
+export function weekStats(log, days = {}, now = new Date(), savedDays = []) {
+  const by = doneByDay(log.filter((e) => !isTest(e)));
+  const saved = new Set(savedDays);
   const mon = mondayOf(now);
   const todayKey = dayKey(now);
   const boxes = [];
@@ -27,30 +30,19 @@ export function weekStats(log, days = {}, now = new Date()) {
     const d = dayAt(mon, i);
     const k = dayKey(d);
     const ice = days[k]?.today || days[dayKey(dayAt(d, -1))]?.tomorrow || null;
+    const filled = !!by[k]?.length;
     boxes.push({
       key: k,
       letter: 'MTWTFSS'[i],
       name: d.toLocaleDateString('en-CA', { weekday: 'long' }),
-      filled: !!by[k]?.length,
+      filled,
+      saved: !filled && saved.has(k),
       mark: ice === 'game' ? 'G' : ice === 'practice' ? 'P' : '',
       today: k === todayKey,
       future: k > todayKey,
     });
   }
-  const count = boxes.filter((b) => b.filled).length;
-  let run = 0;
-  let best = 0;
-  const keys = Object.keys(by).sort();
-  if (keys.length) {
-    const [y, m, dd] = keys[0].split('-').map(Number);
-    for (let w = mondayOf(new Date(y, m - 1, dd)); w <= mon; w = dayAt(w, 7)) {
-      let n = 0;
-      for (let i = 0; i < 7; i++) if (by[dayKey(dayAt(w, i))]?.length) n++;
-      if (n >= FULL_WEEK) best = Math.max(best, ++run);
-      else if (dayKey(w) !== dayKey(mon)) run = 0; // this week isn't over yet, so it can't break the run
-    }
-  }
-  return { boxes, count, full: count >= FULL_WEEK, inARow: run, best };
+  return { boxes, count: boxes.filter((b) => b.filled).length };
 }
 
 // The season starts on 1 September.
@@ -62,20 +54,48 @@ export function seasonStats(log, now = new Date()) {
 
 export function weekStripHtml(w) {
   const days = w.boxes.map((b) => {
-    const cls = ['wk-day', b.filled && 'filled', b.today && 'today', b.future && 'future'].filter(Boolean).join(' ');
-    const label = `${b.name}: ${b.filled ? 'session done' : 'no session'}${b.mark === 'G' ? ', game' : b.mark === 'P' ? ', practice' : ''}`;
+    const cls = ['wk-day', b.filled && 'filled', b.saved && 'saved', b.today && 'today', b.future && 'future'].filter(Boolean).join(' ');
+    const what = b.filled ? 'session done' : b.saved ? 'saved' : 'no session';
+    const label = `${b.name}: ${what}${b.mark === 'G' ? ', game' : b.mark === 'P' ? ', practice' : ''}`;
     return `<li class="${cls}" aria-label="${esc(label)}"><span class="wk-box">${b.mark}</span><span class="wk-letter">${b.letter}</span></li>`;
   }).join('');
   return `
-  <section class="week${w.full ? ' full' : ''}">
+  <section class="week">
     <div class="wk-head">
       <span class="wk-count">This week: <b>${w.count}</b></span>
-      ${w.full ? '<span class="wk-full">Full week.</span>' : ''}
     </div>
     <ol class="wk-days">${days}</ol>
-    ${w.full ? `<p class="wk-run">Full weeks in a row: <b>${w.inARow}</b> · Best: <b>${w.best}</b></p>` : ''}
   </section>`;
 }
+
+// The streak at the top of Today: the number, his saves, and one line.
+export function streakLine(st) {
+  if (st.todayDone) return '';
+  return st.days > 0 ? `Train today to make it ${st.days + 1}.` : 'Day 1 starts today.';
+}
+
+export function streakHtml(st) {
+  const line = streakLine(st);
+  return `
+  <section class="streak" aria-label="${st.days} day streak, ${st.saves} ${st.saves === 1 ? 'save' : 'saves'}">
+    <div class="st-num"><b>${st.days}</b><span>day streak</span></div>
+    <p class="st-saves">Saves: <b>${st.saves}</b></p>
+    ${line ? `<p class="st-line">${esc(line)}</p>` : ''}
+  </section>`;
+}
+
+// The small card on Today: the mask he wears, his Overall and tier. Opens the Card screen.
+export function cardTileHtml(card, mask) {
+  return `
+  <button class="card-tile tier-${card.tierId}" data-act="card" aria-label="Your card: ${card.overall} overall, ${esc(card.tier)}">
+    <span class="ct-mask">${maskImg(mask)}</span>
+    <span class="ct-ovr">${card.overall}</span>
+    <span class="ct-tier">${esc(card.tier)}</span>
+  </button>`;
+}
+
+// A mask picture. If the file isn't there yet, the empty frame shows instead of a broken image.
+export const maskImg = (m, cls = '') => `<img class="mask-img${cls ? ` ${cls}` : ''}" src="${esc(maskSrc(m.id))}" alt="" onerror="this.hidden=true">`;
 
 // "Splits · Split · 3 cushions" on Today, with a dot when Dad has one to watch.
 export function splitsLineHtml(st) {
@@ -112,6 +132,9 @@ export function render(root, app) {
   if (!app.room) app.room = now.getHours() < 9 ? 'bedroom' : 'big';
   const doneToday = (doneByDay(s.log)[dayKey(now)] || []).length > 0;
   const last = lastSession(s);
+  const card = cardStats(s, now);
+  const st = card.streak;
+  const masks = maskState(s, now, st.best);
 
   root.innerHTML = `
   <main class="screen home">
@@ -119,6 +142,10 @@ export function render(root, app) {
       ${CREASE_MARK}
       <div><h1>Crease</h1><p class="date">${esc(today())}</p></div>
     </header>
+    <div class="home-top">
+      ${streakHtml(st)}
+      ${cardTileHtml(card, masks.wearing)}
+    </div>
     ${doneToday ? `
       <section class="today-done">
         <h2>Done for today.</h2>
@@ -137,7 +164,7 @@ export function render(root, app) {
       <p class="small center">A few quick questions, then your session.</p>`}
     ${lightsLineHtml(s.lights)}
     ${splitsLineHtml(splits)}
-    ${weekStripHtml(weekStats(s.log, s.days, now))}
+    ${weekStripHtml(weekStats(s.log, s.days, now, st.savedDays))}
     <footer class="home-foot">
       <span>${last ? `Last: <b>${esc(last)}</b>` : 'No sessions yet'}</span>
       <button class="link" data-act="settings">Settings</button>
@@ -150,6 +177,7 @@ export function render(root, app) {
     stretch: () => app.go('preview', { type: 'stretch', reason: 'Extra stretching. It doesn\'t count as a session.', extra: true }),
     lights: () => app.go('lights'),
     splits: () => app.go('splits'),
+    card: () => app.go('card'),
     settings: () => app.go('settings'),
   });
 }
