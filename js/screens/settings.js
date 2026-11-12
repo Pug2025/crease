@@ -16,11 +16,17 @@ export function render(root, app) {
       </section>
       <section class="howto">
         <h2>How it works</h2>
-        <p>Tap Start and answer a few questions. The app picks today's session from your hockey and what you've done lately. The coach's voice runs it, so the phone can stay on the floor. Blue screen means work. White means rest or get ready.</p>
-        <p>In your bedroom, the drills that need 3 metres of space swap for small-room versions. Before 9 am there are no med ball slams.</p>
-        <p>Tap a drill before you start to see how it's done. Most have a video.</p>
-        <p>Your streak is days in a row with a session. A save covers a day you miss. You get one every 7 days and can hold 2.</p>
-        <p>Your card's ratings go up as you train. They never go down. Masks come from your best streak.</p>
+        <dl class="how">
+          <div><dt>Start</dt><dd>Answer a few questions and the app picks today's session.</dd></div>
+          <div><dt>Blue screen</dt><dd>Work. A white screen means rest or get ready.</dd></div>
+          <div><dt>Bedroom</dt><dd>Drills that need 3 metres swap for small-room ones.</dd></div>
+          <div><dt>Before 9 am</dt><dd>No med ball slams.</dd></div>
+          <div><dt>Drills</dt><dd>Tap one before you start to see how it's done. Most have a video.</dd></div>
+          <div><dt>Streak</dt><dd>Days in a row with a session.</dd></div>
+          <div><dt>Saves</dt><dd>A save covers a day you miss. You get one every 7 days and can hold 2.</dd></div>
+          <div><dt>Card</dt><dd>Your ratings go up as you train. They never go down.</dd></div>
+          <div><dt>Masks</dt><dd>They come from your best streak.</dd></div>
+        </dl>
       </section>
       <section class="set-group">
         ${confirm

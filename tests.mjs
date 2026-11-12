@@ -505,7 +505,7 @@ process.on('exit', (code) => {
   ok(lights.lightsStats(ls.lights, NOW).best === 298 && lights.lightsStats(ls.lights, NOW).left === 0, 'Lights: best comes from counted rounds only');
   ok(lights.lightsStats(ls.lights, new Date(2026, 10, 14, 9)).left === 3, 'Lights: 3 more count tomorrow');
   ok(ls.lights.every((l) => l.date && Number.isFinite(l.ms) && l.taps.length === lights.TAPS), 'Lights: every round saved with its date and taps');
-  ok(home.lightsLineHtml(ls.lights).includes('best <b>298 ms</b>') && home.lightsLineHtml([]).includes('no score yet'), 'Today: "Lights · best 298 ms"');
+  ok(home.lightsLineHtml(ls.lights).includes('<b>298 ms</b>') && home.lightsLineHtml([]).includes('No score yet'), 'Today: "Lights · best 298 ms"');
   ok(!log.some((e) => e.type === 'lights'), 'Lights never become a session');
 
   // The icon (item 35): solid PNGs at 180, 192 and 512.

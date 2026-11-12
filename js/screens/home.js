@@ -100,13 +100,13 @@ export const maskImg = (m, cls = '') => `<img class="mask-img${cls ? ` ${cls}` :
 // "Splits · Split · 3 cushions" on Today, with a dot when Dad has one to watch.
 export function splitsLineHtml(st) {
   const what = st.top ? 'done' : st.waiting ? 'ready for Dad' : st.r.name;
-  return `<button class="lights-line splits-line${st.waiting ? ' waiting' : ''}" data-act="splits">
-    <span class="ll-dot" aria-hidden="true"></span><span>Splits · <b>${esc(what)}</b></span></button>`;
+  return `<button class="mini-tile splits-line${st.waiting ? ' waiting' : ''}" data-act="splits">
+    <span class="mt-label">Splits</span><b>${esc(what)}</b></button>`;
 }
 
 export function lightsLineHtml(lights) {
   const { best } = lightsStats(lights);
-  return `<button class="lights-line" data-act="lights"><span class="ll-dot" aria-hidden="true"></span><span>Lights · ${best === null ? 'no score yet' : `best <b>${best} ms</b>`}</span></button>`;
+  return `<button class="mini-tile" data-act="lights"><span class="mt-label">Lights${best === null ? '' : ' · best'}</span><b>${best === null ? 'No score yet' : `${best} ms`}</b></button>`;
 }
 
 function lastSession(save) {
@@ -162,8 +162,7 @@ export function render(root, app) {
       </section>
       <button class="btn btn-go btn-start" data-act="start">Start today's training</button>
       <p class="small center">A few quick questions, then your session.</p>`}
-    ${lightsLineHtml(s.lights)}
-    ${splitsLineHtml(splits)}
+    <div class="mini-tiles">${lightsLineHtml(s.lights)}${splitsLineHtml(splits)}</div>
     ${weekStripHtml(weekStats(s.log, s.days, now, st.savedDays))}
     <footer class="home-foot">
       <span>${last ? `Last: <b>${esc(last)}</b>` : 'No sessions yet'}</span>

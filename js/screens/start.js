@@ -25,7 +25,7 @@ const QUESTIONS = [
   },
   { key: 'tomorrow', title: 'Any hockey tomorrow?', only: (a) => !(a.today === 'game' && a.when === 'before'), choices: HOCKEY },
   {
-    key: 'yesterdayGame', title: 'Did you have a game yesterday?',
+    key: 'yesterdayGame', title: 'Game yesterday?',
     only: (a, app) => a.today !== 'game' && a.tomorrow !== 'game' && knownYesterdayGame(app.save.log, app.save.days) === undefined,
     choices: NO_YES,
   },
@@ -41,8 +41,8 @@ export function checkin(root, app, { step = 0, answers = {}, trail = [] }) {
   root.innerHTML = `
   <main class="screen checkin">
     <button class="back" data-act="back">Back</button>
-    <p class="kicker">Check-in</p>
-    <h1>${esc(q.title)}</h1>
+    <p class="kicker">Question ${trail.length + 1}</p>
+    <h1 class="q-title">${esc(q.title).replace(/(today|tomorrow|yesterday|Before or after)/, '<span class="q-em">$1</span>')}</h1>
     <div class="choices ${q.choices.length === 2 ? 'row' : ''}">
       ${q.choices.map((c) => `<button class="choice" data-act="pick" data-arg="${c.id}"><span>${esc(c.label)}</span></button>`).join('')}
     </div>
@@ -102,10 +102,12 @@ export function preview(root, app, params) {
     <p class="kicker">Today · ${minutes(session.total)} min · ${session.drills} drills</p>
     <h1>${esc(session.name)}</h1>
     ${reason ? `<p class="reason">${esc(reason)}</p>` : ''}
-    ${said ? `<p class="small">${esc(said)}</p>` : ''}
-    ${notes.map((n) => `<p class="hint">${esc(n)}</p>`).join('')}
-    ${grab ? `<p class="hint">${esc(grab)}</p>` : ''}
-    <p class="small">Tap a drill to see how it's done.</p>
+    <div class="pv-facts">
+      ${said ? `<p>${esc(said)}</p>` : ''}
+      ${notes.map((n) => `<p>${esc(n)}</p>`).join('')}
+      ${grab ? `<p><b>${esc(grab)}</b></p>` : ''}
+    </div>
+    <p class="small pv-tip">Tap a drill to see how it's done.</p>
     <ul class="drill-list">${rows}</ul>
     <p class="small">Lean the phone against the wall, low down, screen facing you.</p>
     <div class="start-bar"><button class="btn btn-go" data-act="start">Start</button></div>

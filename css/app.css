@@ -604,3 +604,25 @@ img { max-width: 100%; }
 
 /* Dad */
 .set-row:disabled { opacity: .55; }
+
+/* UI pass, 12 November 2026 */
+.mini-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mini-tile {
+  display: grid; gap: 2px; text-align: left; min-height: 64px; padding: 10px 14px;
+  background: var(--card); border: 2px solid var(--line); border-radius: 14px; color: var(--ink2);
+}
+.mini-tile .mt-label { font-weight: 700; font-size: .9rem; }
+.mini-tile b { color: var(--ink); font-family: var(--display); font-weight: 900; font-size: 1.35rem; line-height: 1.05; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.mini-tile.waiting { border-color: var(--kick); }
+.q-em { color: var(--crease-deep); }
+.checkin .q-title, .checkin .choices { animation: q-in .22s ease-out both; }
+.checkin .choices { animation-delay: .05s; }
+@keyframes q-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .checkin .q-title, .checkin .choices { animation: none; } }
+.pv-facts { display: grid; gap: 2px; color: var(--ink2); font-size: .98rem; }
+.pv-facts b { color: var(--ink); }
+.pv-tip { margin-top: 2px; }
+.how { margin: 0; display: grid; gap: 8px; }
+.how div { display: grid; grid-template-columns: 7rem 1fr; gap: 10px; align-items: baseline; }
+.how dt { font-weight: 800; white-space: nowrap; }
+.how dd { margin: 0; color: var(--ink2); }

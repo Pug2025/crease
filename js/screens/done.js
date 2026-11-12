@@ -106,7 +106,7 @@ export function render(root, app, { session, log, test = false }) {
   const s = app.save;
   const season = seasonStats(s.log);
   // The hold is already in his record by now, so the ladder settles here.
-  const didSplits = !isTestRun && session.items.some((it) => it.block === 'Splits');
+  const didSplits = !isTestRun && session.items.some((it) => it.block === 'Splits' && (log.done || []).includes(it.drill?.id));
   const moved = !isTestRun && settleSplits(s, new Date());
   if (moved) app.persist();
   const splitsLine = splitsDone(splitsState(s), moved, didSplits);

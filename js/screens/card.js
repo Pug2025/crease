@@ -57,7 +57,7 @@ export function cardHtml(card, masks, info, edit = false) {
     <div class="gc-id">${ident}</div>
     <ul class="gc-ratings">${card.ratings.map((r) => `
       <li><span class="gc-label">${esc(r.label)}</span>
-        <span class="gc-bar" aria-hidden="true"><i style="width:${Math.round(((r.value - 50) / 49) * 100)}%"></i></span>
+        <span class="gc-bar" aria-hidden="true"><i style="width:${Math.round((r.value / 99) * 100)}%"></i></span>
         <b class="gc-val">${r.value}</b></li>`).join('')}
     </ul>
     <dl class="gc-foot">
