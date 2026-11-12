@@ -184,7 +184,7 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
     </section>
     <section class="set-group">
       <h2>Drill versions</h2>
-      <p class="small">What he does in every session from now on. Easier if something bothers him, Harder once you've watched him do a clean set. Tap a name for its card.</p>
+      <p class="small">What he does in every session from now on. Easier if a drill is too much for him, Harder once you've watched him do a clean set. Tap a name for its card.</p>
       <ul class="ver-list">${drills}</ul>
     </section>
   </main>`;

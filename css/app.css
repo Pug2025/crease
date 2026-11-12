@@ -491,12 +491,12 @@ img { max-width: 100%; }
 .tier-bronze { --tier: #A86A35; --tier-ink: #FFFFFF; }
 .tier-silver { --tier: #8D9AA7; --tier-ink: #0D1520; }
 .tier-gold { --tier: #F2C12E; --tier-ink: #0D1520; }
-.tier-elite { --tier: #2E7CC0; --tier-ink: #FFFFFF; }
+.tier-elite { --tier: #D21F2E; --tier-ink: #FFFFFF; }
 .tier-legend { --tier: #0D1520; --tier-ink: #F2C12E; }
 @media (prefers-color-scheme: dark) {
   .tier-bronze { --tier: #C9844A; --tier-ink: #0D1520; }
   .tier-silver { --tier: #B3C0CC; --tier-ink: #0D1520; }
-  .tier-elite { --tier: #4E9BDD; --tier-ink: #0D1520; }
+  .tier-elite { --tier: #E8505C; --tier-ink: #0D1520; }
   .tier-legend { --tier: #F1F5F8; --tier-ink: #0D1520; }
 }
 
@@ -523,6 +523,7 @@ img { max-width: 100%; }
 
 /* A day a save covered: an outline in crease blue with a slash, so it never reads as a session. */
 .wk-day.saved .wk-box { border-color: var(--crease); border-style: dashed; background: var(--crease-soft); color: var(--crease-deep); }
+@media (prefers-color-scheme: dark) { .wk-day.saved .wk-box { border-color: #6FB1E8; border-width: 3px; background: #17304A; } }
 
 /* The card: a hockey card in the app's palette. The frame follows the tier. */
 .card-screen { gap: 12px; }

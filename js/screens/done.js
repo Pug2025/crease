@@ -14,8 +14,11 @@ import * as audio from '../timer/audio.js';
 export function payoff(save, log, now = new Date(), { test = false } = {}) {
   const none = { streak: null, ratings: [], overall: null, tier: null, masks: [], saveEarned: false, milestone: null, say: [] };
   if (test || isTest(log) || !countsForStreak(log) || !save.log.includes(log)) return none;
-  const before = cardStats({ ...save, log: save.log.filter((e) => e !== log) }, now);
-  const after = cardStats(save, now);
+  // Judged on the day the session started, so one that runs past midnight still gets its milestone and save.
+  const started = new Date(log.date);
+  const at = Number.isNaN(started.getTime()) ? now : started;
+  const before = cardStats({ ...save, log: save.log.filter((e) => e !== log) }, at);
+  const after = cardStats(save, at);
   const g = cardGains(before, after);
   const rose = after.streak.days > before.streak.days;
   const masks = newMasks(before.streak.best, after.streak.best);

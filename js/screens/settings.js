@@ -19,6 +19,8 @@ export function render(root, app) {
         <p>Tap Start and answer a few questions. The app picks today's session from your hockey and what you've done lately. The coach's voice runs it, so the phone can stay on the floor. Blue screen means work. White means rest or get ready.</p>
         <p>In your bedroom, the drills that need 3 metres of space swap for small-room versions. Before 9 am there are no med ball slams.</p>
         <p>Tap a drill before you start to see how it's done. Most have a video.</p>
+        <p>Your streak is days in a row with a session. A save covers a day you miss. You get one every 7 days and can hold 2.</p>
+        <p>Your card's ratings go up as you train. They never go down. Masks come from your best streak.</p>
       </section>
       <section class="set-group">
         ${confirm

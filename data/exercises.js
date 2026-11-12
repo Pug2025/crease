@@ -234,7 +234,7 @@ export const DRILLS = [
     id: 'G1', name: 'Ball Squeeze', group: 'strength',
     noise: 'quiet', space: 'small', jumps: 0, needs: ['med ball'],
     hold: true, goWord: 'Squeeze.', restWord: 'Relax.',
-    why: 'Strong inner legs protect your groin, the most common goalie injury.',
+    why: 'Strong inner legs drive your push across the crease.',
     cues: ['Lie on your back, ball between your knees.', 'Squeeze hard.', 'Keep breathing.'],
     mistake: 'Holding your breath.',
     versions: [

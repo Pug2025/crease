@@ -921,7 +921,7 @@ process.on('exit', (code) => {
   // The guard: hurt handling never comes back.
   const HURT = /hurt|pain|\bsore\b|tell dad/i;
   const dir = (d) => fs.readdirSync(d).filter((f) => f.endsWith('.js')).map((f) => `${d}/${f}`);
-  const files = [...dir('js/screens'), ...dir('js/plan'), 'js/store.js', 'data/copy.js', 'data/splits.js', 'data/sessions.js', 'audio/clips.json'];
+  const files = [...dir('js/screens'), ...dir('js/plan'), 'js/store.js', 'data/copy.js', 'data/splits.js', 'data/sessions.js', 'data/exercises.js', 'data/masks.js', 'audio/clips.json'];
   for (const f of files) {
     let text = fs.readFileSync(f, 'utf8');
     // The one exempt part: the marked migration function in store.js, which has to name the old keys.

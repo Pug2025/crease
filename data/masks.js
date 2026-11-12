@@ -7,7 +7,7 @@ export const MASKS = [
   { id: 'm3', name: 'Shark', streak: 14 },
   { id: 'm4', name: 'Wolf', streak: 30 },
   { id: 'm5', name: 'Dragon', streak: 60 },
-  { id: 'm6', name: 'Gold', streak: 100 },
+  { id: 'm6', name: 'Champ', streak: 100 },
 ];
 
 export const maskSrc = (id) => `media/masks/${id}.webp`;
