@@ -25,8 +25,8 @@ export function welcome(root, app) {
   <main class="screen welcome">
     ${CREASE_MARK}
     <h1>Crease</h1>
-    <p class="lead">Off-ice training for goalies. The phone runs the session. You do the work.</p>
-    <p class="small">There's a Stop button on screen the whole time.</p>
+    <p class="lead">Off-ice training for goalies. A coach's voice takes you through each drill and counts the time.</p>
+    <p class="small">You can stop a session at any time with the Stop button.</p>
     <button class="btn btn-primary" data-act="next">Got it</button>
   </main>`;
   // Dad's PIN comes before the sound check, so his screen is never open to whoever finds it first.

@@ -38,7 +38,7 @@ export const SESSIONS = {
 
   gameday: {
     name: 'Game Day',
-    blurb: 'Loose and switched on before a game. Nothing tiring.',
+    blurb: 'A short warm-up for before a game. It won\'t tire you out.',
     // No splits hold today: a long static stretch before a game takes power out of his legs.
     noLadder: true,
     blocks: [

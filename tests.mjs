@@ -142,7 +142,7 @@ for (const p of allPhrases) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `
   // Item 24: reason lines that are true.
   ok(why({ tomorrow: 'practice' }, powerDue(WED), WED) === 'No hockey today, no game tomorrow. Last Power: Friday.', 'rules: Power reason with practice tomorrow');
   ok(why({ today: 'practice' }, powerDue(WED), WED) === 'Practice today, so no Power.', 'rules: practice-day reason says Power, not jumping');
-  ok(why({}, [], WED) === 'First session. Strength comes first.', 'rules: first session reason');
+  ok(why({}, [], WED) === 'Your first session is Strength.', 'rules: first session reason');
   ok(go({ tomorrow: 'practice' }, [], WED).type === 'strength' && go({}, [], THU).type === 'strength', 'rules: first session is Strength even before a practice or a Friday');
   ok(why({}, [did(WED, 2, 'gameday')], WED) === 'First Strength session.', 'rules: first Strength after other sessions');
 
@@ -956,7 +956,7 @@ process.on('exit', (code) => {
   // The basics.
   let x = st([], day(12));
   ok(x.days === 0 && x.best === 0 && x.saves === 1 && !x.todayDone && x.milestone === null, `streak: nothing yet is 0 with 1 save (got ${JSON.stringify(x)})`);
-  ok(streakLine(x) === 'Day 1 starts today.', 'Today: "Day 1 starts today." with no streak');
+  ok(streakLine(x) === 'Train today to start your streak.', 'Today: "Train today to start your streak." with no streak');
   x = st(run(10, 12), day(12, 18));
   ok(x.days === 3 && x.todayDone && x.milestone === 3 && x.best === 3, `streak: three days ending today is 3, milestone 3 (got ${x.days}/${x.milestone})`);
   x = st(run(6, 11), day(12, 7));

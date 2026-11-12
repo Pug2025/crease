@@ -71,7 +71,7 @@ export function weekStripHtml(w) {
 // The streak at the top of Today: the number, his saves, and one line.
 export function streakLine(st) {
   if (st.todayDone) return '';
-  return st.days > 0 ? `Train today to make it ${st.days + 1}.` : 'Day 1 starts today.';
+  return st.days > 0 ? `Train today to make it ${st.days + 1}.` : 'Train today to start your streak.';
 }
 
 export function streakHtml(st) {
@@ -150,7 +150,7 @@ export function render(root, app) {
       <section class="today-done">
         <h2>Done for today.</h2>
         <p>Next session tomorrow.</p>
-        <button class="link" data-act="stretch">Loosen up with Stretch anyway</button>
+        <button class="link" data-act="stretch">Do an extra Stretch</button>
       </section>` : `
       <section class="room">
         <h2 class="label">Where are you training?</h2>

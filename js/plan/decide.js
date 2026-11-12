@@ -133,14 +133,14 @@ export function reasonText(d, now = new Date()) {
   };
   const weekday = now.toLocaleDateString('en-CA', { weekday: 'long' });
   switch (d.why) {
-    case 'game-today': return 'Game today. Short and easy, just get loose.';
-    case 'after-game': return 'You played today. Loosen up and you\'re done.';
-    case 'game-tomorrow': return 'Game tomorrow. Keep your legs fresh.';
-    case 'game-yesterday': return 'Game yesterday. Today your legs recover.';
+    case 'game-today': return 'Game today, so this one is short and easy.';
+    case 'after-game': return 'You played today, so you only stretch.';
+    case 'game-tomorrow': return 'Game tomorrow, so today you stretch and save your legs.';
+    case 'game-yesterday': return 'Game yesterday, so today is an easy one.';
     case 'jumped-today': return 'You did the jumps today. Today is an easy one.';
     case 'six-days': return 'Six days in a row. Today is an easy one.';
     case 'two-hard-days': return 'Two hard days in a row. Today is an easy one.';
-    case 'first': return 'First session. Strength comes first.';
+    case 'first': return 'Your first session is Strength.';
     case 'strength-first': return 'First Strength session.';
     case 'power-turn': return `No hockey today, no game tomorrow. ${d.last ? `Last Power: ${last(d.last)}.` : 'First Power session.'}`;
     case 'strength-turn': return `Last Strength: ${last(d.last)}.`;

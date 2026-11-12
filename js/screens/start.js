@@ -21,7 +21,7 @@ const QUESTIONS = [
   { key: 'today', title: 'Any hockey today?', choices: HOCKEY },
   {
     key: 'when', title: 'Before or after the game?', only: (a) => a.today === 'game',
-    choices: [{ id: 'before', label: 'Before. The game is later.' }, { id: 'after', label: 'After. I already played.' }],
+    choices: [{ id: 'before', label: 'Before the game' }, { id: 'after', label: 'After the game' }],
   },
   { key: 'tomorrow', title: 'Any hockey tomorrow?', only: (a) => !(a.today === 'game' && a.when === 'before'), choices: HOCKEY },
   {

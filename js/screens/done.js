@@ -91,7 +91,7 @@ export function doneWords(log, { test = false } = {}) {
   if (test || isTest(log)) {
     return { title: log.completed && !ended ? 'Done.' : 'Ended.', line: 'Test run. Nothing saved.' };
   }
-  if (log.extra) return { title: 'Done.', line: 'Extra. It doesn\'t count as a session.' };
+  if (log.extra) return { title: 'Done.', line: 'This was extra, so it doesn\'t count as a session.' };
   if (log.completed) {
     return { title: 'Done.', line: ended && log.reached ? `Ended at drill ${log.reached} of ${planned}.` : '' };
   }

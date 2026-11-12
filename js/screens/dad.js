@@ -168,11 +168,11 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
     </section>
     <section class="set-group">
       <h2>Splits ladder</h2>
-      <p class="small">Rung ${sp.rung} of ${TOP}: <b>${esc(sp.r.name)}</b>${sp.r.how ? `. ${esc(sp.r.how)}` : '.'} Side splits, not front splits: his legs go out to the sides, the way they do in the butterfly. He climbs by doing the hold, one a day, ${sp.need} holds a rung. ${LADDER.filter((r) => r.watch).length} rungs wait for you.</p>
+      <p class="small">Rung ${sp.rung} of ${TOP}: <b>${esc(sp.r.name)}</b>${sp.r.how ? `. ${esc(sp.r.how)}` : '.'} These are side splits: his legs go out to the sides, the way they do in the butterfly. He climbs by doing the hold, one a day, ${sp.need} holds a rung. ${LADDER.filter((r) => r.watch).length} rungs wait for you.</p>
       ${sp.waiting ? `
         <div class="dad-watch">
           <p><b>Ready for you to watch.</b> ${esc(sp.r.name)}, one hold. Look for: kneecaps and toes pointing up, feet not rolling in, no bouncing, and he can breathe the whole way through. If it looks forced, tap Not yet.</p>
-          <button class="btn btn-primary" data-act="watched">Watched — he's got it</button>
+          <button class="btn btn-primary" data-act="watched">Watched. He's got it</button>
           <button class="btn" data-act="notyet">Not yet</button>
         </div>`
     : `<p class="small">${sp.top ? 'He can do the splits.' : `${sp.holds} of ${sp.need} holds done on this rung.`}</p>`}

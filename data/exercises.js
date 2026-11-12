@@ -125,7 +125,7 @@ export const DRILLS = [
   {
     id: 'ST2', name: 'Wall Sit', group: 'strength',
     noise: 'quiet', space: 'small', jumps: 0, needs: ['wall'], hold: true,
-    why: 'It\'s your stance with the wall holding you up. Builds legs that stay low all game.',
+    why: 'It\'s your stance with a wall behind you. It builds legs that can stay low all game.',
     cues: ['Back flat on the wall.', 'Thighs flat, knees over your ankles.', 'Hands off your legs.'],
     mistake: 'Resting your hands on your thighs.',
     versions: [
@@ -143,7 +143,7 @@ export const DRILLS = [
   {
     id: 'ST3', name: 'Squats', group: 'strength',
     noise: 'quiet', space: 'small', jumps: 0,
-    why: 'Every push and every recovery starts with strong legs.',
+    why: 'Strong legs are what you push with and what get you back up.',
     cues: ['Feet shoulder-width.', 'Sit back like there\'s a chair.', 'Chest up, knees out over your toes.'],
     mistake: 'Knees caving in.',
     versions: [
@@ -190,7 +190,7 @@ export const DRILLS = [
     id: 'S3', name: 'Back Lunges', group: 'strength',
     noise: 'quiet', space: 'small', jumps: 0,
     side: 'leg',
-    why: 'Push-leg strength that\'s easy on your knees.',
+    why: 'Builds the leg you push with, and it\'s easy on your knees.',
     cues: ['Long step back.', 'Lower your back knee gently.', 'Front knee over your toes.'],
     mistake: 'Front knee falling inward.',
     versions: [
@@ -205,7 +205,7 @@ export const DRILLS = [
     id: 'S4', name: 'Side Lunges', group: 'strength',
     noise: 'quiet', space: 'small', jumps: 0,
     side: 'side',
-    why: 'Strength in the wide position you push from. Stretches your groin too.',
+    why: 'Builds strength in the wide position you push from, and stretches your groin.',
     cues: ['Big step to the side.', 'Sit back into that hip.', 'Other leg straight, both feet flat.'],
     mistake: 'Knee turning in.',
     versions: [
@@ -251,7 +251,7 @@ export const DRILLS = [
   {
     id: 'C9', name: 'Mountain Climbers', group: 'strength',
     noise: 'thud', space: 'small', jumps: 0,
-    why: 'Core and fast feet together.',
+    why: 'Works your core while your feet move fast.',
     cues: ['High plank, hands under your shoulders.', 'Hips stay low.', 'Drive your knees to your chest, fast.'],
     mistake: 'Butt up in the air.',
     versions: [
@@ -350,7 +350,7 @@ export const DRILLS = [
   {
     id: 'P12', name: 'Burpees', group: 'power',
     noise: 'loud', space: 'small', jumps: 5,
-    why: 'Down and back up, fast. Same as getting back on your feet after a save.',
+    why: 'You go down and get back up fast, the way you do after a save.',
     cues: ['Hands down, jump your feet back to a plank.', 'Jump your feet back in.', 'Jump up, hands high.'],
     mistake: 'Hips sagging in the plank.',
     versions: [
@@ -369,7 +369,7 @@ export const DRILLS = [
     id: 'P8', name: 'Ball Slams', group: 'power',
     noise: 'loud', space: 'big', jumps: 0, needs: ['med ball'],
     slam: true,
-    why: 'Fast full-body power. Also fun.',
+    why: 'Slamming the ball uses your whole body at once.',
     cues: ['Ball up high, arms long.', 'Slam it right in front of your feet.', 'Step back.'],
     mistake: 'Slamming it far out in front, where it bounces back at you.',
     versions: [

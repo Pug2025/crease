@@ -99,7 +99,7 @@ export function render(root, app, { first = false } = {}) {
       : `Round ${st.today + 1} of ${COUNTED_PER_DAY} today`;
     info.innerHTML = `
       <p>Tap when the light comes on. ${TAPS} lights.</p>
-      <p>Score: your middle time. Lower is faster.</p>
+      <p>Your score is your middle time. Lower is faster.</p>
       <p class="lt-status">${esc(status)}</p>`;
     buttons.innerHTML = '<button class="btn btn-go" data-act="go">Start</button>';
   }
@@ -164,8 +164,8 @@ export function render(root, app, { first = false } = {}) {
     board.dataset.state = 'result';
     light.classList.toggle('best', r.best);
     show(String(r.ms), r.best ? 'Best' : 'ms');
-    const line = !r.counted ? 'Practice. Only 3 rounds a day count.'
-      : r.best ? `Your best. Was ${r.was} ms.`
+    const line = !r.counted ? 'Practice round. Only 3 rounds a day count.'
+      : r.best ? `New best. Your old best was ${r.was} ms.`
       : r.first ? 'Your first score.'
       : `Best: ${r.was} ms.`;
     info.innerHTML = `
