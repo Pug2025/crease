@@ -25,7 +25,7 @@ export function welcome(root, app) {
   <main class="screen welcome">
     ${CREASE_MARK}
     <h1>Crease</h1>
-    <p class="lead">Off-ice training for goalies. A coach's voice takes you through each drill and counts the time.</p>
+    <p class="lead">Off-ice training for goalies.</p>
     <p class="small">You can stop a session at any time with the Stop button.</p>
     <button class="btn btn-primary" data-act="next">Got it</button>
   </main>`;
