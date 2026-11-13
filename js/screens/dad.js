@@ -125,6 +125,30 @@ function challengeSection(s, chal) {
     </section>`;
 }
 
+// The camera rep counter (js/camera.js): Dad's On and Off, and how the download went.
+export const CAM_WORDS = {
+  row: 'Count reps with the camera',
+  what: 'The camera only runs during the Finisher. Nothing is recorded or sent anywhere.',
+  getting: 'Getting it ready…',
+  ready: 'Ready',
+  failed: 'Couldn\'t get it. Try again on Wi-Fi.',
+  blocked: 'Ready, but the phone didn\'t allow the camera. Allow it for Crease in Settings, then turn this on again.',
+};
+
+function cameraSection(s) {
+  const camOn = s.camera?.on === true;
+  return `
+    <section class="set-group dad-cam">
+      <h2>Camera</h2>
+      <ul class="ver-list"><li class="ver-row">
+        <span class="ver-name">${esc(CAM_WORDS.row)}</span>
+        <span class="ver-seg"><button data-act="cam" data-arg="on" aria-pressed="${camOn}">On</button><button data-act="cam" data-arg="off" aria-pressed="${!camOn}">Off</button></span>
+        <span class="ver-what">${esc(CAM_WORDS.what)}</span>
+      </li></ul>
+      ${camOn ? '<p class="small cam-state" role="status"></p><button class="set-row cam-retry" data-act="camRetry" style="display:none"><span>Try again</span></button>' : ''}
+    </section>`;
+}
+
 export function render(root, app, { unlocked = false, note = '', scroll = 0 } = {}) {
   if (!unlocked) { pinScreen(root, app); return; }
   const s = app.save;
@@ -199,6 +223,7 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
       ${sessions}
     </section>
     ${challengeSection(s, chal)}
+    ${cameraSection(s)}
     <section class="set-group">
       <h2>Splits ladder</h2>
       <p class="small">Rung ${sp.rung} of ${TOP}: <b>${esc(sp.r.name)}</b>${sp.r.how ? `. ${esc(sp.r.how)}` : '.'} These are side splits: his legs go out to the sides, the way they do in the butterfly. He climbs by doing the hold, one a day, ${sp.need} holds a rung. ${LADDER.filter((r) => r.watch).length} rungs wait for you.</p>
@@ -230,7 +255,34 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
     chalBox.querySelector('.rec-n').textContent = String(chal.n);
   });
 
+  // The camera: with it on, say whether the pose files are on the phone. getting: Dad just
+  // turned it on (or tapped Try again), so fetch them now and ask for the camera once.
+  const camState = root.querySelector('.cam-state');
+  const camRetry = root.querySelector('.cam-retry');
+  async function camSetUp(getting) {
+    if (!camState) return;
+    const say = (t, retry = false) => { if (camState.isConnected) { camState.textContent = t; camRetry.style.display = retry ? '' : 'none'; } };
+    try {
+      const lib = await import('../camera.js');
+      if (!getting) { say((await lib.poseReady()) ? CAM_WORDS.ready : CAM_WORDS.failed, !(await lib.poseReady())); return; }
+      say(CAM_WORDS.getting);
+      if (!(await lib.getPose())) { say(CAM_WORDS.failed, true); return; }
+      say((await lib.askCamera()) ? CAM_WORDS.ready : CAM_WORDS.blocked);
+    } catch { say(CAM_WORDS.failed, true); }
+  }
+  if (camState) camSetUp(!!app.camGetting);
+  app.camGetting = false;
+
   on(root, {
+    cam: (v) => {
+      const want = v === 'on';
+      if ((s.camera?.on === true) === want) return;
+      s.camera = { on: want };
+      app.persist();
+      app.camGetting = want;
+      again({ scroll: window.scrollY });
+    },
+    camRetry: () => { app.camGetting = true; again({ scroll: window.scrollY }); },
     chalPick: (id) => { app.dadChal = { id }; again({ scroll: window.scrollY }); },
     chalSet: () => {
       setChallenge(s, chal.id, chal.n, now);

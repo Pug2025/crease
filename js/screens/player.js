@@ -9,10 +9,13 @@ import * as live from '../live.js';
 import { migrateOldRecords } from '../store.js';
 import { buildSession, phrasesOf, finisherOf } from '../plan/build.js';
 import { bestFor } from '../plan/records.js';
+import { repKind } from '../plan/reps.js';
 import { SESSIONS } from '../../data/sessions.js';
 import { SAY } from '../../data/copy.js';
 
 const SIDE = { L: 'Left', R: 'Right' };
+// Seconds into the finisher's intro when the camera's model loads: after the spoken intro.
+const CAM_QUIET = 6;
 
 // The main block of each session type: half of it has to be done for the session to count,
 // so skipping every push-up and squat can't still earn "Done.". Stretch has no main block.
@@ -137,6 +140,11 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   const skippedNos = new Set(resume?.skippedNos ?? []);
   const carriedMs = resume?.activeMs ?? 0; // training time before iOS closed the app
 
+  // The camera counts the finisher only when Dad has turned it on and the drill is one it knows.
+  // With it off, none of the camera code below runs and its preview isn't on the page.
+  const finNow = finisherOf(session);
+  const camKind = finNow && app.save.camera?.on === true ? repKind(finNow.item.drill.id) : null;
+
   root.innerHTML = `
   <div class="player${test ? ' is-test' : ''}" data-phase="intro">
     <div class="pl-top"><span class="pl-where"></span><span class="pl-left"></span></div>
@@ -147,6 +155,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     <div class="pl-bar" hidden><b></b></div>
     <div class="pl-target"></div>
     <div class="pl-board"><img class="pl-draw" alt=""></div>
+    ${camKind ? '<div class="pl-cam" hidden><video class="pl-video" playsinline muted autoplay></video><p class="pl-camline"></p></div>' : ''}
     <div class="pl-cue"></div>
     <div class="pl-warn">
       <button class="pl-sound" data-act="fixSound" hidden>Sound is off. Tap to fix.</button>
@@ -199,6 +208,56 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   const finBest = fin ? bestFor(app.save.records, fin.item.drill.id, fin.item.v) : null;
   const finLine = finBest ? `Best: ${finBest.n}` : 'First time';
 
+  // ---- The camera on the finisher (only when camKind) ----
+  // Starts on the finisher's intro, stops the moment its work step ends, and on Pause, Stop,
+  // leaving the app and any error. Nothing here is awaited, so the timer never waits for it.
+  const camBox = root.querySelector('.pl-cam');
+  let cam = null;         // the running camera, or null
+  let camCtr = null;      // the counter, kept across a pause
+  let camCount = 0;       // reps the camera counted
+  let camDead = false;    // failed once this session: Done stays as it is today
+  let camLib = null;
+  let camLost = false;     // no body seen for 3 s
+  let targetBase = '';    // the target line under the name, without the reps
+  function camLine(text) { if (camBox) camBox.querySelector('.pl-camline').textContent = text; }
+  function showReps() {
+    if (cam && runner.current().finisher && runner.current().kind === 'work') el.target.textContent = [`Reps: ${camCount}`, targetBase].filter(Boolean).join(' · ');
+  }
+  function camStop() {
+    try { cam?.stop(); } catch {}
+    cam = null;
+    camLost = false;
+    if (camBox) camBox.hidden = true;
+  }
+  function camGone() { camDead = true; camStop(); try { el.target.textContent = targetBase; } catch {} }
+  function camStep(st) {
+    if (!camKind || camDead) return;
+    const inFin = st.finisher && (st.kind === 'intro' || st.kind === 'work');
+    if (!inFin || runner.paused || finished) { camStop(); return; }
+    camBox.dataset.at = st.kind;
+    camLine(st.kind === 'intro' ? 'Stand where the camera can see all of you.' : camLost ? 'The camera can\'t see you.' : '');
+    camBox.hidden = false;
+    if (cam) { showReps(); return; }
+    const mine = cam = { stop() { this.dead = true; this.h?.stop(); } };
+    (camLib ? Promise.resolve(camLib) : import('../camera.js')).then((lib) => {
+      camLib = lib;
+      if (mine.dead || cam !== mine) return;
+      camCtr ||= lib.newCounter(camKind);
+      // On the intro, the model loads once the spoken intro is over (it starts at 0.3 s and runs
+      // about 5 s) and before the countdown beeps (the last 3 s).
+      const now = runner.current();
+      const waitMs = now.finisher && now.kind === 'intro' ? Math.max(0, (CAM_QUIET - (runner.elapsed() - now.start)) * 1000) : 0;
+      mine.h = lib.runCamera(camBox.querySelector('video'), camCtr, {
+        waitMs,
+        onCount: (n) => { camCount = n; showReps(); },
+        onLost: (gone) => { camLost = gone; if (runner.current().kind === 'work') camLine(gone ? 'The camera can\'t see you.' : ''); },
+        onFail: () => { if (cam === mine) camGone(); },
+      });
+      showReps();
+    }).catch(() => { if (cam === mine) camGone(); });
+  }
+  const safeCam = (st) => { try { camStep(st); } catch { try { camGone(); } catch {} } };
+
   function phaseWord(st) {
     if (st.kind === 'intro') return st.i === 0 ? 'First up' : st.finisher ? 'Finisher' : 'Up next';
     if (st.kind === 'work') return st.r.drill.goWord ? st.r.drill.goWord.replace('.', '') : 'Work';
@@ -230,7 +289,8 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     const how = r.how || r.note;
     // The finisher's work step shows his best instead of the target. No number is spoken.
     const first = st.finisher && st.kind === 'work' ? finLine : r.target;
-    el.target.textContent = (isReps ? [how] : [first, how]).filter(Boolean).join(' · ');
+    targetBase = (isReps ? [how] : [first, how]).filter(Boolean).join(' · ');
+    el.target.textContent = targetBase;
     if (el.draw.getAttribute('src') !== r.draw) el.draw.src = r.draw;
     el.draw.alt = `Drawing of ${r.name}`;
     if (st.kind === 'intro') el.cue.textContent = r.drill.cues[0];
@@ -250,6 +310,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
       skippedNos.delete(st.drillNo); // skipped in round one, done in round two: he did it
     }
     keep();
+    if (camKind) safeCam(st);
   }
 
   function onTick(e, st) {
@@ -316,11 +377,14 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   function finish(ranToEnd) {
     if (finished) return;
     finished = true;
+    if (camKind) camStop();
     runner.stop();
     if (!ranToEnd) audio.hush();
     letSleep();
     settle(session, log, [...doneNos], [...skippedNos], ranToEnd ? session.drills : runner.current().drillNo);
     log.secs = Math.round((carriedMs + runner.activeMs()) / 1000);
+    // What the camera counted, for Done to start from. Nothing when it counted none.
+    if (camCount > 0 && log.finisher) log.finisher.cam = camCount;
     if (test) log.test = true; // contract C6: shown on Done, never in his record
     else {
       app.save.log.push(log);
@@ -366,15 +430,16 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     closeSheet();
     audio.unlock();
     runner.resume();
+    if (camKind) safeCam(runner.current());
   }
 
   on(root, {
-    pause: () => { runner.pause(); audio.hush(); pauseSheet(); keep(); },
-    resume: () => { closeSheet(); audio.unlock(); holdScreen(); runner.resume(); },
+    pause: () => { runner.pause(); audio.hush(); if (camKind) camStop(); pauseSheet(); keep(); },
+    resume: () => { closeSheet(); audio.unlock(); holdScreen(); runner.resume(); if (camKind) safeCam(runner.current()); },
     done: () => { audio.hush(); runner.jumpTo(runner.afterCurrent()); },
     nextStep: () => { if (!test) return; audio.hush(); runner.jumpTo(runner.afterCurrent()); },
     nextDrill: () => { if (!test) return; audio.hush(); runner.jumpTo(runner.nextDrillIndex()); },
-    stop: () => { runner.pause(); audio.hush(); endSheet(); keep(); },
+    stop: () => { runner.pause(); audio.hush(); if (camKind) camStop(); endSheet(); keep(); },
     endSession: () => endSheet(),
     endNow: () => { log.stopped = { why: 'ended' }; finish(false); },
     // One tap: the drill is skipped and the next one starts.
@@ -410,6 +475,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     if (document.hidden) {
       runner.pause();
       audio.hush();
+      if (camKind) camStop();
       if (el.sheet.hidden) pauseSheet();
       keep();
     } else {
@@ -432,6 +498,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', onPageHide);
     onLost(null);
+    if (camKind) camStop();
     runner.stop();
     letSleep();
   };

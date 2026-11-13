@@ -95,13 +95,18 @@ export function splitsDone(st, moved, did) {
 const WHY = { hard: 'too hard', here: 'couldn\'t do it here' };
 
 // The finisher card: asked only when he did the finisher in a session that is in his record,
-// and only until he saves a number. Pure. start: where the stepper starts (his best, or 10).
+// and only until he saves a number. Pure. start: where the stepper starts (what the camera
+// counted, else his best, else 10). cam: the camera's count, or null when it counted nothing.
 export function recordAsk(save, log, { test = false } = {}) {
   const f = log?.finisher;
   if (test || isTest(log) || !f?.did || f.n !== undefined || !save.log.includes(log)) return null;
   const best = bestFor(save.records, f.id, f.v);
-  return { id: f.id, v: f.v, title: recordTitle(f.id, f.v), best: best ? best.n : null, start: best ? best.n : RECORD_START };
+  const cam = Number.isInteger(f.cam) && f.cam > 0 ? Math.min(RECORD_MAX, f.cam) : null;
+  return { id: f.id, v: f.v, title: recordTitle(f.id, f.v), best: best ? best.n : null, start: cam ?? (best ? best.n : RECORD_START), cam };
 }
+
+// The line on the finisher card when the camera counted.
+export const camWords = (ask) => (ask?.cam ? `The camera counted ${ask.cam}. Change it if that's wrong.` : '');
 
 function recordHtml(ask) {
   if (!ask) return '';
@@ -109,6 +114,7 @@ function recordHtml(ask) {
   <section class="rec" aria-label="Finisher">
     <h2 class="rec-title">${esc(ask.title)}</h2>
     <p class="rec-best">${ask.best === null ? 'First time' : `Best: ${ask.best}`}</p>
+    ${ask.cam ? `<p class="rec-cam">${esc(camWords(ask))}</p>` : ''}
     <div class="rec-step">
       <button class="rec-btn" data-step="-1" aria-label="One less">−</button>
       <output class="rec-n" aria-live="polite">${ask.start}</output>
@@ -188,7 +194,7 @@ export function render(root, app, { session, log, test = false }) {
     // Saved once. The card then says how it compares; skipping it just leaves it unsaved.
     saveRec: () => {
       stopStep();
-      const r = addRecord(s, { id: ask.id, v: ask.v, n: count }, new Date());
+      const r = addRecord(s, { id: ask.id, v: ask.v, n: count, ...(ask.cam ? { cam: ask.cam } : {}) }, new Date());
       log.finisher = { ...log.finisher, n: r.n };
       app.persist();
       rec.classList.toggle('rec-new', r.best);

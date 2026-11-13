@@ -1632,3 +1632,163 @@ if (process.argv[2] === 'season') {
   }
   ok(BOSS.rounds === 3 && BOSS.every === 10 && BOSS.after === 12, 'boss: 3 rounds, every 10, after 12');
 }
+
+// ===== Camera rep counter on the finisher (13 November 2026, prototype) =====
+// Off unless Dad turns it on. Counters are fed made-up poses; Done only changes when it counted.
+{
+  const RP = await import('./js/plan/reps.js');
+  const { REP_RULES, counter, repKind, angle, lean } = RP;
+  const R = REP_RULES;
+  const rad = (d) => (d * Math.PI) / 180;
+  // A made-up pose: knee angles [left, right], elbow angle, body lean off upright, visibility.
+  // legVis / armVis override the visibility of those joints only.
+  function pose({ knee = [175, 175], elbow = 170, lean: tilt = 0, vis = 0.9, legVis = vis, armVis = vis } = {}) {
+    const pts = Array.from({ length: 33 }, () => ({ x: 0, y: 0, z: 0, visibility: vis }));
+    const put = (i, p, v = vis) => { pts[i] = { ...p, visibility: v }; };
+    const sides = [{ sh: 11, el: 13, wr: 15, hip: 23, kn: 25, an: 27, z: -0.1, k: knee[0] }, { sh: 12, el: 14, wr: 16, hip: 24, kn: 26, an: 28, z: 0.1, k: knee[1] }];
+    for (const s of sides) {
+      const hip = { x: 0, y: 0, z: s.z };
+      const sh = { x: 0.5 * Math.sin(rad(tilt)), y: -0.5 * Math.cos(rad(tilt)), z: s.z };
+      const el = { x: sh.x, y: sh.y + 0.25, z: s.z };
+      const wr = { x: el.x + 0.25 * Math.sin(rad(elbow)), y: el.y - 0.25 * Math.cos(rad(elbow)), z: s.z };
+      const kn = { x: 0, y: 0.4, z: s.z };
+      const an = { x: 0.4 * Math.sin(rad(s.k)), y: 0.4 - 0.4 * Math.cos(rad(s.k)), z: s.z };
+      put(s.hip, hip, Math.min(vis, legVis)); put(s.kn, kn, legVis); put(s.an, an, legVis);
+      put(s.sh, sh); put(s.el, el, armVis); put(s.wr, wr, armVis);
+    }
+    return pts;
+  }
+  // Feeds poses 66 ms apart (about 15 a second); returns the counter's last answer.
+  function feed(kind, poses, dt = 66) {
+    const c = counter(kind);
+    let out = { count: 0, seenAt: null };
+    poses.forEach((p, i) => { out = c.push(p, i * dt); });
+    return out;
+  }
+  const times = (n, p) => Array.from({ length: n }, () => p);
+  // n reps of: 4 frames at `up`, 4 frames at `down`, then 4 frames back up.
+  const reps = (n, up, down) => [...times(4, up), ...Array.from({ length: n }, () => [...times(4, down), ...times(4, up)]).flat()];
+
+  ok(Math.abs(angle({ x: 0, y: -1, z: 0 }, { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }) - 90) < 1e-9 && Math.abs(lean({ x: 0, y: -1, z: 0 }, { x: 0, y: 0, z: 0 })) < 1e-9 && Math.abs(lean({ x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }) - 90) < 1e-9, 'reps: angle and lean measure degrees');
+  ok(Math.abs(angle(...[23, 25, 27].map((i) => pose({ knee: [90, 90] })[i])) - 90) < 0.01, 'reps: the made-up pose has the knee angle asked for');
+
+  const KINDS = {
+    squat: { up: pose({ knee: [170, 170] }), down: pose({ knee: [85, 85] }), half: pose({ knee: [125, 125] }), lowVis: pose({ knee: [85, 85], legVis: 0.2 }), nearDown: (k) => pose({ knee: [k % 2 ? 98 : 103, k % 2 ? 98 : 103] }), nearUp: (k) => pose({ knee: [k % 2 ? 158 : 163, k % 2 ? 158 : 163] }) },
+    pushup: { up: pose({ lean: 85, elbow: 170 }), down: pose({ lean: 85, elbow: 80 }), half: pose({ lean: 85, elbow: 125 }), lowVis: pose({ lean: 85, elbow: 80, armVis: 0.2 }), nearDown: (k) => pose({ lean: 85, elbow: k % 2 ? 93 : 98 }), nearUp: (k) => pose({ lean: 85, elbow: k % 2 ? 148 : 153 }) },
+    lunge: { up: pose({ knee: [172, 172] }), down: pose({ knee: [90, 170] }), half: pose({ knee: [130, 170] }), lowVis: pose({ knee: [90, 170], legVis: 0.2 }), nearDown: (k) => pose({ knee: [k % 2 ? 103 : 108, 170] }), nearUp: (k) => pose({ knee: [k % 2 ? 158 : 163, 170] }) },
+    burpee: { up: pose({ lean: 5 }), down: pose({ lean: 85 }), half: pose({ lean: 45 }), lowVis: pose({ lean: 85, vis: 0.2 }), nearDown: (k) => pose({ lean: k % 2 ? 58 : 63 }), nearUp: (k) => pose({ lean: k % 2 ? 28 : 33 }) },
+  };
+  for (const [kind, P] of Object.entries(KINDS)) {
+    ok(feed(kind, reps(5, P.up, P.down)).count === 5, `reps ${kind}: 5 clean reps count 5`);
+    ok(feed(kind, reps(1, P.up, P.down)).count === 1, `reps ${kind}: one rep counts 1`);
+    ok(feed(kind, reps(5, P.up, P.half)).count === 0, `reps ${kind}: half reps count 0`);
+    // Going down past the line and coming up through it with a wobble: still one rep.
+    const wobble = [...times(4, P.up), ...times(4, P.down), ...Array.from({ length: 8 }, (_, k) => P.nearDown(k)), ...times(4, P.down), ...Array.from({ length: 8 }, (_, k) => P.nearUp(k)), ...times(4, P.up), ...Array.from({ length: 10 }, (_, k) => P.nearUp(k)), ...times(4, P.up)];
+    ok(feed(kind, wobble).count === 1, `reps ${kind}: jitter around a line doesn't double-count`);
+    // One stray frame at the bottom isn't a rep: each position has to hold 2 frames.
+    ok(feed(kind, [...times(4, P.up), P.down, ...times(4, P.up), P.down, ...times(4, P.up)]).count === 0, `reps ${kind}: a one-frame dip isn't a rep`);
+    // Down frames the camera can't see well are ignored, so no rep, and the body isn't "seen" then.
+    const lv = feed(kind, [...times(4, P.up), ...times(6, P.lowVis), ...times(4, P.up)]);
+    ok(lv.count === 0, `reps ${kind}: low-visibility frames are ignored`);
+    const unseen = feed(kind, [...times(4, P.up), ...times(20, P.lowVis)]);
+    ok(unseen.seenAt === 3 * 66, `reps ${kind}: last seen stops at the last clear frame`);
+    ok(feed(kind, [null, null, 'x']).seenAt === null, `reps ${kind}: no person, never seen`);
+    // Too fast: 2 frames each way, 20 ms apart, is 80 ms a rep.
+    const fast = [...times(2, P.up), ...Array.from({ length: 5 }, () => [...times(2, P.down), ...times(2, P.up)]).flat()];
+    ok(feed(kind, fast, 20).count === 0, `reps ${kind}: reps faster than ${R.minRepMs} ms aren't counted`);
+    ok(feed(kind, fast, 66).count === 0 && feed(kind, reps(3, P.up, P.down), 66).count === 3, `reps ${kind}: a 264 ms rep isn't counted, a 528 ms one is`);
+    // Starting at the bottom waits for the first "up".
+    ok(feed(kind, [...times(4, P.down), ...times(4, P.up)]).count === 0, `reps ${kind}: starting down, the first rise isn't a rep`);
+  }
+  // Push-ups only count with the body roughly flat: arm bends while standing don't.
+  ok(feed('pushup', reps(4, pose({ lean: 5, elbow: 170 }), pose({ lean: 5, elbow: 80 }))).count === 0, 'reps pushup: standing arm bends count 0');
+  // Lunges: either knee counts, and each lunge is one.
+  ok(feed('lunge', [...times(4, pose({ knee: [172, 172] })), ...times(4, pose({ knee: [90, 170] })), ...times(4, pose({ knee: [172, 172] })), ...times(4, pose({ knee: [170, 92] })), ...times(4, pose({ knee: [172, 172] }))]).count === 2, 'reps lunge: left then right is 2');
+  // The better-seen side is used: one hidden leg doesn't stop a squat counting.
+  const halfHidden = (k) => { const p = pose({ knee: [k, k] }); for (const i of [24, 26, 28]) p[i] = { ...p[i], visibility: 0.1 }; return p; };
+  ok(feed('squat', reps(3, halfHidden(170), halfHidden(85))).count === 3, 'reps squat: counts from the side it can see');
+  ok(R.hold === 2 && R.minRepMs === 400 && R.lostMs === 3000 && R.everyMs >= 66 && R.slowMs === 250 && R.slowRuns === 5, 'reps: rules match the plan (2 frames, 400 ms, 3 s, 15 a second, 250 ms x5)');
+  ok(R.squat.down === 100 && R.squat.up === 160 && R.pushup.down === 95 && R.pushup.up === 150 && R.lunge.down === 105 && R.lunge.up === 160, 'reps: thresholds match the plan');
+
+  // Every finisher drill has a counter.
+  const { RECORD_IDS, addRecord } = await import('./js/plan/records.js');
+  for (const id of RECORD_IDS) ok(RP.READ[repKind(id)], `reps: finisher ${id} has a counter`);
+  ok(repKind('W2') === null, 'reps: a drill that is never a finisher has no counter');
+
+  // Done: the camera's number starts the stepper and the card says so. No count: Done as before.
+  const { recordAsk, camWords } = await import('./js/screens/done.js');
+  const mk = (finisher) => { const log = { date: new Date().toISOString(), type: 'strength', completed: true, done: [], skipped: [], finisher }; return { save: { log: [log], records: [{ date: 'x', id: 'ST1', v: 1, n: 14 }] }, log }; };
+  {
+    const { save, log } = mk({ id: 'ST1', v: 1, did: true, cam: 12 });
+    const a = recordAsk(save, log);
+    ok(a.start === 12 && a.cam === 12 && a.best === 14, 'Done: the stepper starts at the camera\'s count');
+    ok(camWords(a) === 'The camera counted 12. Change it if that\'s wrong.', 'Done: "The camera counted 12. Change it if that\'s wrong."');
+  }
+  for (const cam of [undefined, 0, -3, 2.5, 'x']) {
+    const { save, log } = mk({ id: 'ST1', v: 1, did: true, ...(cam === undefined ? {} : { cam }) });
+    const a = recordAsk(save, log);
+    ok(a.start === 14 && a.cam === null && camWords(a) === '', `Done: with no camera count (${cam}) it is as it was`);
+  }
+  {
+    const { save, log } = mk({ id: 'ST1', v: 1, did: true, cam: 40 });
+    ok(recordAsk(save, log, { test: true }) === null, 'Done: a test run still asks nothing');
+    const dt = fs.readFileSync('js/screens/done.js', 'utf8');
+    ok(dt.includes('...(ask.cam ? { cam: ask.cam } : {})') && dt.includes('n: count'), 'Done: saves his number, with the camera\'s alongside');
+  }
+  {
+    const sv = { records: [], challenge: null };
+    addRecord(sv, { id: 'ST1', v: 1, n: 13, cam: 12 });
+    addRecord(sv, { id: 'ST1', v: 1, n: 9 });
+    addRecord(sv, { id: 'ST1', v: 1, n: 9, cam: 0 });
+    ok(sv.records[0].n === 13 && sv.records[0].cam === 12 && !('cam' in sv.records[1]) && !('cam' in sv.records[2]), 'records: n is his number; cam kept only when the camera counted');
+    const card = fs.readFileSync('js/plan/card.js', 'utf8');
+    ok(!/records|\.cam\b/.test(card), 'records: nothing about records or the camera feeds the card');
+  }
+
+  // The save: off by default, old saves load with it off, only true turns it on.
+  {
+    const { blank, load } = await import('./js/store.js');
+    ok(blank().camera && blank().camera.on === false, 'save: camera starts off');
+    const mem = new Map();
+    globalThis.localStorage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => mem.delete(k) };
+    for (const [stored, want] of [[undefined, false], [{ on: true }, true], [{ on: 'yes' }, false], ['on', false], [null, false]]) {
+      mem.set('crease.save', JSON.stringify({ v: 1, setupDone: true, log: [], card: { earned: ['m0'] }, ...(stored === undefined ? {} : { camera: stored }) }));
+      ok(load().camera.on === want, `save: camera ${JSON.stringify(stored)} loads as ${want}`);
+    }
+  }
+
+  // Not in the install: the precache list never holds the pose files, and an update keeps their cache.
+  {
+    const sw = fs.readFileSync('sw.js', 'utf8');
+    const pre = JSON.parse(sw.match(/^const PRECACHE = (.*);$/m)[1]);
+    ok(pre.length > 10 && !pre.some((f) => f.startsWith('vendor/')), 'precache: no vendor/pose files');
+    const stamp = fs.readFileSync('tools/stamp.mjs', 'utf8');
+    ok(!/'vendor'/.test(stamp.match(/^const roots = .*$/m)[0]), 'precache: stamp.mjs never walks vendor/');
+    ok(sw.includes("!k.startsWith('crease-pose-')"), 'sw: an update keeps the pose cache');
+    const cam = await import('./js/camera.js');
+    ok(cam.POSE_CACHE.startsWith('crease-pose-') && cam.POSE_FILES.length === 4, 'camera: its own cache, four files');
+    ok(cam.CAMERA.audio === false && cam.CAMERA.video.facingMode === 'user' && cam.CAMERA.video.width.ideal <= 480, 'camera: front, picture only, small');
+    // The files are the ones in vendor/pose/README.md, byte for byte.
+    const { createHash } = await import('node:crypto');
+    const readme = fs.readFileSync('vendor/pose/README.md', 'utf8');
+    for (const f of cam.POSE_FILES) {
+      const sha = createHash('sha256').update(fs.readFileSync(`vendor/pose/${f}`)).digest('hex');
+      ok(readme.includes(sha), `vendor/pose: ${f} matches its sha256 in README.md`);
+    }
+    // No telemetry endpoint in the library we ship.
+    ok(!fs.readFileSync('vendor/pose/vision_bundle.mjs', 'utf8').includes('odml.pa.googleapis.com'), 'vendor/pose: the library has no usage-logging endpoint');
+  }
+
+  // Words he and Dad read: plain, no exclamation marks.
+  {
+    const dad = await import('./js/screens/dad.js');
+    ok(dad.CAM_WORDS.row === 'Count reps with the camera' && dad.CAM_WORDS.what === 'The camera only runs during the Finisher. Nothing is recorded or sent anywhere.', 'Dad: the camera row and its line');
+    ok(dad.CAM_WORDS.getting === 'Getting it ready…' && dad.CAM_WORDS.ready === 'Ready' && dad.CAM_WORDS.failed === 'Couldn\'t get it. Try again on Wi-Fi.', 'Dad: getting ready, ready, and the failure line');
+    const pl = fs.readFileSync('js/screens/player.js', 'utf8');
+    ok(pl.includes('Stand where the camera can see all of you.') && pl.includes('The camera can\\\'t see you.') && pl.includes('`Reps: ${camCount}`'), 'player: the camera\'s three lines');
+    ok(!Object.values(dad.CAM_WORDS).some((w) => w.includes('!')), 'Dad: no exclamation marks in the camera words');
+    // With it off nothing camera-related is on the page, and the camera module is only loaded on demand.
+    ok(pl.includes("${camKind ? '<div class=\"pl-cam\"") && !/^import .*camera\.js/m.test(pl) && pl.includes("import('../camera.js')"), 'player: no camera element or module unless it is on');
+    ok(!/^import .*camera\.js/m.test(fs.readFileSync('js/screens/dad.js', 'utf8')), 'Dad: the camera module loads only when it is on');
+  }
+}

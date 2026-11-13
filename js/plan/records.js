@@ -2,7 +2,8 @@
 // Pure functions: tests.mjs runs them in Node. Records are his own count, so nothing here
 // feeds the card's ratings.
 //
-// save.records: [{ date, id, v, n }], one per finisher he entered. A record belongs to one drill
+// save.records: [{ date, id, v, n, cam? }], one per finisher he entered. cam: what the camera
+// counted, kept only to compare with the number he saved; n is always his number. A record belongs to one drill
 // and one version: a harder version starts its own.
 // save.challenge: { id, n, set, beaten } or null. It is per drill: the version is always the one he
 // does now (finisherVersion). beaten is the date of the record that reached n.
@@ -52,12 +53,12 @@ export function recordWords(prev, n) {
 }
 
 // Saves one record and checks Dad's challenge. Returns what Done shows.
-export function addRecord(save, { id, v, n }, now = new Date()) {
+export function addRecord(save, { id, v, n, cam }, now = new Date()) {
   save.records = list(save);
   const count = clampN(n);
   const prev = bestFor(save.records, id, v)?.n ?? null;
   const date = now.toISOString();
-  save.records.push({ date, id, v, n: count });
+  save.records.push(Number.isInteger(cam) && cam > 0 ? { date, id, v, n: count, cam } : { date, id, v, n: count });
   const ch = save.challenge;
   const beat = !!ch && !ch.beaten && ch.id === id && v === finisherVersion(save, id) && count >= ch.n;
   if (beat) save.challenge = { ...ch, beaten: date };

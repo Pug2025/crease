@@ -33,6 +33,8 @@ export function blank() {
     records: [],
     // Dad's challenge: { id, n, set, beaten }, or null.
     challenge: null,
+    // Dad's switch for the camera rep counter on the finisher (js/camera.js). Off unless he turns it on.
+    camera: { on: false },
   };
 }
 
@@ -65,6 +67,7 @@ export function load() {
           card: s.card && typeof s.card === 'object' ? s.card : {},
           records: Array.isArray(s.records) ? s.records.filter(isRecord) : [],
           challenge: cleanChallenge(s.challenge),
+          camera: { on: s.camera?.on === true },
         };
         // A save from before masks were kept: every mask he has now is his, with no "New mask" for any.
         if (!Array.isArray(out.card.earned)) { seedMasks(out); save(out); }

@@ -265,6 +265,15 @@ img { max-width: 100%; }
 /* The drawing takes whatever height is left, never more: it sits absolutely inside its row. */
 .pl-board { grid-area: board; min-height: 0; position: relative; margin: 8px 0 4px; }
 .pl-draw { position: absolute; inset: 0; margin: auto; height: 100%; max-width: 100%; aspect-ratio: 1; object-fit: contain; background: var(--board); border-radius: 18px; }
+/* The camera on the finisher (Dad turns it on). On the intro, a small mirrored picture of him
+   over the corner of the drawing so he can step into frame; on the work step only its line. */
+.pl-cam { grid-area: board; z-index: 2; align-self: center; justify-self: center; display: grid; justify-items: center; gap: 6px; max-height: 100%; min-height: 0; pointer-events: none; }
+.pl-video { height: min(30vh, 15rem); max-width: 100%; aspect-ratio: 3 / 4; object-fit: cover; transform: scaleX(-1); border-radius: 14px; border: 3px solid var(--ink); background: #05101A; min-height: 0; }
+.pl-camline { margin: 0; max-width: 13rem; padding: 4px 10px; border-radius: 10px; background: var(--card); color: var(--ink); font-weight: 700; font-size: 1rem; text-align: center; text-wrap: balance; }
+.pl-camline:empty { display: none; }
+/* Shrunk, not hidden: iOS can stop giving frames from a video that isn't shown. */
+.pl-cam[data-at="work"] { align-self: start; margin-top: 12px; }
+.pl-cam[data-at="work"] .pl-video { height: 4.5rem; border-width: 2px; border-radius: 8px; }
 .pl-cue { grid-area: cue; min-height: 2.6em; text-align: center; font-size: 1.2rem; font-weight: 700; text-wrap: balance; }
 /* Warnings sit over the top of the drawing, so showing one never shrinks or moves it.
    They are information, so no colour of their own: yellow is only for something earned. */
@@ -703,6 +712,8 @@ img { max-width: 100%; }
 .rec-btn:active { background: var(--crease-soft); }
 .rec-n { text-align: center; font-family: var(--display); font-weight: 900; font-size: 4.4rem; line-height: .9; font-variant-numeric: tabular-nums; }
 .rec-result { font-weight: 700; font-size: 1.25rem; }
+.rec-cam { font-weight: 700; }
+.cam-state { font-weight: 700; }
 .rec.rec-new { border-color: var(--kick); }
 .rec-chal, .po-boss { font-family: var(--display); font-weight: 900; font-size: 1.8rem; text-transform: uppercase; line-height: 1; }
 .rec-chal { justify-self: start; background: var(--kick); color: #0D1520; padding: 4px 10px 2px; border-radius: 8px; }
