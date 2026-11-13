@@ -430,14 +430,35 @@ process.on('exit', (code) => {
     }
     ok(sets > 50 && pushups, `count: rep sets are counted, 8 push-ups among them (${sets} sets)`);
   }
+  // The camera watches every set it can count, and the coach says the reps it sees.
+  {
+    const P = await import('./js/screens/player.js');
+    const B = await import('./js/plan/build.js');
+    const C = await import('./data/copy.js');
+    ok(C.countSay(21) === 'Twenty-one.' && C.countSay(30) === 'Thirty.' && C.countSay(40) === 'Forty.' && C.COUNT_MAX === 40, 'camera count: the coach has numbers to forty');
+    for (let n = 1; n <= C.COUNT_MAX; n++) ok(!!clips[C.countSay(n)], `camera count: no voice clip for "${C.countSay(n)}"`);
+    const names = new Set();
+    for (const { type, ctx } of B.everyContext()) {
+      for (const st of B.buildSession(type, ctx).steps) {
+        if (!P.camSet(st)) continue;
+        names.add(st.finisher ? 'Finisher' : st.r.drill.id);
+        ok(st.kind === 'work' && (st.finisher || (st.reps !== undefined && !st.r.drill.side)), `camera count: ${st.r.name} is a Finisher or a plain rep set`);
+      }
+    }
+    ok(names.has('Finisher') && names.has('ST1') && names.has('ST3') && names.has('P12') && !names.has('S4'), `camera count: push-ups, squats, burpees and the Finisher; side lunges only as a Finisher (${[...names].join()})`);
+    ok(!P.camSet({ kind: 'intro', r: { drill: { id: 'ST1' } } }) && !P.camSet({ kind: 'work', reps: 8, r: { drill: { id: 'W2' } } }) && !P.camSet(null), 'camera count: nothing else is watched');
+    const pl = fs.readFileSync(new URL('./js/screens/player.js', import.meta.url), 'utf8');
+    ok(pl.includes('audio.say([countSay(n)])') && pl.includes('camCounting(st, c.count) ? c.say.slice(1) : c.say'), 'camera count: the coach says the camera\'s number and the paced one stays quiet');
+    ok(pl.includes('camSeen && (camCount > 0 || n < 3)'), 'camera count: if the camera has counted nothing by "Three.", the paced count carries on');
+  }
   // The camera's count is big on the Finisher, and Dad's screen says what it did last time.
   {
     const pl = fs.readFileSync(new URL('./js/screens/player.js', import.meta.url), 'utf8');
     ok(pl.includes('<div class="pl-camn" hidden><b>0</b><span>reps</span></div>') && pl.includes("'The camera stopped. Count your own reps.'"), 'camera: a big count beside the picture, and a line when it stops');
     const D = await import('./js/screens/dad.js');
-    ok(D.camLastWords({ n: 9, why: '' }) === 'On the last Finisher the camera counted 9.', 'camera: Dad sees the last count');
-    ok(D.camLastWords({ n: 0, why: '' }) === 'On the last Finisher the camera ran but counted 0.', 'camera: Dad sees a zero count');
-    ok(D.camLastWords({ n: 2, why: 'slow' }) === 'On the last Finisher the camera stopped after counting 2. Reason: slow.' && D.camLastWords(null) === '', 'camera: Dad sees why it stopped');
+    ok(D.camLastWords({ n: 9, why: '' }) === 'The camera counted 9 on the last set it watched.', 'camera: Dad sees the last count');
+    ok(D.camLastWords({ n: 0, why: '' }) === 'The camera watched the last set but counted 0.', 'camera: Dad sees a zero count');
+    ok(D.camLastWords({ n: 2, why: 'slow' }) === 'The camera stopped after counting 2 on the last set it watched. Reason: slow.' && D.camLastWords(null) === '', 'camera: Dad sees why it stopped');
   }
   // Item 25: a runner can start paused at a step, playing nothing until Resume.
   {
@@ -1884,13 +1905,13 @@ if (process.argv[2] === 'season') {
   // Words he and Dad read: plain, no exclamation marks.
   {
     const dad = await import('./js/screens/dad.js');
-    ok(dad.CAM_WORDS.row === 'Count reps with the camera' && dad.CAM_WORDS.what === 'The camera only runs during the Finisher. Nothing is recorded or sent anywhere.', 'Dad: the camera row and its line');
+    ok(dad.CAM_WORDS.row === 'Count reps with the camera' && dad.CAM_WORDS.what === 'The camera runs during push-ups, squats, burpees and the Finisher, and the coach says each rep it sees. Nothing is recorded or sent anywhere.', 'Dad: the camera row and its line');
     ok(dad.CAM_WORDS.getting === 'Getting it ready…' && dad.CAM_WORDS.ready === 'Ready' && dad.CAM_WORDS.failed === 'Couldn\'t get it. Try again on Wi-Fi.', 'Dad: getting ready, ready, and the failure line');
     const pl = fs.readFileSync('js/screens/player.js', 'utf8');
     ok(pl.includes('Stand where the camera can see all of you.') && pl.includes('The camera can\\\'t see you.') && pl.includes('`Reps: ${camCount}`'), 'player: the camera\'s three lines');
     ok(!Object.values(dad.CAM_WORDS).some((w) => w.includes('!')), 'Dad: no exclamation marks in the camera words');
     // With it off nothing camera-related is on the page, and the camera module is only loaded on demand.
-    ok(pl.includes("${camKind ? '<div class=\"pl-cam\"") && !/^import .*camera\.js/m.test(pl) && pl.includes("import('../camera.js')"), 'player: no camera element or module unless it is on');
+    ok(pl.includes("${camAny ? '<div class=\"pl-cam\"") && !/^import .*camera\.js/m.test(pl) && pl.includes("import('../camera.js')"), 'player: no camera element or module unless it is on');
     ok(!/^import .*camera\.js/m.test(fs.readFileSync('js/screens/dad.js', 'utf8')), 'Dad: the camera module loads only when it is on');
   }
 }

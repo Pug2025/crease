@@ -128,7 +128,7 @@ function challengeSection(s, chal) {
 // The camera rep counter (js/camera.js): Dad's On and Off, and how the download went.
 export const CAM_WORDS = {
   row: 'Count reps with the camera',
-  what: 'The camera only runs during the Finisher. Nothing is recorded or sent anywhere.',
+  what: 'The camera runs during push-ups, squats, burpees and the Finisher, and the coach says each rep it sees. Nothing is recorded or sent anywhere.',
   getting: 'Getting it ready…',
   ready: 'Ready',
   failed: 'Couldn\'t get it. Try again on Wi-Fi.',
@@ -138,8 +138,8 @@ export const CAM_WORDS = {
 // What the camera did on the last Finisher it ran on.
 export function camLastWords(last) {
   if (!last) return '';
-  if (last.why) return `On the last Finisher the camera stopped after counting ${last.n}. Reason: ${last.why}.`;
-  return last.n > 0 ? `On the last Finisher the camera counted ${last.n}.` : 'On the last Finisher the camera ran but counted 0.';
+  if (last.why) return `The camera stopped after counting ${last.n} on the last set it watched. Reason: ${last.why}.`;
+  return last.n > 0 ? `The camera counted ${last.n} on the last set it watched.` : 'The camera watched the last set but counted 0.';
 }
 
 function cameraSection(s) {

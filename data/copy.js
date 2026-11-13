@@ -24,7 +24,10 @@ export const SAY = {
 };
 
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+const TENS = { 2: 'twenty', 3: 'thirty', 4: 'forty' };
 export const word = (n) => (WORDS[n] ?? String(n));
+// For the count only, which goes past twenty. The lines above keep their wording (and recordings).
+const countWord = (n) => (WORDS[n] ?? (TENS[Math.floor(n / 10)] ? `${TENS[Math.floor(n / 10)]}${n % 10 ? `-${WORDS[n % 10]}` : ''}` : String(n)));
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // The spoken and shown target for one set, e.g. "6 each leg", "Hold 30 seconds".
@@ -42,7 +45,9 @@ export function targetSay(drill, dose) {
   return `${cap(secs)}${each}.`;
 }
 // The coach's count on a rep set: "One.", "Two."
-export const countSay = (n) => `${cap(word(n))}.`;
+// The highest number the coach has a recording for (the camera's count can go past a set's target).
+export const COUNT_MAX = 40;
+export const countSay = (n) => `${cap(countWord(n))}.`;
 export const setsSay = (n) => `${cap(word(n))} sets.`;
 export const setSay = (n) => `Set ${word(n)}.`;
 

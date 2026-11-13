@@ -150,7 +150,7 @@ export function runCamera(video, ctr, { onCount = () => {}, onLost = () => {}, o
   (async () => {
     try {
       if (off) { fail(); return; }
-      if (!(await poseReady())) { fail(); return; }
+      if (!(await poseReady())) { camStats.why = 'its files are not on this phone'; fail(); return; }
       if (h.stopped) return;
       if (typeof WebAssembly === 'undefined' || !navigator.mediaDevices?.getUserMedia) { fail('no support'); return; }
       const stream = await navigator.mediaDevices.getUserMedia(CAMERA);
@@ -169,7 +169,10 @@ export function runCamera(video, ctr, { onCount = () => {}, onLost = () => {}, o
       if (h.stopped) return;
       startedAt = performance.now();
       look();
-    } catch (e) { fail(e?.name === 'NotAllowedError' ? '' : (e?.message || 'start')); }
+    } catch (e) {
+      if (e?.name === 'NotAllowedError') camStats.why = 'the phone did not allow the camera';
+      fail(e?.name === 'NotAllowedError' ? '' : (e?.message || 'start'));
+    }
   })();
   return h;
 }

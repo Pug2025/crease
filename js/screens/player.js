@@ -10,6 +10,7 @@ import { migrateOldRecords } from '../store.js';
 import { buildSession, phrasesOf, finisherOf } from '../plan/build.js';
 import { bestFor } from '../plan/records.js';
 import { repKind } from '../plan/reps.js';
+import { COUNT_MAX, countSay } from '../../data/copy.js';
 import { SESSIONS } from '../../data/sessions.js';
 import { SAY } from '../../data/copy.js';
 
@@ -119,6 +120,15 @@ export function resumeIfAny(app) {
 
 // dad: started from Dad's screen. extra: doesn't count. Both together is Dad's test run:
 // skip buttons to click through quickly, and nothing is saved to his record.
+// A set the camera counts: a Finisher, or a plain rep set (not one done on each side, which
+// would need a counter per side), of a drill it has a reader for.
+export function camSet(st) {
+  if (!st || st.kind !== 'work' || !st.r) return false;
+  const d = st.r.drill;
+  if (!repKind(d.id)) return false;
+  return !!st.finisher || (st.reps !== undefined && !d.side);
+}
+
 export const CAM_STOPPED = 'The camera stopped. Count your own reps.';
 
 export function render(root, app, { session, extra = false, dad = false, resume = null }) {
@@ -142,10 +152,21 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   const skippedNos = new Set(resume?.skippedNos ?? []);
   const carriedMs = resume?.activeMs ?? 0; // training time before iOS closed the app
 
-  // The camera counts the finisher only when Dad has turned it on and the drill is one it knows.
-  // With it off, none of the camera code below runs and its preview isn't on the page.
-  const finNow = finisherOf(session);
-  const camKind = finNow && app.save.camera?.on === true ? repKind(finNow.item.drill.id) : null;
+  // The camera counts only when Dad has turned it on, and only the sets it knows how to see
+  // (camSet in this file). With it off, none of the camera code below runs and its preview
+  // isn't on the page.
+  const camOn = app.save.camera?.on === true;
+  const camAny = camOn && session.steps.some((st) => camSet(st));
+  // 'work': a set it counts. 'intro': the get-ready or rest just before one, so he can step into
+  // the picture. null: the camera is off for this step.
+  const camPhase = (st) => {
+    if (!camAny || !st) return null;
+    if (camSet(st)) return 'work';
+    return (st.kind === 'intro' || st.kind === 'rest') && camSet(session.steps[st.i + 1]) ? 'intro' : null;
+  };
+
+  // The numbers the coach says when the camera is counting.
+  if (camAny) audio.preload(Array.from({ length: COUNT_MAX }, (_, k) => countSay(k + 1))).catch(() => {});
 
   root.innerHTML = `
   <div class="player${test ? ' is-test' : ''}" data-phase="intro">
@@ -157,7 +178,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     <div class="pl-bar" hidden><b></b></div>
     <div class="pl-target"></div>
     <div class="pl-board"><img class="pl-draw" alt=""></div>
-    ${camKind ? '<div class="pl-cam" hidden><video class="pl-video" playsinline muted autoplay></video><div class="pl-camn" hidden><b>0</b><span>reps</span></div><p class="pl-camline"></p></div>' : ''}
+    ${camAny ? '<div class="pl-cam" hidden><video class="pl-video" playsinline muted autoplay></video><div class="pl-camn" hidden><b>0</b><span>reps</span></div><p class="pl-camline"></p></div>' : ''}
     <div class="pl-cue"></div>
     <div class="pl-warn">
       <button class="pl-sound" data-act="fixSound" hidden>Sound is off. Tap to fix.</button>
@@ -210,13 +231,31 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   const finBest = fin ? bestFor(app.save.records, fin.item.drill.id, fin.item.v) : null;
   const finLine = finBest ? `Your best: ${finBest.n}` : 'No best yet';
 
-  // ---- The camera on the finisher (only when camKind) ----
+  // ---- The camera on the sets it can count (only when camAny) ----
   // Starts on the finisher's intro, stops the moment its work step ends, and on Pause, Stop,
   // leaving the app and any error. Nothing here is awaited, so the timer never waits for it.
   const camBox = root.querySelector('.pl-cam');
   let cam = null;         // the running camera, or null
-  let camCtr = null;      // the counter, kept across a pause
-  let camCount = 0;       // reps the camera counted
+  let camCtr = null;      // the counter for the set he's on, kept across a pause
+  let camAt = -1;         // the step that counter belongs to
+  let camCount = 0;       // reps the camera has counted this set
+  let camSeen = false;    // it can see his body right now
+  let finCount = 0;       // what it counted on the Finisher, for Done
+  let lastCount = null;   // what it counted on the last set it watched, for Dad's screen
+  // runCamera keeps one counter for as long as it runs; this hands it the current set's.
+  const camFeed = {
+    get count() { return camCtr ? camCtr.count : 0; },
+    push(lm, t) {
+      if (!camCtr) return { count: 0, seenAt: null };
+      const o = camCtr.push(lm, t);
+      camSeen = o.seenAt !== null && t - o.seenAt < 3000;
+      return o;
+    },
+  };
+  // Is the camera doing the counting on this set? Then the coach says its numbers, not the paced
+  // ones. n: the paced number about to be said. If the camera sees him but has counted nothing
+  // by "Three.", it isn't reading this drill, so the paced count carries on.
+  const camCounting = (st, n = 0) => !!cam && camPhase(st) === 'work' && camSeen && (camCount > 0 || n < 3);
   let camDead = false;    // failed once this session: Done stays as it is today
   let camLib = null;
   let camLost = false;     // no body seen for 3 s
@@ -224,15 +263,16 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   function camLine(text) { if (camBox) camBox.querySelector('.pl-camline').textContent = text; }
   // The count the camera has so far: a big number beside his picture, and in the line under the name.
   function showReps() {
-    const on = !!cam && runner.current().finisher && runner.current().kind === 'work';
+    const now = runner.current();
+    const on = !!cam && camPhase(now) === 'work';
     const big = camBox?.querySelector('.pl-camn');
     if (big) { big.hidden = !on; big.querySelector('b').textContent = String(camCount); }
-    if (on) el.target.textContent = [`Reps: ${camCount}`, targetBase].filter(Boolean).join(' · ');
+    if (on && now.finisher) el.target.textContent = [`Reps: ${camCount}`, targetBase].filter(Boolean).join(' · ');
   }
   // What happened on the last Finisher, for Dad's screen: the count, or why the camera stopped.
   function camNote(why) {
     try {
-      app.save.camera = { ...app.save.camera, last: { day: new Date().toISOString().slice(0, 10), n: camCount, why: String(why || '').slice(0, 80) } };
+      app.save.camera = { ...app.save.camera, last: { day: new Date().toISOString().slice(0, 10), n: lastCount ?? 0, why: String(why || '').slice(0, 80) } };
       app.persist();
     } catch {}
   }
@@ -247,28 +287,48 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     camStop();
     camNote(camLib?.camStats?.why || 'stopped');
     // Say so, or he keeps going thinking it's counting.
-    try { el.target.textContent = runner.current().finisher ? [CAM_STOPPED, targetBase].filter(Boolean).join(' · ') : targetBase; } catch {}
+    try { el.target.textContent = camPhase(runner.current()) ? [CAM_STOPPED, targetBase].filter(Boolean).join(' · ') : targetBase; } catch {}
+  }
+  function camFresh(st) {
+    const kind = repKind((camSet(st) ? st : session.steps[st.i + 1]).r.drill.id);
+    camCtr = camLib.newCounter(kind);
+    camAt = st.i;
+    camCount = 0;
+    camSeen = false;
+    if (camSet(st)) lastCount = 0;
   }
   function camStep(st) {
-    if (!camKind || camDead) return;
-    const inFin = st.finisher && (st.kind === 'intro' || st.kind === 'work');
-    if (!inFin || runner.paused || finished) { camStop(); return; }
-    camBox.dataset.at = st.kind;
-    camLine(st.kind === 'intro' ? 'Stand where the camera can see all of you.' : camLost ? 'The camera can\'t see you.' : '');
+    if (!camAny || camDead) return;
+    const phase = camPhase(st);
+    if (!phase || runner.paused || finished) { camStop(); return; }
+    // A new set: a new counter for its drill, from zero. The get-ready before it gets one too,
+    // so the camera has something to tell it whether it can see him.
+    if (camAt !== st.i && camLib) camFresh(st);
+    camBox.dataset.at = phase;
+    camLine(phase === 'intro' ? 'Stand where the camera can see all of you.' : camLost ? 'The camera can\'t see you.' : '');
     camBox.hidden = false;
     if (cam) { showReps(); return; }
     const mine = cam = { stop() { this.dead = true; this.h?.stop(); } };
     (camLib ? Promise.resolve(camLib) : import('../camera.js')).then((lib) => {
       camLib = lib;
       if (mine.dead || cam !== mine) return;
-      camCtr ||= lib.newCounter(camKind);
+      const now = runner.current();
+      if (camAt !== now.i || !camCtr) camFresh(now);
       // On the intro, the model loads once the spoken intro is over (it starts at 0.3 s and runs
       // about 5 s) and before the countdown beeps (the last 3 s).
-      const now = runner.current();
-      const waitMs = now.finisher && now.kind === 'intro' ? Math.max(0, (CAM_QUIET - (runner.elapsed() - now.start)) * 1000) : 0;
-      mine.h = lib.runCamera(camBox.querySelector('video'), camCtr, {
+      const waitMs = now.kind === 'intro' ? Math.max(0, (CAM_QUIET - (runner.elapsed() - now.start)) * 1000) : 0;
+      mine.h = lib.runCamera(camBox.querySelector('video'), camFeed, {
         waitMs,
-        onCount: (n) => { camCount = n; showReps(); },
+        onCount: (n) => {
+          const at = runner.current();
+          if (camPhase(at) !== 'work' || n <= camCount) return;
+          camCount = n;
+          lastCount = n;
+          if (at.finisher) finCount = n;
+          // The coach says the rep the camera just saw.
+          if (n <= COUNT_MAX) audio.say([countSay(n)]);
+          showReps();
+        },
         onLost: (gone) => { camLost = gone; if (runner.current().kind === 'work') camLine(gone ? 'The camera can\'t see you.' : ''); },
         onFail: () => { if (cam === mine) camGone(); },
       });
@@ -329,7 +389,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
       skippedNos.delete(st.drillNo); // skipped in round one, done in round two: he did it
     }
     keep();
-    if (camKind) safeCam(st);
+    if (camAny) safeCam(st);
   }
 
   function onTick(e, st) {
@@ -364,7 +424,10 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   function onCue(c, st) {
     if (c.beep) { audio.beep(c.beep); if (c.beep !== 'end') flash(); }
     if (c.say) {
-      audio.say(c.say);
+      // On a set the camera is counting, the coach says its numbers; the paced one stays quiet
+      // and only the coaching line that rides on it is said.
+      const words = c.count && camAny && camCounting(st, c.count) ? c.say.slice(1) : c.say;
+      if (words.length) audio.say(words);
       const shown = c.say.filter((p) => st.r && st.r.drill.cues.includes(p));
       if (shown.length) el.cue.textContent = shown[shown.length - 1];
     }
@@ -396,15 +459,15 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   function finish(ranToEnd) {
     if (finished) return;
     finished = true;
-    if (camKind) camStop();
+    if (camAny) camStop();
     runner.stop();
     if (!ranToEnd) audio.hush();
     letSleep();
     settle(session, log, [...doneNos], [...skippedNos], ranToEnd ? session.drills : runner.current().drillNo);
     log.secs = Math.round((carriedMs + runner.activeMs()) / 1000);
     // What the camera counted, for Done to start from. Nothing when it counted none.
-    if (camCount > 0 && log.finisher) log.finisher.cam = camCount;
-    if (camKind && !camDead && camCtr) camNote('');
+    if (finCount > 0 && log.finisher) log.finisher.cam = finCount;
+    if (camAny && !camDead && lastCount !== null) camNote('');
     if (test) log.test = true; // contract C6: shown on Done, never in his record
     else {
       app.save.log.push(log);
@@ -451,28 +514,28 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     closeSheet();
     audio.unlock();
     runner.resume();
-    if (camKind) safeCam(runner.current());
+    if (camAny) safeCam(runner.current());
   }
 
   on(root, {
-    pause: () => { runner.pause(); audio.hush(); if (camKind) camStop(); pauseSheet(); keep(); },
-    resume: () => { closeSheet(); audio.unlock(); holdScreen(); runner.resume(); if (camKind) safeCam(runner.current()); },
+    pause: () => { runner.pause(); audio.hush(); if (camAny) camStop(); pauseSheet(); keep(); },
+    resume: () => { closeSheet(); audio.unlock(); holdScreen(); runner.resume(); if (camAny) safeCam(runner.current()); },
     done: () => { audio.hush(); runner.jumpTo(runner.afterCurrent()); },
     nextStep: () => { if (!test) return; audio.hush(); runner.jumpTo(runner.afterCurrent()); },
     nextDrill: () => { if (!test) return; audio.hush(); runner.jumpTo(runner.nextDrillIndex()); },
-    stop: () => { runner.pause(); audio.hush(); if (camKind) camStop(); endSheet(); keep(); },
+    stop: () => { runner.pause(); audio.hush(); if (camAny) camStop(); endSheet(); keep(); },
     endSession: () => endSheet(),
     endNow: () => { log.stopped = { why: 'ended' }; finish(false); },
     // One tap: back to the drill's intro, so he hears its name and gets the countdown again.
     // The camera's count on the finisher starts again from zero.
     restart: () => {
-      if (camKind) { camStop(); camCtr = null; camCount = 0; }
+      if (camAny) { camStop(); camCtr = null; camAt = -1; camCount = 0; }
       runner.jumpTo(runner.drillStartIndex());
       closeSheet();
       audio.unlock();
       holdScreen();
       runner.resume();
-      if (camKind) safeCam(runner.current());
+      if (camAny) safeCam(runner.current());
       keep();
     },
     // One tap: the drill is skipped and the next one starts.
@@ -508,7 +571,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     if (document.hidden) {
       runner.pause();
       audio.hush();
-      if (camKind) camStop();
+      if (camAny) camStop();
       if (el.sheet.hidden) pauseSheet();
       keep();
     } else {
@@ -531,7 +594,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', onPageHide);
     onLost(null);
-    if (camKind) camStop();
+    if (camAny) camStop();
     runner.stop();
     letSleep();
   };

@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { SAY } from '../data/copy.js';
+import { SAY, COUNT_MAX, countSay } from '../data/copy.js';
 import { buildSession, everyContext, everyLadder, phrasesOf } from '../js/plan/build.js';
 import { finishClip, readLevels, writeLevels } from './loudness.mjs';
 
@@ -29,6 +29,9 @@ const phrases = new Set([SAY.soundCheck, SAY.sessionDone, ...Object.values(SAY.m
 for (const { type, ctx } of everyContext()) phrasesOf(buildSession(type, ctx)).forEach((p) => phrases.add(p));
 // And every rung of the splits ladder, which isn't a version Dad sets.
 for (const { type, ctx } of everyLadder()) phrasesOf(buildSession(type, ctx)).forEach((p) => phrases.add(p));
+
+// Every number the coach can say when the camera is counting.
+for (let n = 1; n <= COUNT_MAX; n++) phrases.add(countSay(n));
 
 // How a line should sound, where the written form would be read oddly.
 const spoken = (p) => p.replace(/90\/90/g, 'ninety ninety').replace(/&/g, 'and').replace(/\bT-Push\b/g, 'T push')

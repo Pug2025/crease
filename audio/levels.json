@@ -97,6 +97,13 @@
   "gain": 8.7,
   "limited": 6
  },
+ "0f63c3e939b2.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 0.965,
+  "gain": 12,
+  "limited": 6
+ },
  "0faa8cf4e966.m4a": {
   "lufs": -16.2,
   "peak": -1.3,
@@ -132,6 +139,20 @@
   "gain": 9.7,
   "limited": 5.6
  },
+ "13679063fb6e.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 0.78,
+  "gain": 8.6,
+  "limited": 0.2
+ },
+ "136969433ae2.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.889,
+  "gain": 6.3,
+  "limited": 2.2
+ },
  "13a9c24cd65f.m4a": {
   "lufs": -16,
   "peak": -1.3,
@@ -140,11 +161,11 @@
   "limited": 0.2
  },
  "1424c1ae81e6.m4a": {
-  "lufs": -16.3,
+  "lufs": -16.1,
   "peak": -1.3,
-  "len": 1.219,
-  "gain": 12.4,
-  "limited": 6
+  "len": 0.867,
+  "gain": 7,
+  "limited": 2.2
  },
  "14ef2ce92aee.m4a": {
   "lufs": -16.1,
@@ -214,6 +235,13 @@
   "peak": -1.5,
   "len": 1.07,
   "gain": 7.7,
+  "limited": 0.5
+ },
+ "1c0eb0df13c2.m4a": {
+  "lufs": -16.2,
+  "peak": -1.4,
+  "len": 0.866,
+  "gain": 8.1,
   "limited": 0.5
  },
  "1c365f307817.m4a": {
@@ -286,6 +314,13 @@
   "gain": 8.5,
   "limited": 6
  },
+ "2903976e8aa6.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.869,
+  "gain": 8,
+  "limited": 2
+ },
  "299372203f22.m4a": {
   "lufs": -16.1,
   "peak": -2.7,
@@ -320,6 +355,13 @@
   "len": 1.296,
   "gain": 9.6,
   "limited": 4.8
+ },
+ "2e46bc78c475.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.894,
+  "gain": 6.8,
+  "limited": 3.8
  },
  "2e555e9c512e.m4a": {
   "lufs": -16.2,
@@ -415,9 +457,9 @@
  "3aa366117acd.m4a": {
   "lufs": -16.1,
   "peak": -1.4,
-  "len": 1.523,
-  "gain": 5,
-  "limited": 1.8
+  "len": 1.456,
+  "gain": 8.4,
+  "limited": 3.6
  },
  "3bc29fed2feb.m4a": {
   "lufs": -16.1,
@@ -495,6 +537,27 @@
   "len": 1.789,
   "gain": 7,
   "limited": 2.8
+ },
+ "4335f43b43e0.m4a": {
+  "lufs": -16,
+  "peak": -3.3,
+  "len": 0.622,
+  "gain": 5.5,
+  "limited": 0
+ },
+ "433e6cf454d9.m4a": {
+  "lufs": -16.1,
+  "peak": -2.4,
+  "len": 0.726,
+  "gain": 6.2,
+  "limited": 0
+ },
+ "44ad4e46f1ed.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.738,
+  "gain": 8.4,
+  "limited": 5
  },
  "46a3e5751b97.m4a": {
   "lufs": -18.3,
@@ -629,12 +692,19 @@
   "gain": 6.8,
   "limited": 3.9
  },
+ "5528129ca41c.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.642,
+  "gain": 6.5,
+  "limited": 1.4
+ },
  "554219569c8d.m4a": {
-  "lufs": -16.2,
-  "peak": -1.3,
-  "len": 0.906,
-  "gain": 7.7,
-  "limited": 1.5
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 0.886,
+  "gain": 5.4,
+  "limited": 3.5
  },
  "5793f639fbfd.m4a": {
   "lufs": -16.1,
@@ -678,6 +748,20 @@
   "gain": 9.8,
   "limited": 6
  },
+ "602d76294e6a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.923,
+  "gain": 8.2,
+  "limited": 2.8
+ },
+ "6230ee4a8b05.m4a": {
+  "lufs": -17.8,
+  "peak": -1.5,
+  "len": 1.297,
+  "gain": 9.3,
+  "limited": 6
+ },
  "625f20b2ab39.m4a": {
   "lufs": -16.1,
   "peak": -1.5,
@@ -691,6 +775,13 @@
   "len": 1.138,
   "gain": 6.9,
   "limited": 1.8
+ },
+ "63ad4655fa4b.m4a": {
+  "lufs": -16.1,
+  "peak": -2.1,
+  "len": 0.698,
+  "gain": 6.8,
+  "limited": 0
  },
  "640debb9b05f.m4a": {
   "lufs": -16.2,
@@ -874,6 +965,13 @@
   "gain": 10.6,
   "limited": 4.8
  },
+ "7857f86a9298.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 0.823,
+  "gain": 6.9,
+  "limited": 1
+ },
  "79d277d7b80f.m4a": {
   "lufs": -16.1,
   "peak": -1.8,
@@ -965,6 +1063,13 @@
   "gain": 4.9,
   "limited": 0.8
  },
+ "82e78a510cd6.m4a": {
+  "lufs": -16.8,
+  "peak": -1.3,
+  "len": 0.457,
+  "gain": 9.8,
+  "limited": 6
+ },
  "84988f8164ab.m4a": {
   "lufs": -16.1,
   "peak": -1.2,
@@ -999,6 +1104,13 @@
   "len": 1.585,
   "gain": 8.7,
   "limited": 3.4
+ },
+ "8a0b1a076d90.m4a": {
+  "lufs": -16.1,
+  "peak": -1.5,
+  "len": 0.637,
+  "gain": 7,
+  "limited": 2.4
  },
  "8b5e6c8a3f12.m4a": {
   "lufs": -16.1,
@@ -1161,6 +1273,13 @@
   "gain": 5.2,
   "limited": 0.9
  },
+ "9f4e121f0243.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.514,
+  "gain": 6.9,
+  "limited": 2.1
+ },
  "a039000fcb4f.m4a": {
   "lufs": -16.1,
   "peak": -1.3,
@@ -1195,6 +1314,13 @@
   "len": 1.187,
   "gain": 8.3,
   "limited": 3.8
+ },
+ "a4d637721f66.m4a": {
+  "lufs": -16.2,
+  "peak": -2.4,
+  "len": 0.973,
+  "gain": 10.7,
+  "limited": 0
  },
  "a71e394c7a0a.m4a": {
   "lufs": -16.1,
@@ -1238,6 +1364,13 @@
   "gain": 8,
   "limited": 2.8
  },
+ "aae95ab18265.m4a": {
+  "lufs": -16.2,
+  "peak": -1.3,
+  "len": 1.435,
+  "gain": 6.5,
+  "limited": 3.6
+ },
  "aaffc25b5fe9.m4a": {
   "lufs": -16.2,
   "peak": -2.6,
@@ -1247,10 +1380,10 @@
  },
  "ac1af5b9f1ed.m4a": {
   "lufs": -16.1,
-  "peak": -1.3,
-  "len": 2.608,
-  "gain": 6.6,
-  "limited": 2.7
+  "peak": -1.4,
+  "len": 2.325,
+  "gain": 8.3,
+  "limited": 3.3
  },
  "aceb48f0e4b5.m4a": {
   "lufs": -17.1,
@@ -1315,6 +1448,13 @@
   "gain": 6.1,
   "limited": 2.4
  },
+ "b29d07b9c008.m4a": {
+  "lufs": -16,
+  "peak": -4.3,
+  "len": 0.741,
+  "gain": 4.7,
+  "limited": 0
+ },
  "b2f93babcd78.m4a": {
   "lufs": -16.1,
   "peak": -1.4,
@@ -1374,9 +1514,9 @@
  "b814979b7f71.m4a": {
   "lufs": -16.1,
   "peak": -1.3,
-  "len": 2.037,
-  "gain": 6.9,
-  "limited": 2.8
+  "len": 2.294,
+  "gain": 8.8,
+  "limited": 3.7
  },
  "b9e25929a409.m4a": {
   "lufs": -16.1,
@@ -1429,10 +1569,10 @@
  },
  "c320e280334b.m4a": {
   "lufs": -16.1,
-  "peak": -1.5,
-  "len": 1.694,
-  "gain": 4.8,
-  "limited": 1.5
+  "peak": -1.3,
+  "len": 1.744,
+  "gain": 7.6,
+  "limited": 3.8
  },
  "c3cd54f47de9.m4a": {
   "lufs": -16.2,
@@ -1448,12 +1588,26 @@
   "gain": 7.2,
   "limited": 3
  },
- "c502848f76a1.m4a": {
+ "c47f59845e1a.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.929,
+  "gain": 8.2,
+  "limited": 5.9
+ },
+ "c4c11eeec1fd.m4a": {
   "lufs": -16.2,
-  "peak": -1.3,
-  "len": 1.138,
-  "gain": 7.3,
-  "limited": 4.4
+  "peak": -1.4,
+  "len": 0.919,
+  "gain": 7,
+  "limited": 2.7
+ },
+ "c502848f76a1.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 1.286,
+  "gain": 5.5,
+  "limited": 1.2
  },
  "c50e9546b5d2.m4a": {
   "lufs": -16.1,
@@ -1517,6 +1671,13 @@
   "len": 1.389,
   "gain": 6.8,
   "limited": 1.2
+ },
+ "ce55e6cd737c.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.968,
+  "gain": 7.5,
+  "limited": 2.7
  },
  "ce8a7f38e7d5.m4a": {
   "lufs": -16.2,
@@ -1628,6 +1789,13 @@
   "peak": -1.5,
   "len": 1.281,
   "gain": 6.4,
+  "limited": 0
+ },
+ "da56cc86fbc2.m4a": {
+  "lufs": -16.1,
+  "peak": -1.7,
+  "len": 0.68,
+  "gain": 6,
   "limited": 0
  },
  "da6dd1c00c55.m4a": {
@@ -1742,6 +1910,13 @@
   "gain": 7.1,
   "limited": 6
  },
+ "e5edd05f83ee.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.946,
+  "gain": 9.8,
+  "limited": 2.6
+ },
  "e8104b1a1d89.m4a": {
   "lufs": -16.1,
   "peak": -1.6,
@@ -1791,12 +1966,19 @@
   "gain": 7.4,
   "limited": 0.4
  },
+ "edc6ac48dfd7.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.986,
+  "gain": 8.3,
+  "limited": 2
+ },
  "ef3d0970fcd4.m4a": {
   "lufs": -16.1,
-  "peak": -1.2,
-  "len": 1.555,
-  "gain": 7,
-  "limited": 4
+  "peak": -1.4,
+  "len": 1.855,
+  "gain": 8.3,
+  "limited": 4.7
  },
  "f178c56d7167.m4a": {
   "lufs": -16.1,
@@ -1881,6 +2063,20 @@
   "len": 2.292,
   "gain": 10.1,
   "limited": 6
+ },
+ "fc5c51e8c2cd.m4a": {
+  "lufs": -16.1,
+  "peak": -1.4,
+  "len": 0.665,
+  "gain": 7.4,
+  "limited": 1.4
+ },
+ "fd84bf556a21.m4a": {
+  "lufs": -16.1,
+  "peak": -3.8,
+  "len": 0.543,
+  "gain": 2.7,
+  "limited": 0
  },
  "fe647e942095.m4a": {
   "lufs": -16.1,
