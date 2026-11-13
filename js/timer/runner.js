@@ -67,7 +67,21 @@ export class Runner {
     const shift = st.start - this.elapsed();
     if (this.paused) this.pausedAt += shift * 1000; else this.t0 -= shift * 1000;
     for (let k = 0; k < st.i; k++) this.s.steps[k].cues.forEach((_, j) => this.fired.add(`${k}:${j}`));
+    // Jumping back (Restart drill): the cues from here on play again.
+    for (let k = st.i; k < this.s.steps.length; k++) this.s.steps[k].cues.forEach((_, j) => this.fired.delete(`${k}:${j}`));
     this.tick();
+  }
+
+  // Index of the step that introduces the current drill (for Restart drill). In a circuit that
+  // is this round's turn at the drill, not round one.
+  drillStartIndex() {
+    const cur = this.s.steps[Math.max(this.idx, 0)];
+    for (let k = cur.i; k >= 0; k--) {
+      const st = this.s.steps[k];
+      if (st.drillNo !== cur.drillNo) return k + 1;
+      if (st.kind === 'intro') return k;
+    }
+    return 0;
   }
 
   // Index of the next step that starts a different drill (for Skip).

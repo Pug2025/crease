@@ -363,6 +363,40 @@ process.on('exit', (code) => {
     r.pause(); t += 60000; ok(Math.abs(r.activeMs() - 15000) < 1, 'player: time paused is not training time');
     r.stop();
   }
+  // Restart this drill (pause sheet): back to the drill's intro, its cues play again, no minutes lost or added.
+  for (const type of ['strength', 'power', 'gameday', 'stretch']) {
+    let t = 0;
+    const s = build(type);
+    const cues = [];
+    const r = new Runner(s, { onCue: (c, st) => cues.push(st.i) });
+    r.now = () => t;
+    r.start();
+    // Walk to a work step in the middle of the session.
+    const wi = s.steps.findIndex((st, i) => i > s.steps.length / 2 && st.kind === 'work');
+    r.jumpTo(wi);
+    t += 3000; r.tick();
+    const cur = r.current();
+    const before = r.activeMs();
+    r.pause();
+    t += 4000;
+    const at = r.drillStartIndex();
+    const first = s.steps[at];
+    ok(at <= cur.i && first.drillNo === cur.drillNo && first.kind === 'intro', `restart (${type}): goes to the intro of the same drill (step ${at}, ${first.kind}, drill ${first.drillNo} vs ${cur.drillNo})`);
+    ok(!s.steps.slice(at + 1, cur.i + 1).some((st) => st.kind === 'intro'), `restart (${type}): it is the nearest intro, so a circuit restarts this round's turn`);
+    cues.length = 0;
+    r.jumpTo(at);
+    ok(r.current().i === at && Math.abs(r.remaining() - first.dur) < 0.001, `restart (${type}): the step's full time is left`);
+    ok(Math.abs(r.activeMs() - before) < 1, `restart (${type}): restarting while paused adds no minutes`);
+    r.resume();
+    t += (first.dur + 1) * 1000; r.tick();
+    ok(cues.includes(at) || first.cues.length === 0, `restart (${type}): the intro's words play again`);
+    ok(r.current().i === at + 1, `restart (${type}): then the session carries on from there`);
+    r.stop();
+  }
+  {
+    const pl = fs.readFileSync(new URL('./js/screens/player.js', import.meta.url), 'utf8');
+    ok(/data-act="restart">Restart this drill</.test(pl) && /restart: \(\) =>/.test(pl), 'restart: the Paused sheet has a "Restart this drill" button');
+  }
   // Item 25: a runner can start paused at a step, playing nothing until Resume.
   {
     let t = 0;

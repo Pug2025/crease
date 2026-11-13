@@ -406,6 +406,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     sheet(`
       <h2>Paused</h2>
       <button class="btn btn-go" data-act="resume">Resume</button>
+      <button class="btn" data-act="restart">Restart this drill</button>
       <button class="btn" data-act="skip">Skip this drill</button>
       <button class="btn" data-act="endSession">End the session</button>`);
   }
@@ -442,6 +443,18 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     stop: () => { runner.pause(); audio.hush(); if (camKind) camStop(); endSheet(); keep(); },
     endSession: () => endSheet(),
     endNow: () => { log.stopped = { why: 'ended' }; finish(false); },
+    // One tap: back to the drill's intro, so he hears its name and gets the countdown again.
+    // The camera's count on the finisher starts again from zero.
+    restart: () => {
+      if (camKind) { camStop(); camCtr = null; camCount = 0; }
+      runner.jumpTo(runner.drillStartIndex());
+      closeSheet();
+      audio.unlock();
+      holdScreen();
+      runner.resume();
+      if (camKind) safeCam(runner.current());
+      keep();
+    },
     // One tap: the drill is skipped and the next one starts.
     skip: () => {
       const st = runner.current();
