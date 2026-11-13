@@ -139,7 +139,7 @@ export function render(root, app) {
     const st = handsStats(s.hands);
     const line = st.left === 0 ? 'You\'ve played your 3 rounds for today. This one is practice and won\'t count.' : `Round ${st.today + 1} of ${COUNTED_PER_DAY} today`;
     info.innerHTML = `
-      <p>One side will light up ${TAPS} times. Tap that side as fast as you can each time.</p>
+      <p>The left side or the right side will light up. Tap the side that's lit as fast as you can. A round is ${TAPS} lights.</p>
       <p>Your score is how fast you usually tap. A lower number is faster.</p>
       <p class="lt-status">${esc(line)}</p>
       ${trainedToday(s) ? '' : `<p class="lt-status lt-lock">${esc(LOCK_WORDS.free)}</p>`}`;
