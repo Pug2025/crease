@@ -9,6 +9,7 @@ import { countsForStreak } from '../plan/streak.js';
 import { cardStats, cardGains, pendingMasks, claimMasks } from '../plan/card.js';
 import { addRecord, bestFor, recordTitle, RECORD_MAX, RECORD_START } from '../plan/records.js';
 import * as audio from '../timer/audio.js';
+import { celebrate } from '../celebrate.js';
 
 // What this one session changed: the card before it and after it. Pure, so tests.mjs checks it.
 // Only a counted session pays off, and a second one on the same day doesn't raise the streak again.
@@ -181,6 +182,8 @@ export function render(root, app, { session, log, test = false }) {
     count = Math.min(RECORD_MAX, Math.max(0, n));
     rec.querySelector('.rec-n').textContent = String(count);
   }) : () => {};
+  // Confetti for a mask, a new tier or a Boss, after the payoff lines have come in.
+  if (lines.some((l) => ['mask', 'tier', 'boss'].includes(l.kind))) setTimeout(() => celebrate({ big: true }), 900);
   on(root, {
     // Saved once. The card then says how it compares; skipping it just leaves it unsaved.
     saveRec: () => {
@@ -189,6 +192,7 @@ export function render(root, app, { session, log, test = false }) {
       log.finisher = { ...log.finisher, n: r.n };
       app.persist();
       rec.classList.toggle('rec-new', r.best);
+      if (r.best || r.challengeBeaten) celebrate({ big: !!r.challengeBeaten });
       rec.innerHTML = `<h2 class="rec-title">${esc(ask.title)}</h2>
         <p class="rec-result">${esc(r.words)}</p>
         ${r.challengeBeaten ? '<p class="rec-chal">Dad\'s challenge beaten.</p>' : ''}`;

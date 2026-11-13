@@ -5,6 +5,7 @@
 import { esc, on, maskImg } from '../ui.js';
 import { dayKey } from '../plan/decide.js';
 import { claimMasks } from '../plan/card.js';
+import { celebrate } from '../celebrate.js';
 
 export const TAPS = 10;
 export const COUNTED_PER_DAY = 3;
@@ -178,6 +179,7 @@ export function render(root, app, { first = false } = {}) {
     app.persist();
     setKicker();
     board.dataset.state = 'result';
+    if (masks.length) celebrate({ big: true }); else if (r.best) celebrate();
     light.classList.toggle('best', r.best);
     show(String(r.ms), r.best ? 'Best' : 'ms');
     const line = !r.counted ? 'Practice round. Only 3 rounds a day count.'

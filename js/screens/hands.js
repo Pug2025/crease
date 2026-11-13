@@ -7,6 +7,7 @@
 import { esc, on } from '../ui.js';
 import { median, lightsStats, maskLinesHtml, wearFrom, COUNTED_PER_DAY } from './lights.js';
 import { claimMasks } from '../plan/card.js';
+import { celebrate } from '../celebrate.js';
 
 export const TAPS = 12;
 export const MAX_WRONG = 3;
@@ -197,6 +198,7 @@ export function render(root, app) {
   // Three wrong sides: nothing saved, and it doesn't use up a counted round.
   function over() {
     board.dataset.state = 'result';
+    if (masks.length) celebrate({ big: true }); else if (r.best) celebrate();
     show();
     info.innerHTML = `
       <p class="lt-line">Too many wrong sides.</p>
