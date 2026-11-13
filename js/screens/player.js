@@ -206,7 +206,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   // His best on today's finisher, shown on its work step: "Best: 14", or "First time".
   const fin = finisherOf(session);
   const finBest = fin ? bestFor(app.save.records, fin.item.drill.id, fin.item.v) : null;
-  const finLine = finBest ? `Best: ${finBest.n}` : 'First time';
+  const finLine = finBest ? `Your best: ${finBest.n}` : 'No best yet';
 
   // ---- The camera on the finisher (only when camKind) ----
   // Starts on the finisher's intro, stops the moment its work step ends, and on Pause, Stop,
@@ -413,11 +413,11 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   // Ending asks once, with how far he got. Keep going sits where the last tap was.
   function endSheet() {
     const c = credit(session, doneNow());
-    const got = `${c.done} of ${session.drills} done.`;
+    const got = `You've done ${c.done} of ${session.drills} drills.`;
     const line = extra ? got
-      : !c.short ? `${got} It counts.`
-      : c.short === 'half' ? `${got} It counts at ${c.need}.`
-      : `${got} It counts after half the main drills.`;
+      : !c.short ? `${got} That's enough for it to count.`
+      : c.short === 'half' ? `${got} It counts once you reach ${c.need}.`
+      : `${got} It counts once you do half of the main drills.`;
     sheet(`
       <h2>End now?</h2>
       <p class="sheet-line">${esc(line)}</p>

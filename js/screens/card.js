@@ -82,7 +82,7 @@ const shortDate = (iso) => { const d = new Date(iso); return Number.isNaN(d.getT
 export function recordsHtml(rows, bosses) {
   return `
   <section class="records">
-    <h2>Records <span class="rec-sub">40 s, as many as you can</span></h2>
+    <h2>Records <span class="rec-sub">As many as you can in 40 seconds</span></h2>
     <ul class="rec-list">${rows.map((r) => `
       <li><span class="rl-name">${esc(r.name)}${r.tag ? ` <small>${esc(r.tag)}</small>` : ''}</span>
         ${r.best ? `<b class="rl-n">${r.best.n}</b><span class="rl-date">${esc(shortDate(r.best.date))}</span>` : '<span class="rl-none">No record yet</span>'}</li>`).join('')}

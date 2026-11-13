@@ -46,8 +46,8 @@ export const setSay = (n) => `Set ${word(n)}.`;
 
 // Today's room hint. The bedroom swaps only the drills that need space; before 9 am only slams swap.
 export const ROOM_HINT = {
-  bedroom: 'Small room: nothing that needs 3 metres.',
-  big: 'Full versions. Clear about 3 metres around you.',
+  bedroom: 'Drills that need a lot of space are swapped for ones that fit a small room.',
+  big: 'Clear about 3 metres of space around you.',
 };
 
 export const FEEL = [

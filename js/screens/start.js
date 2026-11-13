@@ -85,8 +85,8 @@ export function preview(root, app, params) {
   // What changes for the room or the hour (contract C10), said only when this session has such a drill.
   const drills = session.items.map((it) => it.drill);
   const notes = [];
-  if (ctx.small) { if (drills.some((d) => d.space === 'big')) notes.push('Bedroom: small-room versions.'); }
-  else if (ctx.early && drills.some((d) => d.slam)) notes.push('Before 9 am: no slams.');
+  if (ctx.small) { if (drills.some((d) => d.space === 'big')) notes.push('You\'re in the bedroom, so some drills are swapped for small-room ones.'); }
+  else if (ctx.early && drills.some((d) => d.slam)) notes.push('It\'s before 9 am, so there are no med ball slams.');
   const said = answersText(answers);
   const grab = grabText(session.grab);
 

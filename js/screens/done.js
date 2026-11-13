@@ -53,10 +53,10 @@ export function payoffLines(p) {
   if (p.streak) lines.push({ kind: 'streak', text: `${p.streak.to} day streak`, from: p.streak.from, to: p.streak.to });
   for (const r of p.ratings) lines.push({ kind: 'rating', text: `${r.label} ${r.from} → ${r.to}`, ...r });
   if (p.overall) lines.push({ kind: 'rating', text: `Overall ${p.overall.from} → ${p.overall.to}`, label: 'Overall', ...p.overall, overall: true });
-  if (p.tier) lines.push({ kind: 'tier', text: `${p.tier} card.` });
-  if (p.boss) lines.push({ kind: 'boss', text: 'Boss beaten.' });
+  if (p.tier) lines.push({ kind: 'tier', text: `Your card is now ${p.tier}.` });
+  if (p.boss) lines.push({ kind: 'boss', text: 'You beat the Boss day.' });
   for (const m of p.masks) lines.push({ kind: 'mask', text: `New mask: ${m.name}!`, mask: m });
-  if (p.saveEarned) lines.push({ kind: 'save', text: 'Save earned.' });
+  if (p.saveEarned) lines.push({ kind: 'save', text: 'You earned a save.' });
   return lines;
 }
 
@@ -86,10 +86,10 @@ function payoffHtml(lines, wearing) {
 // One line about the splits ladder, when he did today's hold. Nothing when he didn't.
 export function splitsDone(st, moved, did) {
   if (!did) return '';
-  if (moved) return `Splits: next rung. ${st.r.name}.`;
-  if (st.waiting) return 'Splits: ready for Dad to watch.';
+  if (moved) return `Splits: you moved up to ${st.r.name}.`;
+  if (st.waiting) return 'Splits: you\'re ready for Dad to watch.';
   if (st.top) return 'Splits: you can do the splits.';
-  return `Splits: ${st.holds} of ${st.need} holds on ${st.r.name}.`;
+  return `Splits: ${st.holds} of ${st.need} holds done on ${st.r.name}.`;
 }
 
 const WHY = { hard: 'too hard', here: 'couldn\'t do it here' };
@@ -113,7 +113,7 @@ function recordHtml(ask) {
   return `
   <section class="rec" aria-label="Finisher">
     <h2 class="rec-title">${esc(ask.title)}</h2>
-    <p class="rec-best">${ask.best === null ? 'First time' : `Best: ${ask.best}`}</p>
+    <p class="rec-best">${ask.best === null ? 'No best yet' : `Your best: ${ask.best}`}</p>
     ${ask.cam ? `<p class="rec-cam">${esc(camWords(ask))}</p>` : ''}
     <div class="rec-step">
       <button class="rec-btn" data-step="-1" aria-label="One less">−</button>
@@ -137,7 +137,7 @@ export function doneWords(log, { test = false } = {}) {
     return { title: 'Done.', line: ended && log.reached ? `Ended at drill ${log.reached} of ${planned}.` : '' };
   }
   const need = log.need || Math.ceil(planned / 2);
-  const line = log.short === 'main' ? 'Do half the main drills and it counts.' : `Do ${need} of ${planned} drills and it counts.`;
+  const line = log.short === 'main' ? 'A session counts once you do half of the main drills.' : `A session counts once you do ${need} of its ${planned} drills.`;
   return { title: ended ? 'Ended early.' : 'Too many skips.', line };
 }
 
@@ -201,7 +201,7 @@ export function render(root, app, { session, log, test = false }) {
       if (r.best || r.challengeBeaten) celebrate({ big: !!r.challengeBeaten });
       rec.innerHTML = `<h2 class="rec-title">${esc(ask.title)}</h2>
         <p class="rec-result">${esc(r.words)}</p>
-        ${r.challengeBeaten ? '<p class="rec-chal">Dad\'s challenge beaten.</p>' : ''}`;
+        ${r.challengeBeaten ? '<p class="rec-chal">You beat Dad\'s challenge.</p>' : ''}`;
     },
     home: () => (isTestRun ? app.go('dad', { unlocked: true }) : app.go('home')),
     wear: (id, el) => {

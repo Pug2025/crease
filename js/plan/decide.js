@@ -164,33 +164,33 @@ export function reasonText(d, now = new Date()) {
     return date.toLocaleDateString('en-CA', { month: 'long', day: 'numeric' });
   };
   const weekday = now.toLocaleDateString('en-CA', { weekday: 'long' });
-  if (d.boss) return d.firstBoss ? 'Three rounds today.' : `Three rounds today. You've done ${word(d.since)} sessions since the last one.`;
+  if (d.boss) return d.firstBoss ? 'Today is a Boss day, with three rounds in place of two.' : `Today is a Boss day, with three rounds in place of two. You've done ${word(d.since)} sessions since your last one.`;
   switch (d.why) {
-    case 'game-today': return 'Game today, so this one is short and easy.';
+    case 'game-today': return 'You have a game today, so this one is short and easy.';
     case 'after-game': return 'You played today, so you only stretch.';
-    case 'game-tomorrow': return 'Game tomorrow, so today you stretch and save your legs.';
-    case 'game-yesterday': return 'Game yesterday, so today is an easy one.';
-    case 'jumped-today': return 'You did the jumps today. Today is an easy one.';
-    case 'six-days': return 'Six days in a row. Today is an easy one.';
-    case 'two-hard-days': return 'Two hard days in a row. Today is an easy one.';
+    case 'game-tomorrow': return 'You have a game tomorrow, so today you stretch and save your legs.';
+    case 'game-yesterday': return 'You played yesterday, so today is an easy one.';
+    case 'jumped-today': return 'You already did your jumps today, so this one is easy.';
+    case 'six-days': return 'You\'ve trained six days in a row, so today is an easy one.';
+    case 'two-hard-days': return 'You\'ve had two hard days in a row, so today is an easy one.';
     case 'first': return 'Your first session is Strength.';
-    case 'strength-first': return 'First Strength session.';
-    case 'power-turn': return `No hockey today, no game tomorrow. ${d.last ? `Last Power: ${last(d.last)}.` : 'First Power session.'}`;
-    case 'strength-turn': return `Last Strength: ${last(d.last)}.`;
+    case 'strength-first': return 'This is your first Strength session.';
+    case 'power-turn': return `No hockey today and no game tomorrow, so it's a Power day. ${d.last ? `Your last one was ${last(d.last)}.` : 'This is your first.'}`;
+    case 'strength-turn': return `Your last Strength session was ${last(d.last)}.`;
     case 'no-power':
       switch (d.blocked) {
-        case 'practice-today': return 'Practice today, so no Power.';
-        case 'game-yesterday': return 'Game yesterday, so no Power.';
-        case 'fri-sat': return `No Power on ${weekday}s.`;
-        case 'power-cap': return 'Power twice this week already.';
-        default: return `Last Strength: ${last(d.last)}.`;
+        case 'practice-today': return 'You have practice today, so it\'s Strength in place of Power.';
+        case 'game-yesterday': return 'You played yesterday, so it\'s Strength in place of Power.';
+        case 'fri-sat': return `There's no Power on ${weekday}s, so today is Strength.`;
+        case 'power-cap': return 'You\'ve done Power twice this week, so today is Strength.';
+        default: return `Your last Strength session was ${last(d.last)}.`;
       }
     case 'easy':
       switch (d.blocked) {
-        case 'practice-today': return 'Practice today and Strength yesterday. Today is an easy one.';
-        case 'fri-sat': return `Strength yesterday, and no Power on ${weekday}s. Today is an easy one.`;
-        case 'power-cap': return 'Strength yesterday, and Power twice this week. Today is an easy one.';
-        default: return 'You\'ve trained hard lately. Today is an easy one.';
+        case 'practice-today': return 'You have practice today and did Strength yesterday, so today is an easy one.';
+        case 'fri-sat': return `You did Strength yesterday and there's no Power on ${weekday}s, so today is an easy one.`;
+        case 'power-cap': return 'You did Strength yesterday and Power twice this week, so today is an easy one.';
+        default: return 'You\'ve trained hard lately, so today is an easy one.';
       }
     default: return '';
   }

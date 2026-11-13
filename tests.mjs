@@ -126,13 +126,13 @@ for (const p of allPhrases) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `
 
   // Item 7: the day after a game can be Strength, never Power. The day before stays Stretch.
   ok(go({ yesterdayGame: true }, powerDue(WED), WED).type === 'strength', 'rules: day after a game, Power due: Strength');
-  ok(why({ yesterdayGame: true }, powerDue(WED), WED) === 'Game yesterday, so no Power.', 'rules: day-after-game reason line');
+  ok(why({ yesterdayGame: true }, powerDue(WED), WED) === 'You played yesterday, so it\'s Strength in place of Power.', 'rules: day-after-game reason line');
   ok(go({ tomorrow: 'game' }, powerDue(WED), WED).type === 'stretch', 'rules: day before a game stays Stretch');
 
   // Item 12: no Power on a Friday or Saturday, whatever he says about tomorrow.
   for (const now of [FRI, SAT]) for (const tomorrow of ['practice', 'none'])
     ok(go({ tomorrow }, powerDue(now), now).type === 'strength', `rules: ${now.toDateString()} with "${tomorrow}" tomorrow: Strength, never Power`);
-  ok(why({}, powerDue(FRI), FRI) === 'No Power on Fridays.', 'rules: Friday reason line');
+  ok(why({}, powerDue(FRI), FRI) === 'There\'s no Power on Fridays, so today is Strength.', 'rules: Friday reason line');
   // Friday he said "Practice" for Saturday and skipped Saturday: Sunday asks about yesterday instead of trusting it.
   const friSaid = { [dayKey(FRI)]: { today: 'none', tomorrow: 'practice' } };
   ok(D.knownYesterdayGame([], friSaid, day(22)) === undefined, 'rules: a "practice tomorrow" from two days ago isn\'t trusted');
@@ -142,11 +142,11 @@ for (const p of allPhrases) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `
   ok(go({ tomorrow: 'practice' }, [did(WED, 3, 'power'), did(WED, 5, 'strength')], WED).type === 'power', 'rules: practice tomorrow: Power today when it fits');
 
   // Item 24: reason lines that are true.
-  ok(why({ tomorrow: 'practice' }, powerDue(WED), WED) === 'No hockey today, no game tomorrow. Last Power: Friday.', 'rules: Power reason with practice tomorrow');
-  ok(why({ today: 'practice' }, powerDue(WED), WED) === 'Practice today, so no Power.', 'rules: practice-day reason says Power, not jumping');
+  ok(why({ tomorrow: 'practice' }, powerDue(WED), WED) === 'No hockey today and no game tomorrow, so it\'s a Power day. Your last one was Friday.', 'rules: Power reason with practice tomorrow');
+  ok(why({ today: 'practice' }, powerDue(WED), WED) === 'You have practice today, so it\'s Strength in place of Power.', 'rules: practice-day reason says Power, not jumping');
   ok(why({}, [], WED) === 'Your first session is Strength.', 'rules: first session reason');
   ok(go({ tomorrow: 'practice' }, [], WED).type === 'strength' && go({}, [], THU).type === 'strength', 'rules: first session is Strength even before a practice or a Friday');
-  ok(why({}, [did(WED, 2, 'gameday')], WED) === 'First Strength session.', 'rules: first Strength after other sessions');
+  ok(why({}, [did(WED, 2, 'gameday')], WED) === 'This is your first Strength session.', 'rules: first Strength after other sessions');
 
   // Item 6, rules side: a Power that ended after the jumps counts for the jump limits, not as a session.
   const ended = (now, n, done) => did(now, n, 'power', { completed: false, stopped: { why: 'ended' }, done });
@@ -432,7 +432,7 @@ process.on('exit', (code) => {
   ok(Array.isArray(old.lights) && old.versions && old.settings.ball === 'dead', 'save: an older save gets lights, versions and settings');
 
   // Words (items 3 and 13).
-  ok(copy.ROOM_HINT.bedroom === 'Small room: nothing that needs 3 metres.' && copy.ROOM_HINT.big === 'Full versions. Clear about 3 metres around you.', 'Today: room hints');
+  ok(copy.ROOM_HINT.bedroom === 'Drills that need a lot of space are swapped for ones that fit a small room.' && copy.ROOM_HINT.big === 'Clear about 3 metres of space around you.', 'Today: room hints');
 
   // A week to work with: Friday 13 November 2026, 4:30 pm.
   const NOW = new Date(2026, 10, 13, 16, 30);
@@ -472,8 +472,8 @@ process.on('exit', (code) => {
   ok(dw({}).title === 'Done.' && dw({}).line === '', 'done: a finished session');
   ok(dw({ stopped: { why: 'ended' }, reached: 13, need: 8 }).line === 'Ended at drill 13 of 15.', 'done: a counted ended session says where it ended');
   ok(dw({ completed: false, stopped: { why: 'ended' }, reached: 5, need: 8, short: 'half' }).title === 'Ended early.', 'done: "Ended early."');
-  ok(dw({ completed: false, stopped: { why: 'ended' }, reached: 5, need: 8, short: 'half' }).line === 'Do 8 of 15 drills and it counts.', 'done: "Do 8 of 15 drills and it counts."');
-  ok(dw({ completed: false, stopped: { why: 'ended' }, reached: 11, need: 8, short: 'main' }).line === 'Do half the main drills and it counts.', 'done: the main-block rule');
+  ok(dw({ completed: false, stopped: { why: 'ended' }, reached: 5, need: 8, short: 'half' }).line === 'A session counts once you do 8 of its 15 drills.', 'done: "Do 8 of 15 drills and it counts."');
+  ok(dw({ completed: false, stopped: { why: 'ended' }, reached: 11, need: 8, short: 'main' }).line === 'A session counts once you do half of the main drills.', 'done: the main-block rule');
   ok(dw({ dad: true, extra: true }).line === 'Test run. Nothing saved.' && doneWords({ planned: 15, completed: true }, { test: true }).line === 'Test run. Nothing saved.', 'done: "Test run. Nothing saved."');
   ok(dw({ dad: true, extra: true, completed: false, stopped: { why: 'ended' } }).title === 'Ended.', 'done: a test run he ended says "Ended."');
 
@@ -872,7 +872,7 @@ process.on('exit', (code) => {
     const st = splitsState(fresh(), NOW);
     ok(splitsDone(st, false, false) === '', 'a session with no splits hold says nothing about the ladder');
     ok(/0 of 6/.test(splitsDone(st, false, true)), 'after the hold it says how many he\'s done');
-    ok(/next rung/i.test(splitsDone(st, true, true)), 'moving up says so');
+    ok(/moved up/i.test(splitsDone(st, true, true)), 'moving up says so');
   }
 }
 
@@ -1138,7 +1138,7 @@ process.on('exit', (code) => {
   const lines = payoffLines(p7);
   const kinds = lines.map((l) => l.kind);
   ok(kinds[0] === 'streak' && kinds.indexOf('mask') > kinds.lastIndexOf('rating') && kinds.at(-1) === 'save', `done: lines in order (got ${kinds})`);
-  ok(lines.some((l) => l.text === 'Power 50 → 52' || /^Power \d+ → \d+$/.test(l.text)) && lines.some((l) => l.text === 'New mask: Bolt!') && lines.some((l) => l.text === 'Save earned.'), `done: rating, mask and save words (got ${lines.map((l) => l.text)})`);
+  ok(lines.some((l) => l.text === 'Power 50 → 52' || /^Power \d+ → \d+$/.test(l.text)) && lines.some((l) => l.text === 'New mask: Bolt!') && lines.some((l) => l.text === 'You earned a save.'), `done: rating, mask and save words (got ${lines.map((l) => l.text)})`);
   ok(lines.filter((l) => l.text.includes('!')).every((l) => l.kind === 'mask'), 'done: the only exclamation mark is a new mask');
   for (const l of lines) ok(!/awesome|great job|crushing|keep it up|almost/i.test(l.text), `done: no cheerleading in "${l.text}"`);
   const second = s(11, 'stretch', { h: 20 });
@@ -1163,7 +1163,7 @@ process.on('exit', (code) => {
       const p = payoff(mk([...L]), e, new Date(e.date));
       tierLine = payoffLines(p).find((l) => l.kind === 'tier') || null;
     }
-    ok(tierLine?.text === 'Silver card.', `done: a tier change says "Silver card." (got ${tierLine?.text})`);
+    ok(tierLine?.text === 'Your card is now Silver.', `done: a tier change says "Silver card." (got ${tierLine?.text})`);
   }
   ok(SAY.milestone[3] === 'Three in a row.' && SAY.milestone[100] === 'One hundred in a row.' && SAY.newMask === 'New mask.', 'voice: milestone lines');
 
@@ -1486,14 +1486,14 @@ if (process.argv[2] === 'season') {
     ok(pick(lg).boss === true, 'boss: an ended Boss day is no win, the next one is a Boss day');
     ok(bossStats(lg).beaten === 0, 'boss: ended Boss day not counted as beaten');
   }
-  ok(reasonText({ type: 'strength', boss: true, firstBoss: true, since: 12 }, NOW) === 'Three rounds today.', 'boss: before any win the line is just "Three rounds today."');
-  ok(reasonText({ type: 'strength', boss: true, firstBoss: false, since: 13 }, NOW) === 'Three rounds today. You\'ve done thirteen sessions since the last one.', 'boss: the real count since the last win');
-  ok(reasonText({ type: 'strength', boss: true, firstBoss: false, since: 10 }, NOW) === 'Three rounds today. You\'ve done ten sessions since the last one.', 'boss: reason line');
+  ok(reasonText({ type: 'strength', boss: true, firstBoss: true, since: 12 }, NOW) === 'Today is a Boss day, with three rounds in place of two.', 'boss: before any win the line is just "Three rounds today."');
+  ok(reasonText({ type: 'strength', boss: true, firstBoss: false, since: 13 }, NOW) === 'Today is a Boss day, with three rounds in place of two. You\'ve done thirteen sessions since your last one.', 'boss: the real count since the last win');
+  ok(reasonText({ type: 'strength', boss: true, firstBoss: false, since: 10 }, NOW) === 'Today is a Boss day, with three rounds in place of two. You\'ve done ten sessions since your last one.', 'boss: reason line');
   // The check-in record keeps the flag, and a redo can't turn a plain Strength into a Boss day.
   {
     const lg = mkLog(12, null);
     const first = settleDay({ today: 'none', tomorrow: 'none' }, lg, {}, NOW);
-    ok(first.d.boss && first.day.boss === true && first.reason === 'Three rounds today.', 'boss: the check-in saves boss: true and the plain line');
+    ok(first.d.boss && first.day.boss === true && first.reason === 'Today is a Boss day, with three rounds in place of two.', 'boss: the check-in saves boss: true and the plain line');
     const plain = settleDay({ today: 'practice', tomorrow: 'none' }, lg, {}, NOW);
     ok(!plain.day.boss, 'boss: practice today, a plain Strength');
     const redo = settleDay({ today: 'none', tomorrow: 'none' }, lg, { [dayKeyOf(NOW)]: plain.day }, NOW);
@@ -1520,7 +1520,7 @@ if (process.argv[2] === 'season') {
     const mk = (log) => ({ log, lights: [], hands: [], splits: { rung: 1 }, streak: { gifts: [] }, card: { earned: ['m0'] } });
     const e = past(0, 'strength', { boss: true, bossDay: true });
     const lines = payoffLines(payoff(mk([past(1, 'stretch'), e]), e, NOW));
-    ok(lines.filter((l) => l.kind === 'boss').map((l) => l.text).join() === 'Boss beaten.', `done: "Boss beaten." (got ${lines.map((l) => l.text)})`);
+    ok(lines.filter((l) => l.kind === 'boss').map((l) => l.text).join() === 'You beat the Boss day.', `done: "Boss beaten." (got ${lines.map((l) => l.text)})`);
     const e2 = past(0, 'strength', { bossDay: true, boss: false });
     ok(!payoffLines(payoff(mk([e2]), e2, NOW)).some((l) => l.kind === 'boss'), 'done: no "Boss beaten." for an ended one');
     // Cyclops at 3 bosses.
@@ -1537,13 +1537,13 @@ if (process.argv[2] === 'season') {
     const sv = { log: [], records: [], challenge: null, versions: {} };
     const t = (d) => new Date(2026, 10, d, 17);
     const a = R.addRecord(sv, { id: 'ST1', v: 1, n: 14 }, t(1));
-    ok(a.prev === null && a.best && a.words === 'First record: 14.', 'records: first');
+    ok(a.prev === null && a.best && a.words === 'Your first record is 14.', 'records: first');
     const b = R.addRecord(sv, { id: 'ST1', v: 1, n: 16 }, t(2));
     ok(b.prev === 14 && b.best && b.words === 'New best: 16. Your old best was 14.', 'records: new best');
     const c = R.addRecord(sv, { id: 'ST1', v: 1, n: 12 }, t(3));
-    ok(c.prev === 16 && !c.best && c.words === 'Today 12. Best 16.', 'records: not a best');
+    ok(c.prev === 16 && !c.best && c.words === 'You did 12 today. Your best is 16.', 'records: not a best');
     const d = R.addRecord(sv, { id: 'ST1', v: 2, n: 6 }, t(4));
-    ok(d.prev === null && d.words === 'First record: 6.' && R.bestFor(sv.records, 'ST1', 1).n === 16 && R.bestFor(sv.records, 'ST1', 2).n === 6, 'records: a harder version starts its own record');
+    ok(d.prev === null && d.words === 'Your first record is 6.' && R.bestFor(sv.records, 'ST1', 1).n === 16 && R.bestFor(sv.records, 'ST1', 2).n === 6, 'records: a harder version starts its own record');
     ok(R.addRecord(sv, { id: 'ST3', v: 1, n: 250 }, t(5)).n === 99 && R.addRecord(sv, { id: 'ST3', v: 1, n: -4 }, t(5)).n === 0, 'records: 0 to 99');
     ok(sv.records.every((r) => r.date && r.id && Number.isInteger(r.v) && Number.isInteger(r.n)), 'records: { date, id, v, n }');
     ok(R.bestFor(sv.records, 'ST1', 1).date === t(2).toISOString(), 'records: best keeps its date');
@@ -1587,7 +1587,7 @@ if (process.argv[2] === 'season') {
     ok(R.challengeTile(sv).best === 'Your best: 30', 'challenge: the tile follows the version he does now');
     sv.versions.ST1 = 0;
     const r2 = R.addRecord(sv, { id: 'ST1', v: 0, n: 20 });
-    ok(r2.challengeBeaten && sv.challenge.beaten && R.challengeTile(sv).text === 'Dad\'s challenge beaten: 20 push-ups', 'challenge: reaching 20 beats it');
+    ok(r2.challengeBeaten && sv.challenge.beaten && R.challengeTile(sv).text === 'You beat Dad\'s challenge: 20 push-ups', 'challenge: reaching 20 beats it');
     ok(!R.addRecord(sv, { id: 'ST1', v: 0, n: 25 }).challengeBeaten, 'challenge: beaten once');
     ok(challengeHtml(R.challengeTile(sv)).includes('beaten') && challengeHtml(null) === '', 'challenge: Today html');
     R.clearChallenge(sv);
@@ -1628,7 +1628,7 @@ if (process.argv[2] === 'season') {
   // Settings rows.
   {
     const t = fs.readFileSync('js/screens/settings.js', 'utf8');
-    ok(t.includes('The last hard drill. Do as many as you can, then enter your number at the end.') && t.includes('Three rounds. It comes after ten sessions.') && t.includes('<dt>Records</dt>'), 'Settings: Finisher, Records and Boss day rows');
+    ok(t.includes('The last hard drill of a session.') && t.includes('A Strength session with three rounds in place of two.') && t.includes('<dt>Records</dt>'), 'Settings: Finisher, Records and Boss day rows');
   }
   ok(BOSS.rounds === 3 && BOSS.every === 10 && BOSS.after === 12, 'boss: 3 rounds, every 10, after 12');
 }

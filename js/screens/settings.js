@@ -18,16 +18,17 @@ export function render(root, app) {
         <h2>How it works</h2>
         <dl class="how">
           <div><dt>Start</dt><dd>Answer a few questions and the app picks today's session.</dd></div>
-          <div><dt>Blue screen</dt><dd>Work. A white screen means rest or get ready.</dd></div>
-          <div><dt>Bedroom</dt><dd>Drills that need 3 metres swap for small-room ones.</dd></div>
-          <div><dt>Before 9 am</dt><dd>No med ball slams.</dd></div>
+          <div><dt>Blue screen</dt><dd>A blue screen means work. A white screen means rest or get ready.</dd></div>
+          <div><dt>Bedroom</dt><dd>Drills that need a lot of space are swapped for ones that fit a small room.</dd></div>
+          <div><dt>Before 9 am</dt><dd>Med ball slams are left out so the house stays quiet.</dd></div>
           <div><dt>Drills</dt><dd>Tap one before you start to see how it's done. Most have a video.</dd></div>
-          <div><dt>Streak</dt><dd>Days in a row with a session.</dd></div>
-          <div><dt>Saves</dt><dd>A save covers a day you miss. You get one every 7 days and can hold 2.</dd></div>
+          <div><dt>Streak</dt><dd>The number of days in a row you've trained.</dd></div>
+          <div><dt>Saves</dt><dd>A save covers a day you miss, so your streak keeps going. You earn one for every 7 days in a row and can hold 2.</dd></div>
           <div><dt>Card</dt><dd>Your ratings go up as you train. They never go down.</dd></div>
-          <div><dt>Finisher</dt><dd>The last hard drill. Do as many as you can, then enter your number at the end.</dd></div>
+          <div><dt>Finisher</dt><dd>The last hard drill of a session. Do as many as you can in 40 seconds, then enter your number when the session ends.</dd></div>
           <div><dt>Records</dt><dd>Your best on each finisher drill. A harder version starts a new record.</dd></div>
-          <div><dt>Boss day</dt><dd>Three rounds. It comes after ten sessions.</dd></div>
+          <div><dt>Boss day</dt><dd>A Strength session with three rounds in place of two. You get one after every ten sessions.</dd></div>
+          <div><dt>Games</dt><dd>Lights and Glove or Blocker test how fast you react. Your first 3 rounds each day count.</dd></div>
           <div><dt>Masks</dt><dd>You earn masks from streaks, sessions, Boss days, the two games and the splits. Two are secret.</dd></div>
         </dl>
       </section>

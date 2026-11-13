@@ -54,8 +54,8 @@ export const SESSIONS = {
         name: 'Legs on', main: true,
         items: [
           { id: 'ST3', dose: { reps: 8, window: 25 } },
-          { id: 'P13', dose: { reps: 2, window: 20, sets: 1 }, note: 'Half speed.' },
-          { id: 'P11', dose: { reps: 3, window: 12, sets: 1 }, note: 'Easy. Just wake your legs up.' },
+          { id: 'P13', dose: { reps: 2, window: 20, sets: 1 }, note: 'Do these at half speed.' },
+          { id: 'P11', dose: { reps: 3, window: 12, sets: 1 }, note: 'Go easy. This is to wake your legs up.' },
           { id: 'ST4', dose: { time: 20 } },
         ],
       },

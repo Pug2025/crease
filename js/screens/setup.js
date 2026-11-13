@@ -99,11 +99,11 @@ export function gear(root, app, { fromSettings = false } = {}) {
 export function sound(root, app, { fromSettings = false } = {}) {
   root.innerHTML = `
   <main class="screen sound">
-    <p class="kicker">${fromSettings ? 'Settings' : 'One more thing'}</p>
+    <p class="kicker">${fromSettings ? 'Settings' : 'Last step'}</p>
     <h1>Sound check</h1>
     <p class="lead">The coach talks you through every session, so you can keep the phone on the floor.</p>
     <button class="btn btn-big" data-act="play">Play the voice</button>
-    <p class="small">Nothing? Flip the switch on the side of your phone so it isn't on silent, and turn the volume up.</p>
+    <p class="small">If you hear nothing, flip the switch on the side of your phone so it isn't on silent, and turn the volume up.</p>
     <button class="btn btn-primary" data-act="next">${fromSettings ? 'Back' : 'It works'}</button>
   </main>`;
   on(root, {

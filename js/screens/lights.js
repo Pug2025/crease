@@ -111,11 +111,11 @@ export function render(root, app, { first = false } = {}) {
     setKicker();
     const st = lightsStats(s.lights);
     const status = st.left === 0
-      ? 'Today\'s 3 rounds are done. This one is practice.'
+      ? 'You\'ve played your 3 rounds for today. This one is practice and won\'t count.'
       : `Round ${st.today + 1} of ${COUNTED_PER_DAY} today`;
     info.innerHTML = `
-      <p>Tap when the light comes on. ${TAPS} lights.</p>
-      <p>Your score is your middle time. Lower is faster.</p>
+      <p>A light will come on ${TAPS} times. Tap the screen as fast as you can each time.</p>
+      <p>Your score is how fast you usually tap. A lower number is faster.</p>
       <p class="lt-status">${esc(status)}</p>`;
     buttons.innerHTML = '<button class="btn btn-go" data-act="go">Start</button>';
   }
@@ -182,13 +182,13 @@ export function render(root, app, { first = false } = {}) {
     if (masks.length) celebrate({ big: true }); else if (r.best) celebrate();
     light.classList.toggle('best', r.best);
     show(String(r.ms), r.best ? 'Best' : 'ms');
-    const line = !r.counted ? 'Practice round. Only 3 rounds a day count.'
+    const line = !r.counted ? 'This was a practice round. Your first 3 rounds each day are the ones that count.'
       : r.best ? `New best. Your old best was ${r.was} ms.`
       : r.first ? 'Your first score.'
       : `Best: ${r.was} ms.`;
     info.innerHTML = `
       <p class="lt-line${r.best ? ' lt-gold' : ''}">${esc(line)}</p>
-      <p class="lt-status">Middle of ${TAPS} taps · fastest ${r.fastest} ms${r.counted ? ` · round ${r.round} of ${COUNTED_PER_DAY} today` : ''}</p>
+      <p class="lt-status">Your fastest tap was ${r.fastest} ms${r.counted ? ` · round ${r.round} of ${COUNTED_PER_DAY} today` : ''}</p>
       ${maskLinesHtml(masks)}`;
     buttons.innerHTML = `
       <button class="btn lt-again" data-act="again">Go again</button>

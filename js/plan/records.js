@@ -47,9 +47,9 @@ export function bestFor(records, id, v) {
 
 // The line on Done after he saves. prev: his best before this one (a number) or null.
 export function recordWords(prev, n) {
-  if (prev === null || prev === undefined) return `First record: ${n}.`;
+  if (prev === null || prev === undefined) return `Your first record is ${n}.`;
   if (n > prev) return `New best: ${n}. Your old best was ${prev}.`;
-  return `Today ${n}. Best ${prev}.`;
+  return `You did ${n} today. Your best is ${prev}.`;
 }
 
 // Saves one record and checks Dad's challenge. Returns what Done shows.
@@ -119,7 +119,7 @@ export function challengeTile(save) {
   const ch = save?.challenge;
   if (!ch || !RECORD_IDS.includes(ch.id)) return null;
   const v = finisherVersion(save, ch.id);
-  if (ch.beaten) return { beaten: true, text: `Dad's challenge beaten: ${ch.n} ${recordName(ch.id, v).toLowerCase()}` };
+  if (ch.beaten) return { beaten: true, text: `You beat Dad's challenge: ${ch.n} ${recordName(ch.id, v).toLowerCase()}` };
   const best = bestFor(list(save), ch.id, v);
   return { beaten: false, text: `Dad's challenge: ${challengeWhat(save, ch)}`, best: best ? `Your best: ${best.n}` : 'No record yet' };
 }
