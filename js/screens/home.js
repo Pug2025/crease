@@ -8,6 +8,7 @@ import { splitsState, settleSplits } from '../plan/splits.js';
 import { lightsStats, COUNTED_PER_DAY } from './lights.js';
 import { streakStats } from '../plan/streak.js';
 import { cardStats, maskState, claimMasks } from '../plan/card.js';
+import { challengeTile } from '../plan/records.js';
 
 // ---- His record (pure: tests.mjs runs these in Node) ----
 
@@ -123,6 +124,12 @@ export function maskNewsHtml(list = []) {
     <span class="mn-row"><span class="mn-pic">${maskImg(m)}</span><span class="mn-text">New mask: ${esc(m.name)}!</span></span>`).join('')}</button>`;
 }
 
+// Dad's challenge, a slim line on Today: the target and his best so far, or that he beat it.
+export function challengeHtml(t) {
+  if (!t) return '';
+  return `<p class="chal${t.beaten ? ' beaten' : ''}"><span class="chal-text">${esc(t.text)}</span>${t.best ? `<span class="chal-best">${esc(t.best)}</span>` : ''}</p>`;
+}
+
 function lastSession(save) {
   for (let i = save.log.length - 1; i >= 0; i--) {
     const e = save.log[i];
@@ -180,6 +187,7 @@ export function render(root, app) {
       </section>
       <button class="btn btn-go btn-start" data-act="start">Start today's training</button>
       <p class="small center">A few quick questions, then your session.</p>`}
+    ${challengeHtml(challengeTile(s))}
     <div class="mini-tiles">${lightsLineHtml(s.lights, now)}${handsLineHtml(s.hands, now)}${splitsLineHtml(splits)}</div>
     ${weekStripHtml(weekStats(s.log, s.days, now, st.savedDays))}
     <footer class="home-foot">

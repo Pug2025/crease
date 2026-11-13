@@ -5,6 +5,8 @@ import { byId } from '../../data/exercises.js';
 import { buildSession, makeContext, phrasesOf } from '../plan/build.js';
 import { settle, knownYesterdayGame, dayKey, answersText, grabText } from '../plan/decide.js';
 import { ladderItem } from '../plan/splits.js';
+import { sessionCounts } from '../plan/card.js';
+import { finishersDone } from '../plan/records.js';
 import * as audio from '../timer/audio.js';
 import { keepAwake } from '../timer/wakelock.js';
 
@@ -65,14 +67,19 @@ function finish(app, answers) {
   s.days[dayKey(now)] = day;
   app.persist();
   if (!d.type) { app.go('home'); return; }
-  app.go('preview', { type: d.type, reason: day.reason, answers: day });
+  app.go('preview', { type: d.type, reason: day.reason, answers: day, boss: !!day.boss });
 }
 
-// params: { type, reason, extra, dad, answers (the day's check-in record) }.
+// params: { type, reason, extra, dad, answers (the day's check-in record), boss }.
+// The drills that change and the finisher follow how many of each he has done, so the preview
+// shows exactly what the player runs.
 export function preview(root, app, params) {
-  const { type, reason = '', extra = false, dad = false, answers = null } = params;
+  const { type, reason = '', extra = false, dad = false, answers = null, boss = false } = params;
   const s = app.save;
-  const ctx = makeContext({ room: app.room || 'big', hour: new Date().getHours(), versions: s.versions, ladder: ladderItem(s) });
+  const ctx = makeContext({
+    room: app.room || 'big', hour: new Date().getHours(), versions: s.versions, ladder: ladderItem(s),
+    rot: sessionCounts(s.log)[type] || 0, fin: finishersDone(s.log, type), boss: boss && type === 'strength',
+  });
   const session = buildSession(type, ctx);
 
   // What changes for the room or the hour (contract C10), said only when this session has such a drill.

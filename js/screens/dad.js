@@ -1,6 +1,7 @@
 // For Dad, behind a 4-digit PIN: his streak and saves, his last 14 days, redo today's check-in,
 // start any session, the splits ladder, and each drill's version.
-import { esc, on, minutes } from '../ui.js';
+import { esc, on, minutes, stepper } from '../ui.js';
+import { RECORD_IDS, RECORD_MAX, CHALLENGE_MIN, recordName, recordTitle, bestFor, finisherVersion, setChallenge, clearChallenge, challengeWhat } from '../plan/records.js';
 import { SESSIONS, SESSION_ORDER } from '../../data/sessions.js';
 import { DRILLS, byId } from '../../data/exercises.js';
 import { targetText } from '../../data/copy.js';
@@ -44,6 +45,7 @@ export function endingText(e) {
   if (e.extra) t += ' · extra, doesn\'t count';
   else if (!counts(e)) t += ' · didn\'t count';
   if (e.dad && !e.extra) t += ' · Picked by Dad';
+  if (e.boss) t += ' · Boss beaten';
   return t;
 }
 
@@ -57,7 +59,7 @@ export function dadDays(save, now = new Date()) {
     const d = fromKey(k);
     const entries = (byDay[k] || []).map((e) => ({
       e,
-      session: SESSIONS[e.type] ? `${SESSIONS[e.type].name} · ${minutes(e.secs || 0)} min` : '',
+      session: SESSIONS[e.type] ? `${SESSIONS[e.type].name}${e.bossDay || e.boss ? ' · Boss' : ''} · ${minutes(e.secs || 0)} min` : '',
       ending: endingText(e),
       skips: (e.skipped || []).map((sk) => `Skipped ${byId[sk.id]?.name || sk.id}: ${SKIP_WHY[sk.why] || sk.why}`),
     }));
@@ -99,6 +101,30 @@ export function versionLine(d, k) {
   return `${v.name}: ${v.how ? `${v.how} ` : ''}${targetText(d, dose)}`;
 }
 
+// The version a challenge on this drill means: the one his finisher runs now.
+export const challengeVersion = finisherVersion;
+
+// Dad's challenge: pick a record drill and a number. chal is what he has picked so far.
+function challengeSection(s, chal) {
+  const ch = s.challenge;
+  const now = ch ? (ch.beaten ? `Reached: ${challengeWhat(s, ch)}.` : `Now: ${challengeWhat(s, ch)}.`) : 'No challenge set.';
+  const best = bestFor(s.records, chal.id, chal.v);
+  return `
+    <section class="set-group dad-chal">
+      <h2>Challenge</h2>
+      <p class="small">Set him a number to reach on one finisher drill. Reaching it counts. He sees it on Today, with his best. ${esc(now)}</p>
+      <div class="ver-seg chal-seg">${RECORD_IDS.map((id) => `<button data-act="chalPick" data-arg="${id}" aria-pressed="${id === chal.id}">${esc(recordName(id, challengeVersion(s, id)))}</button>`).join('')}</div>
+      <div class="rec-step chal-step">
+        <span class="chal-what"><span>${esc(recordTitle(chal.id, chal.v))}</span><span class="chal-his">${best ? `His best: ${best.n}` : 'No record yet'}</span></span>
+        <button class="rec-btn" data-step="-1" aria-label="One less">−</button>
+        <output class="rec-n">${chal.n}</output>
+        <button class="rec-btn" data-step="1" aria-label="One more">+</button>
+      </div>
+      <button class="btn btn-primary" data-act="chalSet">Set</button>
+      ${ch ? '<button class="btn" data-act="chalClear">Clear</button>' : ''}
+    </section>`;
+}
+
 export function render(root, app, { unlocked = false, note = '', scroll = 0 } = {}) {
   if (!unlocked) { pinScreen(root, app); return; }
   const s = app.save;
@@ -112,6 +138,12 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
   const sp = splitsState(s, now);
   const card = cardStats(s, now);
   const st = card.streak;
+  // The challenge Dad is setting: the drill he picked (or today's challenge), at its finisher
+  // version, and a number that starts a little over his best.
+  const pickId = app.dadChal?.id ?? s.challenge?.id ?? RECORD_IDS[0];
+  const pickV = challengeVersion(s, pickId);
+  const pickBest = bestFor(s.records, pickId, pickV);
+  const chal = { id: pickId, v: pickV, n: Math.max(CHALLENGE_MIN, app.dadChal?.n ?? (s.challenge?.id === pickId ? s.challenge.n : pickBest ? pickBest.n + 2 : 20)) };
 
   const sessions = SESSION_ORDER.map((t) => `<button class="set-row" data-act="run" data-arg="${t}"><span>${esc(SESSIONS[t].name)}</span><small>Start now</small></button>`).join('');
   const drills = GROUPS.map(([g, title]) => {
@@ -166,6 +198,7 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
       <p class="small">${asCounted ? 'His normal session: no skip buttons, saved to his record.' : 'Skip buttons to click through. Nothing is saved.'}</p>
       ${sessions}
     </section>
+    ${challengeSection(s, chal)}
     <section class="set-group">
       <h2>Splits ladder</h2>
       <p class="small">Rung ${sp.rung} of ${TOP}: <b>${esc(sp.r.name)}</b>${sp.r.how ? `. ${esc(sp.r.how)}` : '.'} These are side splits: his legs go out to the sides, the way they do in the butterfly. He climbs by doing the hold, one a day, ${sp.need} holds a rung. ${LADDER.filter((r) => r.watch).length} rungs wait for you.</p>
@@ -190,7 +223,27 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
   </main>`;
   if (scroll) window.scrollTo(0, scroll);
 
+  const chalBox = root.querySelector('.chal-step');
+  stepper(chalBox, () => chal.n, (n) => {
+    chal.n = Math.min(RECORD_MAX, Math.max(CHALLENGE_MIN, n));
+    app.dadChal = { id: chal.id, n: chal.n };
+    chalBox.querySelector('.rec-n').textContent = String(chal.n);
+  });
+
   on(root, {
+    chalPick: (id) => { app.dadChal = { id }; again({ scroll: window.scrollY }); },
+    chalSet: () => {
+      setChallenge(s, chal.id, chal.n, now);
+      app.persist();
+      app.dadChal = null;
+      again({ note: `Challenge set: ${challengeWhat(s, s.challenge)}.`, scroll: window.scrollY });
+    },
+    chalClear: () => {
+      clearChallenge(s);
+      app.persist();
+      app.dadChal = null;
+      again({ note: 'Challenge cleared.', scroll: window.scrollY });
+    },
     back: () => app.go('settings'),
     counts: (v) => { app.dadCounts = v === 'yes'; again({ scroll: window.scrollY }); },
     // dad stays true for his counted runs too, so the 14-day list can say "Picked by Dad".

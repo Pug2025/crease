@@ -1,6 +1,7 @@
 // Everything Crease remembers lives on the phone, in one saved object.
 // Phase 1 keeps it in localStorage: a year of sessions is well under 1 MB.
 import { seedMasks } from './plan/card.js';
+import { RECORD_IDS } from './plan/records.js';
 
 const KEY = 'crease.save';
 const VERSION = 1;
@@ -28,8 +29,19 @@ export function blank() {
     // splits rung he reached (so Dad moving him back never lowers Flex), and the masks he has
     // earned (kept for good, and each shown as new only once).
     card: { earned: ['m0'] },
+    // His finisher counts: { date, id, v, n }, one per finisher he entered (js/plan/records.js).
+    records: [],
+    // Dad's challenge: { id, n, set, beaten }, or null.
+    challenge: null,
   };
 }
+
+// A record or a challenge from the save, or nothing if it isn't one.
+const isRecord = (r) => r && typeof r === 'object' && typeof r.id === 'string' && Number.isInteger(r.v) && Number.isFinite(r.n);
+// A challenge keeps only { id, n, set, beaten }; an old `v` is dropped, and one whose drill isn't a
+// record drill is dropped whole, so it can never break Dad's screen or Today.
+export const cleanChallenge = (c) => (c && typeof c === 'object' && RECORD_IDS.includes(c.id) && Number.isFinite(c.n)
+  ? { id: c.id, n: c.n, set: c.set || null, beaten: c.beaten || null } : null);
 
 export function load() {
   try {
@@ -51,6 +63,8 @@ export function load() {
           splits: { ...b.splits, ...(s.splits || {}), watched: Array.isArray(s.splits?.watched) ? s.splits.watched : [] },
           streak: { gifts: Array.isArray(s.streak?.gifts) ? s.streak.gifts.filter((g) => typeof g === 'string') : [] },
           card: s.card && typeof s.card === 'object' ? s.card : {},
+          records: Array.isArray(s.records) ? s.records.filter(isRecord) : [],
+          challenge: cleanChallenge(s.challenge),
         };
         // A save from before masks were kept: every mask he has now is his, with no "New mask" for any.
         if (!Array.isArray(out.card.earned)) { seedMasks(out); save(out); }

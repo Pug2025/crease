@@ -1,7 +1,7 @@
 // Turns a session template into a timed list of steps with voice cues.
 // Pure functions: no DOM, so tests.mjs can run them in Node.
 import { DRILLS, byId } from '../../data/exercises.js';
-import { SESSIONS, SESSION_ORDER } from '../../data/sessions.js';
+import { SESSIONS, SESSION_ORDER, FINISHER, BOSS } from '../../data/sessions.js';
 import { LADDER } from '../../data/splits.js';
 import { SAY, targetSay, targetText, setsSay, setSay } from '../../data/copy.js';
 
@@ -15,9 +15,16 @@ const MIN_GAP = 4; // seconds between two spoken cues
 // versions: Dad's chosen version per drill id ({ ST1: 0 }); anything not listed uses the drill's start.
 // avoid: drill ids left out of this session. noJumps: every drill with jumps uses its no-jump version.
 // ladder: today's splits hold as a session item ({ id, as }), or null while the ladder rests.
-export function makeContext({ room = 'big', hour = new Date().getHours(), feel = 'good', versions = {}, avoid = [], noJumps = false, ladder = null } = {}) {
-  return { room, hour, feel, versions, avoid: [...(avoid || [])], noJumps: !!noJumps, ladder, small: room === 'bedroom', early: hour < 9 };
+// rot: counted sessions of this type he has done (picks the drills that change).
+// fin: finishers of this type he has done (picks the finisher). boss: a Boss day (Strength only).
+// All three are kept in the saved session, so a resumed session rebuilds the same.
+export function makeContext({ room = 'big', hour = new Date().getHours(), feel = 'good', versions = {}, avoid = [], noJumps = false, ladder = null, rot = 0, fin = 0, boss = false } = {}) {
+  return { room, hour, feel, versions, avoid: [...(avoid || [])], noJumps: !!noJumps, ladder, small: room === 'bedroom', early: hour < 9, rot: count(rot), fin: count(fin), boss: !!boss };
 }
+const count = (n) => (Number.isInteger(n) && n > 0 ? n : 0);
+
+// The jump cap: 50 foot landings a session (PLAN.md, jump caps). tests.mjs holds every build to it.
+export const JUMP_CAP = 50;
 
 const chosenVersion = (drill, ctx) => {
   const v = ctx.versions?.[drill.id];
@@ -153,15 +160,60 @@ function switchStep(r, o) {
 // Things to fetch before he starts, as the preview says them ("Grab: the med ball and a towel.").
 const GRAB = { 'med ball': 'the med ball', pillow: 'a pillow', towel: 'a towel', chair: 'a chair', cushions: 'some cushions' };
 
+// The drills that change: a block with `rotate` adds the pair for this session, by ctx.rot.
+export function rotationOf(block, rot = 0) {
+  if (!block.rotate) return block.items;
+  return [...block.items, ...block.rotate[count(rot) % block.rotate.length].map((id) => ({ id }))];
+}
+
+// Today's finisher, resolved like any item (Dad's version, jumps off, room, left out), as a
+// FINISHER.window-second set. null on any other session, or when every choice is left out.
+// Power's burpees are always FINISHER.powerVersion (Step-Back Burpees, no jumps), whatever the
+// room, the hour or Dad's burpee version: no landings after the jump work, and one record line.
+export function finisherFor(type, ctx) {
+  const pool = FINISHER[type];
+  if (!pool) return null;
+  const dose = { type: 'time', time: FINISHER.window, sets: 1 };
+  const get = (id, c = ctx) => resolveItem({ id, dose }, c);
+  if (type === 'strength') {
+    const start = count(ctx.fin) % pool.length;
+    for (let k = 0; k < pool.length; k++) {
+      const r = get(pool[(start + k) % pool.length]);
+      if (r) return r;
+    }
+    return null;
+  }
+  const id = pool[count(ctx.fin) % pool.length];
+  let r = ctx.noJumps ? null : get(id, { ...ctx, versions: { ...(ctx.versions || {}), [id]: FINISHER.powerVersion } });
+  if (r?.swappedFrom) r = null; // the room swapped it for something else: squats instead
+  return r || get(FINISHER.powerFallback);
+}
+
 // Today's splits hold goes in its own block just before the cool-down, on a warm body.
 // The Splits session has the ladder as its own main block, so nothing is added there.
-function blocksOf(s, ctx) {
-  const own = s.blocks.findIndex((b) => b.name === 'Splits');
-  if (own >= 0) return ctx.ladder ? s.blocks.map((b, i) => (i === own ? { ...b, items: [ctx.ladder] } : b)) : s.blocks;
+// The finisher block goes in just before that, after the main work.
+function blocksOf(s, ctx, type) {
+  let blocks = s.blocks.map((b) => (b.rotate ? { ...b, items: rotationOf(b, ctx.rot) } : b));
+  if (FINISHER[type]) blocks = [...blocks.slice(0, -1), { name: 'Finisher', finisher: true, items: [] }, blocks.at(-1)];
+  const own = blocks.findIndex((b) => b.name === 'Splits');
+  if (own >= 0) return ctx.ladder ? blocks.map((b, i) => (i === own ? { ...b, items: [ctx.ladder] } : b)) : blocks;
   // Never on a game day: a long static stretch right before he plays takes power out of his legs.
-  if (!ctx.ladder || s.noLadder) return s.blocks;
-  return [...s.blocks.slice(0, -1), { name: 'Splits', items: [ctx.ladder] }, s.blocks.at(-1)];
+  if (!ctx.ladder || s.noLadder) return blocks;
+  return [...blocks.slice(0, -1), { name: 'Splits', items: [ctx.ladder] }, blocks.at(-1)];
 }
+
+// The finisher's intro: "Finisher.", the drill, "As many as you can.", the window, then Dad's
+// version line, if any. A drill done on each side hears "Switch sides." halfway through the work;
+// "Left side first." is left out so the version line still starts inside the voice's limit.
+function finisherIntro(r, dur, first) {
+  const words = [SAY.finisher, `${r.name}.`, SAY.asMany, targetSay({}, { type: 'time', time: FINISHER.window })];
+  if (r.how) words.push(r.how);
+  const cues = [{ at: 0, beep: first ? null : 'end' }, { at: 0.3, say: words, must: true }, ...ticks(dur)];
+  return { kind: 'intro', dur, r, set: 0, sets: 1, finisher: true, cues: cues.filter((c) => c.beep !== null) };
+}
+
+// Foot landings in one session item.
+const jumpsOf = (it) => it.jumps * (it.circuit ? it.sets : it.sets * (it.drill.side && !it.drill.alternate ? 2 : 1));
 
 export function buildSession(type, ctx) {
   const s = SESSIONS[type];
@@ -169,9 +221,23 @@ export function buildSession(type, ctx) {
   const steps = [];
   let first = true;
 
-  for (const block of blocksOf(s, ctx)) {
+  const boss = !!ctx.boss && type === 'strength';
+  for (const block of blocksOf(s, ctx, type)) {
+    if (block.finisher) {
+      const r0 = finisherFor(type, ctx);
+      if (!r0) continue;
+      const r = { ...r0, target: `As many as you can in ${FINISHER.window} s`, finisher: true };
+      items.push({ ...r, block: block.name, main: false, sets: 1 });
+      steps.push(finisherIntro(r, INTRO_FIRST, first));
+      first = false;
+      const split = !!(r.drill.side && !r.drill.alternate);
+      const work = workStep(r, FINISHER.window, { set: 1, sets: 1, splitAt: split ? FINISHER.window / 2 : null });
+      steps.push({ ...work, finisher: true });
+      continue;
+    }
     if (block.circuit) {
-      const rounds = Math.max(1, block.circuit.rounds - (ctx.feel === 'tired' ? 1 : 0));
+      // A Boss day runs the circuit one more round.
+      const rounds = Math.max(1, (boss ? BOSS.rounds : block.circuit.rounds) - (ctx.feel === 'tired' ? 1 : 0));
       const work = block.circuit.work;
       // Each station is a slot of `work` seconds. A rep station gets its own window, up to the slot.
       // A hold gets its version's time, up to the slot, and the rest of the slot is a short rest.
@@ -233,9 +299,15 @@ export function buildSession(type, ctx) {
     if (st.r && !nums.has(st.r)) nums.set(st.r, ++drillNo);
     st.drillNo = st.r ? nums.get(st.r) : drillNo;
   });
-  const jumps = items.reduce((n, it) => n + it.jumps * (it.circuit ? it.sets : it.sets * (it.drill.side && !it.drill.alternate ? 2 : 1)), 0);
+  const jumps = items.reduce((n, it) => n + jumpsOf(it), 0);
   const grab = Object.keys(GRAB).filter((g) => items.some((it) => it.needs.includes(g))).map((g) => GRAB[g]);
-  return { type, name: s.name, blurb: s.blurb, items, steps, total: t, drills: drillNo, jumps, grab, ctx };
+  return { type, name: boss ? 'Boss day' : s.name, boss, blurb: s.blurb, items, steps, total: t, drills: drillNo, jumps, grab, ctx };
+}
+
+// The finisher in a built session: its item and its drill number, or null.
+export function finisherOf(session) {
+  const k = session.items.findIndex((it) => it.finisher);
+  return k < 0 ? null : { item: session.items[k], no: k + 1 };
 }
 
 // Every phrase a session can speak, for the voice recorder and the preloader.
@@ -260,6 +332,9 @@ export function everyLadder() {
 
 // Every way a session can be built: both rooms, morning and afternoon, each version Dad can set,
 // and with jumps off and drills left out. The tests check them all; the voice recorder records them all.
+// Strength and Power also run every rotation: k from 0 to 11 covers each pair of changing drills
+// (4 for Strength, 3 for Power) with each finisher (3 for Strength), and every other Strength is a Boss day.
+export const ROTATIONS = 12;
 export function everyContext() {
   const at = (v) => Object.fromEntries(DRILLS.map((d) => [d.id, Math.min(v, d.versions.length - 1)]));
   const versionSets = [['start', {}], ['easier', at(0)], ['standard', at(1)], ['harder', at(2)]];
@@ -269,7 +344,15 @@ export function everyContext() {
     for (const room of ['bedroom', 'big'])
       for (const hour of [7, 15])
         for (const [vname, versions] of versionSets)
-          for (const [lname, lim] of limits)
-            out.push({ type, vname, lname, tag: `${type}/${room}/${hour}h/${vname}/${lname}`, ctx: makeContext({ room, hour, versions, ...lim }) });
+          for (const [lname, lim] of limits) {
+            if (!FINISHER[type]) {
+              out.push({ type, vname, lname, tag: `${type}/${room}/${hour}h/${vname}/${lname}`, ctx: makeContext({ room, hour, versions, ...lim }) });
+              continue;
+            }
+            for (let k = 0; k < ROTATIONS; k++) {
+              const boss = type === 'strength' && k % 2 === 1;
+              out.push({ type, vname, lname, rot: k, boss, tag: `${type}/${room}/${hour}h/${vname}/${lname}/r${k}${boss ? '/boss' : ''}`, ctx: makeContext({ room, hour, versions, ...lim, rot: k, fin: k, boss }) });
+            }
+          }
   return out;
 }

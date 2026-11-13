@@ -48,3 +48,23 @@ export const today = () =>
 
 // A mask picture. If the file isn't there yet, the empty frame shows instead of a broken image.
 export const maskImg = (m, cls = '') => `<img class="mask-img${cls ? ` ${cls}` : ''}" src="${esc(maskSrc(m.id))}" alt="" onerror="this.hidden=true">`;
+
+// − and +: one a tap, and they keep going while held down. Not through on(): its double-tap
+// guard would drop quick taps here, and these never change the screen.
+export function stepper(box, get, set) {
+  let wait = null;
+  let rep = null;
+  const stop = () => { clearTimeout(wait); clearInterval(rep); wait = rep = null; };
+  for (const b of box.querySelectorAll('[data-step]')) {
+    const d = Number(b.dataset.step);
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      stop();
+      set(get() + d);
+      wait = setTimeout(() => { rep = setInterval(() => set(get() + d), 90); }, 450);
+    });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, stop);
+    b.addEventListener('click', (e) => { if (e.detail === 0) set(get() + d); }); // keyboard
+  }
+  return stop;
+}

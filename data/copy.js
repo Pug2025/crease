@@ -18,6 +18,9 @@ export const SAY = {
   // Said on Done when his streak reaches one of these, and when a mask unlocks.
   milestone: { 3: 'Three in a row.', 7: 'Seven in a row.', 14: 'Fourteen in a row.', 30: 'Thirty in a row.', 60: 'Sixty in a row.', 100: 'One hundred in a row.' },
   newMask: 'New mask.',
+  // The Finisher's intro: "Finisher." then the drill, then this, then the window.
+  finisher: 'Finisher.',
+  asMany: 'As many as you can.',
 };
 
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];

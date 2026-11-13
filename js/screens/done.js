@@ -1,12 +1,13 @@
 // The end of a session, finished or ended. Says why it counted or didn't,
 // then the payoff (streak, card, mask, save), the week strip and the season so far.
-import { esc, on, minutes } from '../ui.js';
+import { esc, on, minutes, stepper } from '../ui.js';
 import { byId } from '../../data/exercises.js';
 import { SAY } from '../../data/copy.js';
 import { weekStats, weekStripHtml, seasonStats, isTest, maskImg } from './home.js';
 import { settleSplits, splitsState } from '../plan/splits.js';
 import { countsForStreak } from '../plan/streak.js';
 import { cardStats, cardGains, pendingMasks, claimMasks } from '../plan/card.js';
+import { addRecord, bestFor, recordTitle, RECORD_MAX, RECORD_START } from '../plan/records.js';
 import * as audio from '../timer/audio.js';
 
 // What this one session changed: the card before it and after it. Pure, so tests.mjs checks it.
@@ -14,7 +15,7 @@ import * as audio from '../timer/audio.js';
 // claimed: the masks claimMasks just added for this session. Left out, it is the masks this
 // session newly met, so tests can check it without changing the save.
 export function payoff(save, log, now = new Date(), { test = false, claimed = null } = {}) {
-  const none = { streak: null, ratings: [], overall: null, tier: null, masks: [], saveEarned: false, milestone: null, say: [] };
+  const none = { streak: null, ratings: [], overall: null, tier: null, boss: false, masks: [], saveEarned: false, milestone: null, say: [] };
   if (test || isTest(log) || !countsForStreak(log) || !save.log.includes(log)) return none;
   // Judged on the day the session started, so one that runs past midnight still gets its milestone and save.
   const started = new Date(log.date);
@@ -37,6 +38,7 @@ export function payoff(save, log, now = new Date(), { test = false, claimed = nu
     ratings: g.ratings,
     overall: g.overall,
     tier: g.tier,
+    boss: !!log.boss,
     masks,
     saveEarned: rose && after.streak.saveEarned,
     milestone,
@@ -51,6 +53,7 @@ export function payoffLines(p) {
   for (const r of p.ratings) lines.push({ kind: 'rating', text: `${r.label} ${r.from} → ${r.to}`, ...r });
   if (p.overall) lines.push({ kind: 'rating', text: `Overall ${p.overall.from} → ${p.overall.to}`, label: 'Overall', ...p.overall, overall: true });
   if (p.tier) lines.push({ kind: 'tier', text: `${p.tier} card.` });
+  if (p.boss) lines.push({ kind: 'boss', text: 'Boss beaten.' });
   for (const m of p.masks) lines.push({ kind: 'mask', text: `New mask: ${m.name}!`, mask: m });
   if (p.saveEarned) lines.push({ kind: 'save', text: 'Save earned.' });
   return lines;
@@ -90,6 +93,31 @@ export function splitsDone(st, moved, did) {
 
 const WHY = { hard: 'too hard', here: 'couldn\'t do it here' };
 
+// The finisher card: asked only when he did the finisher in a session that is in his record,
+// and only until he saves a number. Pure. start: where the stepper starts (his best, or 10).
+export function recordAsk(save, log, { test = false } = {}) {
+  const f = log?.finisher;
+  if (test || isTest(log) || !f?.did || f.n !== undefined || !save.log.includes(log)) return null;
+  const best = bestFor(save.records, f.id, f.v);
+  return { id: f.id, v: f.v, title: recordTitle(f.id, f.v), best: best ? best.n : null, start: best ? best.n : RECORD_START };
+}
+
+function recordHtml(ask) {
+  if (!ask) return '';
+  return `
+  <section class="rec" aria-label="Finisher">
+    <h2 class="rec-title">${esc(ask.title)}</h2>
+    <p class="rec-best">${ask.best === null ? 'First time' : `Best: ${ask.best}`}</p>
+    <div class="rec-step">
+      <button class="rec-btn" data-step="-1" aria-label="One less">−</button>
+      <output class="rec-n" aria-live="polite">${ask.start}</output>
+      <button class="rec-btn" data-step="1" aria-label="One more">+</button>
+    </div>
+    <button class="btn btn-primary" data-act="saveRec">Save</button>
+  </section>`;
+}
+
+
 // The title and the line under it. Pure, so tests.mjs can check every case.
 export function doneWords(log, { test = false } = {}) {
   const ended = log.stopped?.why === 'ended';
@@ -124,6 +152,8 @@ export function render(root, app, { session, log, test = false }) {
   const p = payoff(s, log, now, { test: isTestRun, claimed });
   const lines = payoffLines(p);
   const st = cardStats(s, now).streak;
+  const ask = recordAsk(s, log, { test: isTestRun });
+  let count = ask ? ask.start : 0;
 
   root.innerHTML = `
   <main class="screen done">
@@ -131,6 +161,7 @@ export function render(root, app, { session, log, test = false }) {
     <h1>${esc(title)}</h1>
     ${line ? `<p class="lead done-line">${esc(line)}</p>` : ''}
     ${payoffHtml(lines, s.card?.mask)}
+    ${recordHtml(ask)}
     <dl class="stats stats-2">
       <div><dt>Minutes</dt><dd>${minutes(log.secs)}</dd></div>
       <div><dt>Drills</dt><dd>${log.done.length}<small> of ${log.planned}</small></dd></div>
@@ -145,7 +176,23 @@ export function render(root, app, { session, log, test = false }) {
   // A test run only starts from Dad's screen, so it goes straight back there.
   // The coach says the milestone after "That's the session." Nothing plays without a recorded clip.
   if (p.say.length) audio.preload(p.say).then(() => audio.say(p.say)).catch(() => {});
+  const rec = root.querySelector('.rec');
+  const stopStep = rec ? stepper(rec, () => count, (n) => {
+    count = Math.min(RECORD_MAX, Math.max(0, n));
+    rec.querySelector('.rec-n').textContent = String(count);
+  }) : () => {};
   on(root, {
+    // Saved once. The card then says how it compares; skipping it just leaves it unsaved.
+    saveRec: () => {
+      stopStep();
+      const r = addRecord(s, { id: ask.id, v: ask.v, n: count }, new Date());
+      log.finisher = { ...log.finisher, n: r.n };
+      app.persist();
+      rec.classList.toggle('rec-new', r.best);
+      rec.innerHTML = `<h2 class="rec-title">${esc(ask.title)}</h2>
+        <p class="rec-result">${esc(r.words)}</p>
+        ${r.challengeBeaten ? '<p class="rec-chal">Dad\'s challenge beaten.</p>' : ''}`;
+    },
     home: () => (isTestRun ? app.go('dad', { unlocked: true }) : app.go('home')),
     wear: (id, el) => {
       s.card = { ...(s.card || {}), mask: id };
@@ -155,4 +202,5 @@ export function render(root, app, { session, log, test = false }) {
       box?.classList.add('worn');
     },
   });
+  return stopStep;
 }

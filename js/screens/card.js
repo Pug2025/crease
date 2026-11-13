@@ -3,6 +3,8 @@
 import { esc, on } from '../ui.js';
 import { cardStats, maskState } from '../plan/card.js';
 import { seasonStats, maskImg } from './home.js';
+import { recordRows } from '../plan/records.js';
+import { bossStats } from '../plan/decide.js';
 
 export const NAME_MAX = 12;
 
@@ -72,6 +74,23 @@ export function cardHtml(card, masks, info, edit = false) {
   ${card.nextTier ? `<p class="small center">${esc(card.nextTier.name)} at ${card.nextTier.at}.</p>` : ''}`;
 }
 
+const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const shortDate = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : `${MO[d.getMonth()]} ${d.getDate()}`; };
+
+// Records: each finisher drill at the version he does now, his best and its date, and the
+// Boss days he has beaten. His own count, so it sits apart from the ratings.
+export function recordsHtml(rows, bosses) {
+  return `
+  <section class="records">
+    <h2>Records <span class="rec-sub">40 s, as many as you can</span></h2>
+    <ul class="rec-list">${rows.map((r) => `
+      <li><span class="rl-name">${esc(r.name)}${r.tag ? ` <small>${esc(r.tag)}</small>` : ''}</span>
+        ${r.best ? `<b class="rl-n">${r.best.n}</b><span class="rl-date">${esc(shortDate(r.best.date))}</span>` : '<span class="rl-none">No record yet</span>'}</li>`).join('')}
+    </ul>
+    ${bosses > 0 ? `<p class="rec-boss">Bosses beaten: <b>${bosses}</b></p>` : ''}
+  </section>`;
+}
+
 export function render(root, app, { edit = false } = {}) {
   const s = app.save;
   const now = new Date();
@@ -84,6 +103,7 @@ export function render(root, app, { edit = false } = {}) {
   <main class="screen card-screen">
     <button class="back" data-act="back">Back</button>
     ${cardHtml(card, masks, { name: s.card.name, number: s.card.number, season }, edit)}
+    ${recordsHtml(recordRows(s), bossStats(s.log).beaten)}
     <section class="shelf">
       <h2>Masks <span class="shelf-count">${masks.count} of ${masks.list.length}</span></h2>
       <ul class="shelf-list">${shelfHtml(masks)}</ul>

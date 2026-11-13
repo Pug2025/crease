@@ -2,7 +2,7 @@
 // and his masks. Pure functions: tests.mjs runs them in Node.
 import { MASKS, FASTER } from '../../data/masks.js';
 import { countsForStreak, streakStats, streakDays } from './streak.js';
-import { dayKey } from './decide.js';
+import { dayKey, bossStats } from './decide.js';
 
 // How fast each rating climbs. Each curve is 50 + span·(1 − e^(−n/k)), so it rises quickly at
 // first and never passes 99. tests.mjs runs a simulated season against the targets.
@@ -123,6 +123,7 @@ export function maskFacts(save, now = new Date(), st = streakStats(save.log, sav
     rung: rungFor(save),
     lights: game(save.lights),
     hands: game(save.hands),
+    bosses: bossStats(save.log).beaten,
   };
 }
 
@@ -140,6 +141,7 @@ function rule(m, f) {
       return { met: target !== null && g.best <= g.first * FASTER, need: target === null ? `${GAME[m.game]} 10% faster` : GAME[m.game], have: g.best, goal: target, ms: true };
     }
     case 'comeback': return { met: f.comeback, need: '3-day streak after losing 7' };
+    case 'boss': return { met: f.bosses >= m.n, need: `${m.n} Boss days`, have: f.bosses, goal: m.n };
     default: return { met: false, need: '' };
   }
 }

@@ -692,3 +692,45 @@ img { max-width: 100%; }
 .gb-pips { grid-template-columns: repeat(12, 1fr); }
 .hands[data-state="result"] .gb-pad, .hands[data-state="intro"] .gb-pad { opacity: .6; }
 @media (max-height: 700px) { .gb-read .lt-num { font-size: 3rem; } .gb-read { min-height: 3.4rem; } }
+
+/* Finisher, records, Boss day and Dad's challenge, 12 November 2026 */
+/* Done: his finisher number. A big − and + around the count, then Save. */
+.rec { display: grid; gap: 8px; background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 14px; }
+.rec-title { font-family: var(--display); font-weight: 900; font-size: 1.7rem; line-height: 1; text-transform: uppercase; margin: 0 !important; }
+.rec-best { color: var(--ink2); font-weight: 700; }
+.rec-step { display: grid; grid-template-columns: 72px minmax(0, 1fr) 72px; gap: 10px; align-items: center; }
+.rec-btn { min-height: 72px; border-radius: 16px; border: 3px solid var(--ink); background: transparent; color: var(--ink); font-family: var(--display); font-weight: 900; font-size: 2.6rem; line-height: 1; touch-action: manipulation; }
+.rec-btn:active { background: var(--crease-soft); }
+.rec-n { text-align: center; font-family: var(--display); font-weight: 900; font-size: 4.4rem; line-height: .9; font-variant-numeric: tabular-nums; }
+.rec-result { font-weight: 700; font-size: 1.25rem; }
+.rec.rec-new { border-color: var(--kick); }
+.rec-chal, .po-boss { font-family: var(--display); font-weight: 900; font-size: 1.8rem; text-transform: uppercase; line-height: 1; }
+.rec-chal { justify-self: start; background: var(--kick); color: #0D1520; padding: 4px 10px 2px; border-radius: 8px; }
+
+/* Card: Records, compact rows between the card and the shelf. */
+.records h2 { font-family: var(--display); font-weight: 900; font-size: 1.8rem; text-transform: uppercase; margin: 6px 0 8px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.rec-sub { font-family: var(--body); font-weight: 700; font-size: .95rem; text-transform: none; color: var(--ink2); }
+.rec-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.rec-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline; padding: 8px 12px; background: var(--card); border: 2px solid var(--line); border-radius: 12px; }
+.rl-name { font-weight: 700; min-width: 0; }
+.rl-name small { color: var(--crease-deep); font-weight: 700; }
+.rl-n { font-family: var(--display); font-weight: 900; font-size: 1.7rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.rl-date { color: var(--ink2); font-size: .9rem; min-width: 3.4em; text-align: right; }
+.rl-none { grid-column: 2 / -1; color: var(--ink2); font-size: .95rem; }
+.rec-boss { margin-top: 8px !important; font-weight: 700; color: var(--ink2); }
+.rec-boss b { color: var(--ink); font-family: var(--display); font-weight: 900; font-size: 1.4rem; }
+
+/* Today: Dad's challenge, one slim line. Yellow edge once he beats it. */
+.chal { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; padding: 10px 14px; background: var(--card); border: 2px solid var(--line); border-radius: 14px; }
+.chal-text { font-weight: 700; }
+.chal-best { color: var(--ink2); font-size: .95rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chal.beaten { border-color: var(--kick); }
+
+/* Dad: the challenge. Four drills two by two, then the number. */
+.chal-seg { grid-auto-flow: row; grid-template-columns: 1fr 1fr; }
+.chal-seg button { padding: 4px 6px; }
+.chal-step { grid-template-columns: 56px minmax(0, 1fr) 56px; }
+.chal-step .rec-btn { min-height: 56px; font-size: 2rem; }
+.chal-step .rec-n { font-size: 2.6rem; }
+.chal-what { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; font-weight: 700; }
+.chal-his { color: var(--ink2); font-weight: 700; font-variant-numeric: tabular-nums; }

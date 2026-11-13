@@ -4,7 +4,8 @@
 //
 // by: 'streak' best streak ever · 'sessions' counted sessions · 'type' counted sessions of one
 // kind · 'rung' splits rung reached · 'faster' best counted score in a game at least 10% under
-// his first counted score · 'comeback' a 3-day streak after losing one of 7 or more.
+// his first counted score · 'comeback' a 3-day streak after losing one of 7 or more ·
+// 'boss' Boss days beaten.
 // secret: the shelf shows "Secret" and "???" until he earns it.
 export const MASKS = [
   { id: 'm0', name: 'Rookie', by: 'streak', n: 0 },
@@ -24,6 +25,7 @@ export const MASKS = [
   { id: 'm14', name: 'Ace', by: 'type', type: 'gameday', n: 5, secret: true },
   { id: 'm15', name: 'Phoenix', by: 'comeback', secret: true },
   { id: 'm16', name: 'Titan', by: 'sessions', n: 100 },
+  { id: 'm17', name: 'Cyclops', by: 'boss', n: 3 },
 ];
 
 // How much faster his best must be than his first counted score: 10%.

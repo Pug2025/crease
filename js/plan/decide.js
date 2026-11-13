@@ -5,7 +5,8 @@
 //            tomorrow: 'game' | 'practice' | 'none', yesterdayGame: true | false | undefined }
 // log: the saved session log. days: saved check-in answers by date (see settle()).
 import { byId } from '../../data/exercises.js';
-import { SESSIONS } from '../../data/sessions.js';
+import { SESSIONS, BOSS } from '../../data/sessions.js';
+import { word } from '../../data/copy.js';
 
 export function dayKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -55,7 +56,38 @@ export function knownYesterdayGame(log, days, now = new Date()) {
   return undefined;
 }
 
+// Boss days. total: his counted sessions. since: counted sessions after his last Boss win (or
+// all of them, before the first). beaten: Boss days won. A Boss win is a Boss day that ran to
+// the end and counted (log entry boss: true). Dad's test runs never count.
+export function bossStats(log = []) {
+  let total = 0;
+  let since = 0;
+  let beaten = 0;
+  for (const e of log) {
+    if (!e || !counted(e) || !e.type || e.test) continue;
+    total++;
+    if (e.boss) { beaten++; since = 0; } else since++;
+  }
+  return { total, since, beaten };
+}
+
+// Is today's Strength a Boss day? Only when the rules already chose Strength, he has done at
+// least BOSS.after sessions and BOSS.every since the last Boss win, and there's no practice today
+// and no game tomorrow (a game tomorrow already makes it Stretch).
+export function bossDue(d, answers, log) {
+  if (d.type !== 'strength' || answers.today === 'practice' || answers.tomorrow === 'game') return null;
+  const b = bossStats(log);
+  return b.total >= BOSS.after && b.since >= BOSS.every ? b : null;
+}
+
+// Today's session: the rules, then the Boss flag on a Strength day.
 export function decide(answers, log, days, now = new Date()) {
+  const d = rules(answers, log, days, now);
+  const b = bossDue(d, answers, log);
+  return b ? { ...d, boss: true, since: b.since, firstBoss: b.beaten === 0 } : d;
+}
+
+function rules(answers, log, days, now) {
   const by = doneByDay(log);
   const on = (n, type) => (by[dayKey(shift(now, n))] || []).includes(type);
   const trained = (n) => (by[dayKey(shift(now, n))] || []).length > 0;
@@ -132,6 +164,7 @@ export function reasonText(d, now = new Date()) {
     return date.toLocaleDateString('en-CA', { month: 'long', day: 'numeric' });
   };
   const weekday = now.toLocaleDateString('en-CA', { weekday: 'long' });
+  if (d.boss) return d.firstBoss ? 'Three rounds today.' : `Three rounds today. You've done ${word(d.since)} sessions since the last one.`;
   switch (d.why) {
     case 'game-today': return 'Game today, so this one is short and easy.';
     case 'after-game': return 'You played today, so you only stretch.';
@@ -205,7 +238,11 @@ export function settle(answers, log, days, now = new Date()) {
   let reason = reasonText(d, now);
   // A redo can't make it harder: keep the earlier session and its reason.
   if (d.type && EASIER.includes(prev?.type) && EASIER.indexOf(d.type) < EASIER.indexOf(prev.type)) {
-    d = { ...d, type: prev.type, why: 'kept', kept: true, blocked: undefined, last: undefined };
+    d = { ...d, type: prev.type, why: 'kept', kept: true, blocked: undefined, last: undefined, boss: !!prev.boss };
+    reason = prev.reason || '';
+  } else if (d.boss && prev?.type && !prev.boss) {
+    // A Boss day is harder than the Strength he was given first: a redo keeps the plain one.
+    d = { ...d, why: 'kept', kept: true, boss: false };
     reason = prev.reason || '';
   }
   const day = {
@@ -214,6 +251,7 @@ export function settle(answers, log, days, now = new Date()) {
     when: a.today === 'game' ? a.when ?? null : null,
     yesterdayGame: a.yesterdayGame ?? null,
     type: d.type ?? prev?.type ?? null,
+    boss: d.type ? !!d.boss : !!prev?.boss,
     reason: d.type ? reason : prev?.reason ?? '',
     at: prev?.at ?? now.toISOString(),
     tries: (prev?.tries || 0) + 1,

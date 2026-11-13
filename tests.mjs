@@ -50,6 +50,7 @@ for (const [type, s] of Object.entries(SESSIONS))
 // 3. Every way a session can be built is safe and the right length.
 // (everyContext: both rooms, 7 am and 3 pm, each version Dad can set, jumps off, drills left out.)
 const LIMITS = { strength: [17, 24], power: [17, 25], gameday: [5, 11], stretch: [9, 16] };
+const BOSS_LIMITS = [23, 28];
 const JUMP_CAP = 50;
 const draws = new Set();
 const allPhrases = new Set();
@@ -58,7 +59,8 @@ for (const { type, vname, lname, tag, ctx } of everyContext()) {
   const s = buildSession(type, ctx);
   BUILT.push({ type, vname, lname, tag, ctx, s });
   const min = s.total / 60;
-  const [lo, hi] = LIMITS[type];
+  // A Boss day is a Strength with a third round of the circuit: about 6 minutes longer.
+  const [lo, hi] = ctx.boss ? BOSS_LIMITS : LIMITS[type];
   if (vname === 'start' && lname !== 'avoid') ok(min >= lo && min <= hi, `${tag}: ${min.toFixed(1)} min, expected ${lo}-${hi}`);
   else ok(min <= hi + 2, `${tag}: ${min.toFixed(1)} min, too long with Dad's versions`);
   ok(s.jumps <= JUMP_CAP, `${tag}: ${s.jumps} jumps, cap is ${JUMP_CAP}`);
@@ -293,7 +295,7 @@ process.on('exit', (code) => {
 
   // Item 6 and 14: an ended session counts by the same test as a finished one.
   const str = build('strength');
-  ok(str.drills === 15, 'player: Strength has 15 drills');
+  ok(str.drills === 16, 'player: Strength has 16 drills (15 and the finisher)');
   const e13 = ended(str, upTo(str, 13));
   ok(e13.completed && e13.short === null && e13.reached === 13 && e13.need === 8 && counts(e13), 'player: Strength ended at drill 13 of 15 counts');
   const e5 = ended(str, upTo(str, 5));
@@ -309,7 +311,8 @@ process.on('exit', (code) => {
   ok(noMain.short === 'main' && !noMain.completed && !counts(noMain), 'player: skipping the whole circuit does not count');
   const halfMain = settle(str, { type: 'strength', done: [], skipped: [], stopped: null }, upTo(str, 15), circuit.slice(0, 3), 15);
   ok(halfMain.completed && halfMain.short === null, 'player: doing half the circuit and half of everything counts');
-  ok(noMain.done.length === 9 && !noMain.done.some((id) => ['ST1', 'ST3', 'ST4', 'S4', 'ST2', 'W7'].includes(id)), 'player: skipped drills are left out of log.done');
+  // The one circuit drill left in log.done is the finisher's push-ups, a drill number of its own.
+  ok(noMain.done.length === 9 && noMain.done.filter((id) => ['ST1', 'ST3', 'ST4', 'S4', 'ST2', 'W7'].includes(id)).join() === 'ST1', 'player: skipped drills are left out of log.done');
   const pow = build('power');
   const p10 = ended(pow, upTo(pow, 10));
   ok(p10.completed && p10.done.includes('P11') && p10.done.includes('P12'), 'player: Power ended at drill 10 with the jumps done counts, jump drills in log.done');
@@ -1114,7 +1117,7 @@ process.on('exit', (code) => {
   globalThis.CREASE_SEASON = TARGETS; // printed by: node tests.mjs season
 
   // ---- Masks ----
-  ok(MASKS.length === 17 && MASKS.every((m, i) => m.id === `m${i}`), 'masks: seventeen, m0 to m16');
+  ok(MASKS.length === 18 && MASKS.every((m, i) => m.id === `m${i}`), 'masks: eighteen, m0 to m17');
   ok(MASKS.slice(0, 7).map((m) => `${m.name}:${m.by}:${m.n}`).join() === 'Rookie:streak:0,Ice:streak:3,Bolt:streak:7,Shark:streak:14,Wolf:streak:30,Dragon:streak:60,Champ:streak:100', 'masks: the first seven are the streak masks, unchanged');
   const ms = card.maskState({ log: [...run(1, 7), ...run(20, 21)], streak: { gifts: [] }, card: {} }, day(21, 18));
   ok(ms.list.filter((m) => m.unlocked).map((m) => m.name).join() === 'Rookie,Ice,Bolt', 'masks: unlocked by his best streak, so a broken streak keeps them');
@@ -1329,7 +1332,7 @@ if (process.argv[2] === 'season') {
   ok(tile.includes('Glove or Blocker') && tile.includes('<b>405 ms</b>') && tile.includes('aria-label="3 of 3 rounds played today"') && (tile.match(/class="on"/g) || []).length === 3, 'Today: Glove or Blocker tile, best and 3 dots');
   ok(home.lightsLineHtml([], day(3)).includes('No score yet') && home.lightsLineHtml([], day(3)).includes('0 of 3 rounds played today'), 'Today: Lights tile with no score yet');
   ok(home.maskNewsHtml([{ id: 'm10', name: 'Spider' }]).includes('New mask: Spider!') && home.maskNewsHtml([]) === '', 'Today: "New mask: Spider!" banner');
-  ok(fs.readFileSync('js/screens/settings.js', 'utf8').includes('You earn masks from streaks, sessions, the two games and the splits. Two are secret.'), 'Settings: the Masks row');
+  ok(fs.readFileSync('js/screens/settings.js', 'utf8').includes('You earn masks from streaks, sessions, Boss days, the two games and the splits. Two are secret.'), 'Settings: the Masks row');
   ok(fs.readFileSync('js/app.js', 'utf8').includes('hands: hands.render'), 'app: the hands route');
 }
 
@@ -1338,4 +1341,294 @@ if (process.argv[2] === 'season') {
   const { SAY } = await import('./data/copy.js');
   const clips = JSON.parse(fs.readFileSync('audio/clips.json', 'utf8'));
   for (const p of [...Object.values(SAY.milestone), SAY.newMask]) ok(clips[p] && fs.existsSync(`audio/${clips[p]}`), `voice: no clip for "${p}"`);
+}
+
+// ===== Finisher, records, sessions that change, Boss day, Dad's challenge (12 November 2026) =====
+{
+  const { finisherFor, finisherOf, rotationOf, ROTATIONS, JUMP_CAP: CAP } = await import('./js/plan/build.js');
+  const { FINISHER, BOSS } = await import('./data/sessions.js');
+  const { SAY } = await import('./data/copy.js');
+  const R = await import('./js/plan/records.js');
+  const { decide, settle: settleDay, reasonText, bossStats, dayKey: dayKeyOf } = await import('./js/plan/decide.js');
+  const { settle: settleRun } = await import('./js/screens/player.js');
+  const { payoff, payoffLines, recordAsk } = await import('./js/screens/done.js');
+  const card = await import('./js/plan/card.js');
+  const { MASKS } = await import('./data/masks.js');
+  const { challengeHtml } = await import('./js/screens/home.js');
+  const { recordsHtml } = await import('./js/screens/card.js');
+  const { load } = await import('./js/store.js');
+  const ctxOf = (o = {}) => makeContext({ room: 'big', hour: 15, ...o });
+  const fin = (s) => finisherOf(s)?.item;
+  const said = (st) => st.cues.filter((c) => c.say).flatMap((c) => c.say);
+
+  ok(CAP === 50 && FINISHER.window === 40 && FINISHER.powerVersion === 0, 'finisher: 40 s, cap 50, burpees at version 0');
+
+  // Which finisher, and the rotation by finishers done.
+  const sf = (o) => fin(buildSession('strength', ctxOf(o)));
+  ok([0, 1, 2, 3].map((k) => sf({ fin: k }).drill.id).join() === 'ST1,ST3,S4,ST1', 'finisher: Strength rotates push-ups, squats, side lunges');
+  for (const room of ['bedroom', 'big']) for (const hour of [7, 15]) for (const noJumps of [false, true])
+    ok([0, 1, 2].map((k) => sf({ room, hour, noJumps, fin: k }).drill.id).join() === 'ST1,ST3,S4', `finisher: Strength in ${room} at ${hour}h, jumps ${noJumps ? 'off' : 'on'}: the same three`);
+  ok(sf({ fin: 2, avoid: ['S4'] }).drill.id === 'ST1' && sf({ fin: 0, avoid: ['ST1'] }).drill.id === 'ST3', 'finisher: a drill left out passes to the next');
+  ok(sf({ fin: 0, avoid: ['ST1', 'ST3', 'S4'] }) === undefined, 'finisher: all three left out, no finisher');
+  ok(sf({ versions: { ST1: 0 } }).name === 'Push-Ups' && sf({ versions: { ST1: 0 } }).v === 0 && sf({ versions: { ST1: 2 } }).v === 2, 'finisher: Dad\'s version');
+  const pf = (o) => fin(buildSession('power', ctxOf(o)));
+  // Power: always Step-Back Burpees, whatever the room, the hour or Dad's burpee version.
+  for (const room of ['bedroom', 'big']) for (const hour of [7, 15]) for (const v of [undefined, 0, 1, 2]) {
+    const f = pf({ room, hour, versions: v === undefined ? {} : { P12: v } });
+    ok(f.drill.id === 'P12' && f.v === 0 && f.name === 'Step-Back Burpees' && f.jumps === 0, `finisher: Power in ${room} at ${hour}h, burpees ${v}: Step-Back Burpees`);
+  }
+  {
+    const noFin = (s) => s.items.filter((x) => !x.finisher).reduce((n, x) => n + x.jumps * (x.circuit ? x.sets : x.sets * (x.drill.side && !x.drill.alternate ? 2 : 1)), 0);
+    for (const room of ['bedroom', 'big']) { const p = buildSession('power', ctxOf({ room })); ok(p.jumps === noFin(p), `jumps: the finisher adds no landings in the ${room}`); }
+  }
+  for (const { type, tag, s } of BUILT) if (type === 'power' && fin(s)) ok(fin(s).jumps === 0 && (fin(s).drill.id === 'ST3' || fin(s).v === 0), `${tag}: Power finisher must be Step-Back Burpees or squats`);
+  ok(pf({ noJumps: true }).drill.id === 'ST3' && pf({ avoid: ['P12'] }).drill.id === 'ST3', 'finisher: jumps off or burpees left out: squats');
+  ok(pf({ avoid: ['P12', 'ST3'] }) === undefined, 'finisher: burpees and squats left out: none');
+  // Every build: one finisher on Strength and Power, after the main block and before the splits
+  // hold and the cool-down; none on Game Day or Stretch.
+  for (const { type, tag, s } of BUILT) {
+    const f = s.items.filter((x) => x.finisher);
+    if (!FINISHER[type]) { ok(f.length === 0 && !s.items.some((x) => x.block === 'Finisher'), `${tag}: a finisher on ${type}`); continue; }
+    if (s.ctx.avoid.length) continue;
+    ok(f.length === 1, `${tag}: ${f.length} finishers`);
+    const k = s.items.indexOf(f[0]);
+    const mainLast = s.items.map((x) => x.main).lastIndexOf(true);
+    ok(k > mainLast && s.items.slice(k + 1).every((x) => ['Cool-down', 'Splits'].includes(x.block)), `${tag}: finisher out of place`);
+    const steps = s.steps.filter((st) => st.r === s.steps.find((x) => x.finisher)?.r);
+    ok(steps.length === 2 && steps[1].kind === 'work' && steps[1].dur === 40 && steps[1].finisher, `${tag}: finisher should be one 40 s set`);
+    const words = said(steps[0]);
+    ok(words[0] === SAY.finisher && words[1] === `${f[0].name}.` && words[2] === SAY.asMany && words[3] === '40 seconds.', `${tag}: finisher intro says ${words.join(' ')}`);
+    ok(!words.some((w) => /\d+ (reps|each)|best/i.test(w)), `${tag}: the finisher intro speaks a number of reps`);
+  }
+  ok(!buildSession('gameday', ctxOf()).items.some((x) => x.finisher) && !buildSession('stretch', ctxOf()).items.some((x) => x.finisher), 'finisher: never on Game Day or Stretch');
+  ok(!buildSession('splits', ctxOf()).items.some((x) => x.finisher), 'finisher: never on the Splits session');
+  ok(finisherFor('gameday', ctxOf()) === null && finisherFor('stretch', ctxOf()) === null && finisherFor('splits', ctxOf()) === null, 'finisherFor: null off Strength and Power');
+  {
+    const extra = buildSession('stretch', ctxOf());
+    ok(!extra.items.some((x) => x.finisher), 'finisher: never on the extra Stretch');
+  }
+  // The splits hold still comes after the finisher, before the cool-down.
+  {
+    const lad = everyLadder().find((x) => x.type === 'strength');
+    const s = buildSession('strength', lad.ctx);
+    const blocks = [...new Set(s.items.map((x) => x.block))];
+    ok(blocks.slice(-3).join() === 'Finisher,Splits,Cool-down', `finisher: before the splits hold (got ${blocks.join()})`);
+  }
+
+  // Sessions that change: four fixed stations, two that rotate; Power's core rotates. Deterministic.
+  const circ = (s) => s.items.filter((x) => x.block === 'Circuit').map((x) => x.drill.id).join();
+  const core = (s) => s.items.filter((x) => x.block === 'Core').map((x) => x.drill.id).join();
+  ok([0, 1, 2, 3, 4].map((k) => circ(buildSession('strength', ctxOf({ rot: k })))).join('|') === 'ST1,ST3,ST4,S4,ST2,W7|ST1,ST3,ST4,S4,S3,C9|ST1,ST3,ST4,S4,ST2,C9|ST1,ST3,ST4,S4,S3,W7|ST1,ST3,ST4,S4,ST2,W7', 'rotation: Strength circuit, four sessions round');
+  ok([0, 1, 2, 3].map((k) => core(buildSession('power', ctxOf({ rot: k })))).join('|') === 'ST4,C9|C3,C9|ST4,C3|ST4,C9', 'rotation: Power core, three sessions round');
+  ok(buildSession('power', ctxOf({ rot: 1 })).items.filter((x) => x.block === 'Power').map((x) => x.drill.id).join() === buildSession('power', ctxOf()).items.filter((x) => x.block === 'Power').map((x) => x.drill.id).join(), 'rotation: the jump drills never change');
+  for (const type of ['strength', 'power']) for (let k = 0; k < 6; k++) {
+    const a = buildSession(type, ctxOf({ rot: k, fin: k, boss: k === 3 }));
+    const b = buildSession(type, JSON.parse(JSON.stringify(a.ctx))); // a resumed session rebuilds from its saved ctx
+    ok(JSON.stringify(a.steps.map((st) => [st.kind, st.dur, st.r?.drill.id, st.cues])) === JSON.stringify(b.steps.map((st) => [st.kind, st.dur, st.r?.drill.id, st.cues])), `rotation: ${type} ${k} rebuilds the same from its saved ctx`);
+  }
+  for (const [type, b] of [['strength', SESSIONS.strength.blocks.find((x) => x.rotate)], ['power', SESSIONS.power.blocks.find((x) => x.rotate)]])
+    for (const pair of b.rotate) for (const id of pair) {
+      const d = byId[id];
+      ok(d && ['strength'].includes(d.group) && !d.jumps && !d.hops && !d.slam && d.versions.every((v) => !v.jumps), `rotation: ${type} ${id} must be a strength or core drill with no jumps or slams`);
+      ok(!b.items.some((it) => it.id === id), `rotation: ${type} ${id} is also a fixed station`);
+      ok(!/knee slide|crease/i.test(`${d.name} ${d.why}`) && id !== 'P13', `rotation: ${type} ${id} is a goalie-movement drill`);
+    }
+  ok(rotationOf({ items: [{ id: 'ST1' }] }, 5).length === 1, 'rotationOf: a block with no rotate is unchanged');
+  // everyContext covers every rotation and every finisher, so every phrase gets recorded.
+  {
+    const seen = { circ: new Set(), core: new Set(), sfin: new Set(), boss: 0 };
+    for (const { type, s, ctx } of BUILT) {
+      if (ctx.avoid.length) continue;
+      if (type === 'strength') { seen.circ.add(circ(s)); seen.sfin.add(fin(s)?.drill.id); if (s.boss) seen.boss++; }
+      if (type === 'power') seen.core.add(core(s));
+    }
+    ok(seen.circ.size === 4 && seen.core.size === 3 && seen.sfin.size === 3 && seen.boss > 0 && ROTATIONS % 12 === 0, `everyContext: covers every rotation (${seen.circ.size} circuits, ${seen.core.size} cores, ${seen.sfin.size} finishers, ${seen.boss} boss)`);
+  }
+
+  // Boss day: three rounds, its name, and "Round two." / "Last round.".
+  {
+    const b = buildSession('strength', ctxOf({ boss: true }));
+    const n = buildSession('strength', ctxOf());
+    const rounds = b.items.filter((x) => x.circuit).map((x) => x.sets);
+    ok(b.name === 'Boss day' && b.boss && rounds.every((r) => r === 3) && n.items.filter((x) => x.circuit).every((x) => x.sets === 2), 'boss: Boss day runs the circuit 3 rounds');
+    const words = phrasesOf(b);
+    ok(words.includes(SAY.roundTwo) && words.includes(SAY.lastRound), 'boss: says "Round two." and "Last round."');
+    ok(!buildSession('power', ctxOf({ boss: true })).boss && buildSession('power', ctxOf({ boss: true })).name === 'Power', 'boss: only on Strength');
+  }
+
+  // Boss eligibility.
+  const NOW = new Date(2026, 10, 18, 16, 0); // a Wednesday
+  const past = (n, type, more = {}) => ({ date: new Date(2026, 10, 18 - n, 15).toISOString(), type, completed: true, extra: false, done: [], skipped: [], ...more });
+  const pick = (log, a = {}) => decide({ today: 'none', tomorrow: 'none', ...a }, log, {}, NOW);
+  const mkLog = (total, sinceBoss) => {
+    // total counted sessions; the boss win (if sinceBoss < total) sits sinceBoss sessions before the end.
+    const out = [];
+    for (let k = 0; k < total - 2; k++) out.push(past(80 - k * 2, k % 2 ? 'stretch' : 'gameday'));
+    out.push(past(5, 'strength'), past(3, 'power'));
+    if (sinceBoss !== null) { const i = total - 1 - sinceBoss; out[i] = { ...out[i], type: 'strength', boss: true, bossDay: true }; }
+    return out;
+  };
+  const strengthDay = (log) => pick(log).type === 'strength';
+  // Make sure the rules pick Strength for this shape, then check the flag.
+  const L = mkLog(12, null);
+  ok(strengthDay(L), `boss: the test log gives Strength today (got ${pick(L).type})`);
+  ok(pick(mkLog(12, null)).boss === true && pick(mkLog(12, null)).firstBoss === true, 'boss: 12 sessions, none won: Boss day');
+  ok(!pick(mkLog(11, null)).boss, 'boss: 11 sessions in all: not yet');
+  ok(pick(mkLog(20, 10)).boss === true && pick(mkLog(20, 10)).since === 10 && !pick(mkLog(20, 10)).firstBoss, 'boss: 10 since the last win: Boss day');
+  ok(!pick(mkLog(20, 9)).boss, 'boss: 9 since the last win: not yet');
+  ok(!pick(mkLog(20, 12), { today: 'practice' }).boss, 'boss: never on a practice day');
+  ok(pick(mkLog(20, 12), { tomorrow: 'game' }).type === 'stretch' && !pick(mkLog(20, 12), { tomorrow: 'game' }).boss, 'boss: a game tomorrow is still Stretch');
+  ok(pick(mkLog(20, 12), { today: 'practice' }).type === pick(mkLog(20, 12)).type, 'boss: the flag never changes the session type');
+  // An ended Boss day that still counts isn't a win, so the next Strength is a Boss day again.
+  {
+    const lg = mkLog(20, null);
+    lg.splice(lg.length - 2, 1, past(5, 'strength', { bossDay: true, boss: false, stopped: { why: 'ended' } }));
+    ok(pick(lg).boss === true, 'boss: an ended Boss day is no win, the next one is a Boss day');
+    ok(bossStats(lg).beaten === 0, 'boss: ended Boss day not counted as beaten');
+  }
+  ok(reasonText({ type: 'strength', boss: true, firstBoss: true, since: 12 }, NOW) === 'Three rounds today.', 'boss: before any win the line is just "Three rounds today."');
+  ok(reasonText({ type: 'strength', boss: true, firstBoss: false, since: 13 }, NOW) === 'Three rounds today. You\'ve done thirteen sessions since the last one.', 'boss: the real count since the last win');
+  ok(reasonText({ type: 'strength', boss: true, firstBoss: false, since: 10 }, NOW) === 'Three rounds today. You\'ve done ten sessions since the last one.', 'boss: reason line');
+  // The check-in record keeps the flag, and a redo can't turn a plain Strength into a Boss day.
+  {
+    const lg = mkLog(12, null);
+    const first = settleDay({ today: 'none', tomorrow: 'none' }, lg, {}, NOW);
+    ok(first.d.boss && first.day.boss === true && first.reason === 'Three rounds today.', 'boss: the check-in saves boss: true and the plain line');
+    const plain = settleDay({ today: 'practice', tomorrow: 'none' }, lg, {}, NOW);
+    ok(!plain.day.boss, 'boss: practice today, a plain Strength');
+    const redo = settleDay({ today: 'none', tomorrow: 'none' }, lg, { [dayKeyOf(NOW)]: plain.day }, NOW);
+    ok(redo.d.type === 'strength' && !redo.d.boss && !redo.day.boss, 'boss: a redo never makes it a Boss day');
+    const down = settleDay({ today: 'practice', tomorrow: 'none' }, lg, { [dayKeyOf(NOW)]: first.day }, NOW);
+    ok(!down.day.boss, 'boss: a redo can drop the Boss day');
+  }
+  // The player marks the win: completed and ran to the end.
+  {
+    const s = buildSession('strength', ctxOf({ boss: true }));
+    const all = Array.from({ length: s.drills }, (_, k) => k + 1);
+    const won = settleRun(s, { type: 'strength', done: [], skipped: [], stopped: null }, all, [], s.drills);
+    ok(won.boss === true && won.bossDay === true && won.completed, 'boss: a finished Boss day is a win');
+    const ended = settleRun(s, { type: 'strength', done: [], skipped: [], stopped: { why: 'ended' } }, all.slice(0, 13), [], 13);
+    ok(ended.completed && ended.boss === false && ended.bossDay === true, 'boss: an ended Boss day that counts is not a win');
+    const plain = settleRun(buildSession('strength', ctxOf()), { type: 'strength', done: [], skipped: [], stopped: null }, all, [], s.drills);
+    ok(!('boss' in plain) && !('bossDay' in plain), 'boss: a plain Strength has no boss fields');
+    ok(won.finisher.id === 'ST1' && won.finisher.v === 1 && won.finisher.did === true, 'finisher: the log keeps which drill and that he did it');
+    const noFin = settleRun(s, { type: 'strength', done: [], skipped: [], stopped: { why: 'ended' } }, all.slice(0, 12), [], 12);
+    ok(noFin.finisher.did === false, 'finisher: ended before it: not done');
+  }
+  // Payoff: "Boss beaten."
+  {
+    const mk = (log) => ({ log, lights: [], hands: [], splits: { rung: 1 }, streak: { gifts: [] }, card: { earned: ['m0'] } });
+    const e = past(0, 'strength', { boss: true, bossDay: true });
+    const lines = payoffLines(payoff(mk([past(1, 'stretch'), e]), e, NOW));
+    ok(lines.filter((l) => l.kind === 'boss').map((l) => l.text).join() === 'Boss beaten.', `done: "Boss beaten." (got ${lines.map((l) => l.text)})`);
+    const e2 = past(0, 'strength', { bossDay: true, boss: false });
+    ok(!payoffLines(payoff(mk([e2]), e2, NOW)).some((l) => l.kind === 'boss'), 'done: no "Boss beaten." for an ended one');
+    // Cyclops at 3 bosses.
+    const wins = (n) => Array.from({ length: n }, (_, k) => past(20 - k, 'strength', { boss: true, bossDay: true }));
+    const isOn = (log) => card.masksFor(mk(log), NOW).find((m) => m.id === 'm17');
+    ok(MASKS.at(-1).id === 'm17' && MASKS.at(-1).name === 'Cyclops', 'masks: Cyclops is m17');
+    ok(!isOn(wins(2)).unlocked && isOn(wins(3)).unlocked, 'masks: Cyclops at 3 Boss days');
+    ok(isOn(wins(1)).need === '3 Boss days' && isOn(wins(1)).progress === '1 / 3', 'masks: Cyclops shows "3 Boss days" and "1 / 3"');
+    ok(!isOn([...wins(2), past(3, 'strength', { boss: true, test: true })]).unlocked, 'masks: a test run never beats a boss');
+  }
+
+  // Records: save, best, per version, the Done words.
+  {
+    const sv = { log: [], records: [], challenge: null, versions: {} };
+    const t = (d) => new Date(2026, 10, d, 17);
+    const a = R.addRecord(sv, { id: 'ST1', v: 1, n: 14 }, t(1));
+    ok(a.prev === null && a.best && a.words === 'First record: 14.', 'records: first');
+    const b = R.addRecord(sv, { id: 'ST1', v: 1, n: 16 }, t(2));
+    ok(b.prev === 14 && b.best && b.words === 'New best: 16. Your old best was 14.', 'records: new best');
+    const c = R.addRecord(sv, { id: 'ST1', v: 1, n: 12 }, t(3));
+    ok(c.prev === 16 && !c.best && c.words === 'Today 12. Best 16.', 'records: not a best');
+    const d = R.addRecord(sv, { id: 'ST1', v: 2, n: 6 }, t(4));
+    ok(d.prev === null && d.words === 'First record: 6.' && R.bestFor(sv.records, 'ST1', 1).n === 16 && R.bestFor(sv.records, 'ST1', 2).n === 6, 'records: a harder version starts its own record');
+    ok(R.addRecord(sv, { id: 'ST3', v: 1, n: 250 }, t(5)).n === 99 && R.addRecord(sv, { id: 'ST3', v: 1, n: -4 }, t(5)).n === 0, 'records: 0 to 99');
+    ok(sv.records.every((r) => r.date && r.id && Number.isInteger(r.v) && Number.isInteger(r.n)), 'records: { date, id, v, n }');
+    ok(R.bestFor(sv.records, 'ST1', 1).date === t(2).toISOString(), 'records: best keeps its date');
+    ok(R.recordTitle('ST1', 1) === 'Push-Ups in 40 s' && R.recordTitle('P12', 0) === 'Step-Back Burpees in 40 s', 'records: titles');
+    const rows = R.recordRows(sv);
+    ok(rows.filter((r) => r.id === 'ST1').map((r) => `${r.tag}:${r.best.n}`).join() === ':16,Harder:6' && rows.find((r) => r.id === 'S4').best === null, 'records: Card rows, one per version, "No record yet" otherwise');
+    const html = recordsHtml(rows, 3);
+    ok(html.includes('No record yet') && html.includes('Bosses beaten: <b>3</b>') && html.includes('Nov 2'), 'records: Card section with best, date and bosses');
+    // Records never move a rating.
+    const base0 = { log: [past(2, 'strength'), past(1, 'power')], lights: [], hands: [], splits: { rung: 1 }, streak: { gifts: [] }, card: {} };
+    const before = JSON.stringify(card.cardStats(base0, NOW));
+    const after = JSON.stringify(card.cardStats({ ...base0, records: sv.records, challenge: { id: 'ST1', v: 1, n: 5, beaten: 'x' } }, NOW));
+    ok(before === after, 'records: never change the card');
+    ok(!/records|challenge/.test(fs.readFileSync('js/plan/card.js', 'utf8')), 'records: card.js never reads them');
+    // The finisher count for the rotation.
+    const lg = [past(3, 'strength', { finisher: { id: 'ST1', v: 1, did: true } }), past(2, 'strength', { finisher: { id: 'ST3', v: 1, did: false } }), past(1, 'power', { finisher: { id: 'P12', v: 0, did: true } })];
+    ok(R.finishersDone(lg, 'strength') === 1 && R.finishersDone(lg, 'power') === 1 && R.finishersDone([...lg, { ...lg[0], test: true }], 'strength') === 1, 'records: finishers done, by type');
+  }
+  // Done asks only when he did the finisher, once.
+  {
+    const e = past(0, 'strength', { finisher: { id: 'ST1', v: 1, did: true } });
+    const sv = { log: [e], records: [{ date: 'x', id: 'ST1', v: 1, n: 14 }] };
+    const ask = recordAsk(sv, e);
+    ok(ask && ask.title === 'Push-Ups in 40 s' && ask.best === 14 && ask.start === 14, 'done: asks with his best');
+    ok(recordAsk({ log: [e], records: [] }, e).start === R.RECORD_START && recordAsk({ log: [e], records: [] }, e).best === null, 'done: no best yet starts at 10');
+    ok(recordAsk(sv, { ...e, finisher: { ...e.finisher, did: false } }) === null, 'done: no card when he didn\'t do it');
+    ok(recordAsk(sv, e, { test: true }) === null && recordAsk({ log: [], records: [] }, e) === null, 'done: no card on a test run');
+    ok(recordAsk(sv, { ...e, finisher: { ...e.finisher, n: 12 } }) === null, 'done: never asks twice');
+  }
+  // Dad's challenge: per drill, compared at the version he does now.
+  {
+    const sv = { log: [], records: [], challenge: null, versions: { ST1: 0 } };
+    const ch = R.setChallenge(sv, 'ST1', 20, new Date(2026, 10, 12));
+    ok(ch.id === 'ST1' && !('v' in ch) && ch.n === 20 && ch.beaten === null && ch.set && Object.keys(ch).sort().join() === 'beaten,id,n,set', 'challenge: stored as { id, n, set, beaten }');
+    ok(R.challengeTile(sv).text === 'Dad\'s challenge: 20 push-ups in 40 s' && R.challengeTile(sv).best === 'No record yet', 'challenge: Today tile');
+    R.addRecord(sv, { id: 'ST1', v: 1, n: 30 });
+    ok(!sv.challenge.beaten, 'challenge: a version he isn\'t doing now never reaches it');
+    const r1 = R.addRecord(sv, { id: 'ST1', v: 0, n: 18 });
+    ok(!r1.challengeBeaten && R.challengeTile(sv).best === 'Your best: 18', 'challenge: 18 of 20 isn\'t reached');
+    sv.versions.ST1 = 1; // Dad moves him to Standard: the tile follows, his Standard best is 30
+    ok(R.challengeTile(sv).best === 'Your best: 30', 'challenge: the tile follows the version he does now');
+    sv.versions.ST1 = 0;
+    const r2 = R.addRecord(sv, { id: 'ST1', v: 0, n: 20 });
+    ok(r2.challengeBeaten && sv.challenge.beaten && R.challengeTile(sv).text === 'Dad\'s challenge beaten: 20 push-ups', 'challenge: reaching 20 beats it');
+    ok(!R.addRecord(sv, { id: 'ST1', v: 0, n: 25 }).challengeBeaten, 'challenge: beaten once');
+    ok(challengeHtml(R.challengeTile(sv)).includes('beaten') && challengeHtml(null) === '', 'challenge: Today html');
+    R.clearChallenge(sv);
+    ok(sv.challenge === null && R.challengeTile(sv) === null, 'challenge: cleared');
+    // An old stored v is ignored.
+    sv.challenge = { id: 'ST1', v: 2, n: 10, set: 'x', beaten: null };
+    ok(R.addRecord(sv, { id: 'ST1', v: 0, n: 10 }).challengeBeaten, 'challenge: an old stored v is ignored');
+    // Burpees: always the finisher's Step-Back Burpees, whatever Dad's burpee version.
+    const bv = { log: [], records: [], challenge: null, versions: { P12: 2 } };
+    R.setChallenge(bv, 'P12', 12);
+    ok(R.challengeTile(bv).text === 'Dad\'s challenge: 12 step-back burpees in 40 s', 'challenge: burpees mean Step-Back Burpees');
+    ok(!R.addRecord(bv, { id: 'P12', v: 2, n: 15 }).challengeBeaten && R.addRecord(bv, { id: 'P12', v: 0, n: 12 }).challengeBeaten, 'challenge: burpees compared at version 0');
+    ok(R.recordRows({ records: [], versions: { P12: 2 } }).find((r) => r.id === 'P12').v === 0, 'records: the burpee row is Step-Back Burpees');
+    ok(R.setChallenge(sv, 'W2', 10) === null, 'challenge: only record drills');
+    ok(R.setChallenge(sv, 'ST3', 500).n === 99 && R.setChallenge(sv, 'ST3', 0).n === 5 && R.CHALLENGE_MIN === 5, 'challenge: 5 to 99');
+    const dad = await import('./js/screens/dad.js');
+    ok(dad.challengeVersion({ versions: { P12: 1 } }, 'P12') === 0 && dad.challengeVersion({ versions: { ST1: 2 } }, 'ST1') === 2, 'challenge: Dad\'s screen uses the finisher\'s version');
+    const dt = fs.readFileSync('js/screens/dad.js', 'utf8');
+    ok(dt.includes('a number to reach') && !dt.includes('a number to beat'), 'challenge: Dad\'s words say reach');
+  }
+  // An older save loads with no records and no challenge; a new one starts empty.
+  {
+    const mem = new Map();
+    globalThis.localStorage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => mem.delete(k) };
+    mem.set('crease.save', JSON.stringify({ v: 1, setupDone: true, log: [past(2, 'strength')], card: { earned: ['m0'] } }));
+    const old = load();
+    ok(Array.isArray(old.records) && old.records.length === 0 && old.challenge === null && old.log.length === 1, 'save: an older save gets records [] and challenge null');
+    mem.set('crease.save', JSON.stringify({ v: 1, setupDone: true, log: [], card: { earned: ['m0'] }, records: [{ date: 'x', id: 'ST1', v: 1, n: 9 }, { bad: 1 }], challenge: { id: 'ST1', v: 1, n: 12, set: 'x', beaten: null } }));
+    const kept = load();
+    ok(kept.records.length === 1 && kept.challenge.n === 12 && !('v' in kept.challenge), 'save: records and challenge load, junk and the old v dropped');
+    for (const bad of [{ id: 'ZZ9', n: 12 }, { id: 'W2', n: 5 }, { id: 'ST1' }, 'x', 7]) {
+      mem.set('crease.save', JSON.stringify({ v: 1, setupDone: true, log: [], card: { earned: ['m0'] }, challenge: bad }));
+      ok(load().challenge === null, `save: an unknown challenge (${JSON.stringify(bad)}) is dropped`);
+    }
+    const { challengeTile } = await import('./js/plan/records.js');
+    ok(challengeTile({ challenge: { id: 'ZZ9', n: 3 }, records: [] }) === null, 'challenge: an unknown id never reaches Today');
+  }
+  // Settings rows.
+  {
+    const t = fs.readFileSync('js/screens/settings.js', 'utf8');
+    ok(t.includes('The last hard drill. Do as many as you can, then enter your number at the end.') && t.includes('Three rounds. It comes after ten sessions.') && t.includes('<dt>Records</dt>'), 'Settings: Finisher, Records and Boss day rows');
+  }
+  ok(BOSS.rounds === 3 && BOSS.every === 10 && BOSS.after === 12, 'boss: 3 rounds, every 10, after 12');
 }

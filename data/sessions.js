@@ -14,9 +14,14 @@ export const SESSIONS = {
       {
         name: 'Circuit', main: true,
         circuit: { rounds: 2, work: 40, change: 20 },
-        items: [{ id: 'ST1' }, { id: 'ST3' }, { id: 'ST4' }, { id: 'S4' }, { id: 'ST2' }, { id: 'W7' }],
+        // Four fixed stations, then two that change each session (see `rotate`).
+        items: [{ id: 'ST1' }, { id: 'ST3' }, { id: 'ST4' }, { id: 'S4' }],
+        // The last two stations, by how many Strength sessions he has done: session n uses
+        // rotate[n % 4]. Every pair of wall sit or back lunges with glute bridge or mountain climbers.
+        rotate: [['ST2', 'W7'], ['S3', 'C9'], ['ST2', 'C9'], ['S3', 'W7']],
       },
-      { name: 'Finish', items: [{ id: 'C3' }, { id: 'G1' }] },
+      // "Core", not "Finish": it sits right above the Finisher and read as the same thing.
+      { name: 'Core', items: [{ id: 'C3' }, { id: 'G1' }] },
       { name: 'Cool-down', items: [{ id: 'X5' }, { id: 'M11' }, { id: 'M6' }] },
     ],
   },
@@ -31,7 +36,9 @@ export const SESSIONS = {
         name: 'Power', main: true,
         items: [{ id: 'P11' }, { id: 'P4' }, { id: 'P13', dose: { sets: 3 } }, { id: 'P12' }, { id: 'P8', dose: { sets: 3 } }],
       },
-      { name: 'Core', items: [{ id: 'ST4' }, { id: 'C9' }] },
+      // Two core drills, by how many Power sessions he has done: session n uses rotate[n % 3].
+      // The jump drills above never rotate: the jump limits are counted on them.
+      { name: 'Core', items: [], rotate: [['ST4', 'C9'], ['C3', 'C9'], ['ST4', 'C3']] },
       { name: 'Cool-down', items: [{ id: 'X5' }, { id: 'M11' }, { id: 'X6' }] },
     ],
   },
@@ -81,6 +88,22 @@ export const SESSIONS = {
     ],
   },
 };
+
+// The Finisher: one drill at the end of every Strength and Power session, as many as he can in
+// `window` seconds. It goes after the main work, before the splits hold and the cool-down.
+// Strength takes the next of `strength` by how many Strength finishers he has done; Power takes
+// Step-Back Burpees, or squats when jumps are off or burpees are left out. Never on Game Day or Stretch.
+export const FINISHER = {
+  window: 40,
+  strength: ['ST1', 'ST3', 'S4'],
+  power: ['P12'],
+  // Burpees as a finisher are always this version: Step-Back Burpees, no jumps.
+  powerVersion: 0,
+  powerFallback: 'ST3',
+};
+
+// A Boss day: a Strength session whose circuit runs one more round.
+export const BOSS = { rounds: 3, every: 10, after: 12 };
 
 // The four the rules can pick. The Splits session isn't one: it never counts.
 export const SESSION_ORDER = ['strength', 'power', 'gameday', 'stretch'];

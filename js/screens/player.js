@@ -7,7 +7,8 @@ import * as audio from '../timer/audio.js';
 import { keepAwake, letSleep, onLost } from '../timer/wakelock.js';
 import * as live from '../live.js';
 import { migrateOldRecords } from '../store.js';
-import { buildSession, phrasesOf } from '../plan/build.js';
+import { buildSession, phrasesOf, finisherOf } from '../plan/build.js';
+import { bestFor } from '../plan/records.js';
 import { SESSIONS } from '../../data/sessions.js';
 import { SAY } from '../../data/copy.js';
 
@@ -42,6 +43,14 @@ export function settle(session, log, doneNos, skippedNos, reached) {
   log.need = c.need;
   log.short = c.short;
   log.completed = !c.short;
+  // The finisher: which drill and version, and whether its work started (Done then asks his number).
+  const f = finisherOf(session);
+  if (f) log.finisher = { id: f.item.drill.id, v: f.item.v, did: done.includes(f.no) };
+  // A Boss day is won only when it ran to the end and counted. One he ended isn't a win.
+  if (session.boss) {
+    log.bossDay = true;
+    log.boss = log.completed && !log.stopped;
+  }
   return log;
 }
 
@@ -185,8 +194,13 @@ export function render(root, app, { session, extra = false, dad = false, resume 
 
   const doneNow = () => [...doneNos].filter((n) => !skippedNos.has(n));
 
+  // His best on today's finisher, shown on its work step: "Best: 14", or "First time".
+  const fin = finisherOf(session);
+  const finBest = fin ? bestFor(app.save.records, fin.item.drill.id, fin.item.v) : null;
+  const finLine = finBest ? `Best: ${finBest.n}` : 'First time';
+
   function phaseWord(st) {
-    if (st.kind === 'intro') return st.i === 0 ? 'First up' : 'Up next';
+    if (st.kind === 'intro') return st.i === 0 ? 'First up' : st.finisher ? 'Finisher' : 'Up next';
     if (st.kind === 'work') return st.r.drill.goWord ? st.r.drill.goWord.replace('.', '') : 'Work';
     if (st.kind === 'rest') return st.restWord ? st.restWord.replace('.', '') : 'Rest';
     if (st.kind === 'switch') return 'Switch';
@@ -214,7 +228,9 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     el.name.textContent = r.name;
     // On a rep set the target is the big number already; keep only Dad's version line or the note.
     const how = r.how || r.note;
-    el.target.textContent = (isReps ? [how] : [r.target, how]).filter(Boolean).join(' · ');
+    // The finisher's work step shows his best instead of the target. No number is spoken.
+    const first = st.finisher && st.kind === 'work' ? finLine : r.target;
+    el.target.textContent = (isReps ? [how] : [first, how]).filter(Boolean).join(' · ');
     if (el.draw.getAttribute('src') !== r.draw) el.draw.src = r.draw;
     el.draw.alt = `Drawing of ${r.name}`;
     if (st.kind === 'intro') el.cue.textContent = r.drill.cues[0];
