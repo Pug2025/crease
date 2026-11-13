@@ -397,6 +397,48 @@ process.on('exit', (code) => {
     const pl = fs.readFileSync(new URL('./js/screens/player.js', import.meta.url), 'utf8');
     ok(/data-act="restart">Restart this drill</.test(pl) && /restart: \(\) =>/.test(pl), 'restart: the Paused sheet has a "Restart this drill" button');
   }
+  // The coach counts rep sets out loud (13 November 2026).
+  {
+    const B = await import('./js/plan/build.js');
+    const { countSay, SAY } = await import('./data/copy.js');
+    ok(countSay(1) === 'One.' && countSay(12) === 'Twelve.', 'count: the coach says "One." to "Twelve."');
+    let sets = 0;
+    let pushups = false;
+    for (const { type, ctx } of [...B.everyContext(), ...B.everyLadder()]) {
+      const sess = B.buildSession(type, ctx);
+      for (const st of sess.steps) {
+        if (st.kind !== 'work') continue;
+        const nums = st.cues.filter((c) => c.count);
+        const d = st.r.drill;
+        const o = { splitAt: st.cues.some((c) => c.say && Object.values(SAY.switch).includes(c.say[0])) ? 1 : 0, side: st.side };
+        if (!B.counted(st.r, o)) { ok(nums.length === 0, `count: ${st.r.name} (${type}) is not a counted set, so no numbers are said`); continue; }
+        sets++;
+        const n = st.reps;
+        const halves = o.splitAt ? 2 : 1;
+        ok(nums.length === n * halves, `count: ${st.r.name} (${type}) says ${n * halves} numbers, got ${nums.length}`);
+        ok(nums.every((c, i) => c.say[0] === countSay((i % n) + 1) && c.must), `count: ${st.r.name} counts One to ${n} in order`);
+        ok(nums.every((c) => c.at > 0.5 && c.at <= st.dur - 1), `count: ${st.r.name} every number is inside the set, the last at least a second before the end`);
+        ok(nums.every((c, i) => i === 0 || c.at - nums[i - 1].at >= 1.5), `count: ${st.r.name} numbers are at least 1.5 s apart`);
+        ok(!st.cues.some((c) => c.say && c.say.includes(SAY.tenSeconds)), `count: ${st.r.name} a counted set doesn't say "Ten seconds."`);
+        ok(st.cues.filter((c) => c.say && !c.count && !c.must).length === 0, `count: ${st.r.name} coaching lines ride on a number, never between two`);
+        ok(nums.every((c) => c.say.length <= 2) && !(nums.at(-1).say.length > 1), `count: ${st.r.name} at most one coaching line per number, none on the last`);
+        ok(!d.alternate && n >= B.COUNT.min, `count: ${st.r.name} only straight sets of ${B.COUNT.min} or more are counted`);
+        if (d.id === 'ST1' && type === 'strength' && n === 8) pushups = true;
+      }
+      const fin = sess.steps.find((st) => st.finisher && st.kind === 'work');
+      if (fin) ok(!fin.cues.some((c) => c.count), 'count: the Finisher is never counted by the coach');
+    }
+    ok(sets > 50 && pushups, `count: rep sets are counted, 8 push-ups among them (${sets} sets)`);
+  }
+  // The camera's count is big on the Finisher, and Dad's screen says what it did last time.
+  {
+    const pl = fs.readFileSync(new URL('./js/screens/player.js', import.meta.url), 'utf8');
+    ok(pl.includes('<div class="pl-camn" hidden><b>0</b><span>reps</span></div>') && pl.includes("'The camera stopped. Count your own reps.'"), 'camera: a big count beside the picture, and a line when it stops');
+    const D = await import('./js/screens/dad.js');
+    ok(D.camLastWords({ n: 9, why: '' }) === 'On the last Finisher the camera counted 9.', 'camera: Dad sees the last count');
+    ok(D.camLastWords({ n: 0, why: '' }) === 'On the last Finisher the camera ran but counted 0.', 'camera: Dad sees a zero count');
+    ok(D.camLastWords({ n: 2, why: 'slow' }) === 'On the last Finisher the camera stopped after counting 2. Reason: slow.' && D.camLastWords(null) === '', 'camera: Dad sees why it stopped');
+  }
   // Item 25: a runner can start paused at a step, playing nothing until Resume.
   {
     let t = 0;

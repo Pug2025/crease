@@ -41,6 +41,8 @@ export function targetSay(drill, dose) {
   if (drill.hold) return `Hold ${secs}${each}.`;
   return `${cap(secs)}${each}.`;
 }
+// The coach's count on a rep set: "One.", "Two."
+export const countSay = (n) => `${cap(word(n))}.`;
 export const setsSay = (n) => `${cap(word(n))} sets.`;
 export const setSay = (n) => `Set ${word(n)}.`;
 

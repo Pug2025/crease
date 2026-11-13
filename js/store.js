@@ -67,7 +67,7 @@ export function load() {
           card: s.card && typeof s.card === 'object' ? s.card : {},
           records: Array.isArray(s.records) ? s.records.filter(isRecord) : [],
           challenge: cleanChallenge(s.challenge),
-          camera: { on: s.camera?.on === true },
+          camera: { on: s.camera?.on === true, ...(s.camera?.last && Number.isFinite(s.camera.last.n) ? { last: { day: String(s.camera.last.day || ''), n: s.camera.last.n, why: String(s.camera.last.why || '') } } : {}) },
         };
         // A save from before masks were kept: every mask he has now is his, with no "New mask" for any.
         if (!Array.isArray(out.card.earned)) { seedMasks(out); save(out); }

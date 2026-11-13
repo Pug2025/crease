@@ -135,6 +135,13 @@ export const CAM_WORDS = {
   blocked: 'Ready, but the phone didn\'t allow the camera. Allow it for Crease in Settings, then turn this on again.',
 };
 
+// What the camera did on the last Finisher it ran on.
+export function camLastWords(last) {
+  if (!last) return '';
+  if (last.why) return `On the last Finisher the camera stopped after counting ${last.n}. Reason: ${last.why}.`;
+  return last.n > 0 ? `On the last Finisher the camera counted ${last.n}.` : 'On the last Finisher the camera ran but counted 0.';
+}
+
 function cameraSection(s) {
   const camOn = s.camera?.on === true;
   return `
@@ -145,6 +152,7 @@ function cameraSection(s) {
         <span class="ver-seg"><button data-act="cam" data-arg="on" aria-pressed="${camOn}">On</button><button data-act="cam" data-arg="off" aria-pressed="${!camOn}">Off</button></span>
         <span class="ver-what">${esc(CAM_WORDS.what)}</span>
       </li></ul>
+      ${camOn && s.camera?.last ? `<p class="small cam-last">${esc(camLastWords(s.camera.last))}</p>` : ''}
       ${camOn ? '<p class="small cam-state" role="status"></p><button class="set-row cam-retry" data-act="camRetry" style="display:none"><span>Try again</span></button>' : ''}
     </section>`;
 }
@@ -277,7 +285,7 @@ export function render(root, app, { unlocked = false, note = '', scroll = 0 } = 
     cam: (v) => {
       const want = v === 'on';
       if ((s.camera?.on === true) === want) return;
-      s.camera = { on: want };
+      s.camera = { ...(s.camera || {}), on: want };
       app.persist();
       app.camGetting = want;
       again({ scroll: window.scrollY });

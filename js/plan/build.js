@@ -3,7 +3,7 @@
 import { DRILLS, byId } from '../../data/exercises.js';
 import { SESSIONS, SESSION_ORDER, FINISHER, BOSS } from '../../data/sessions.js';
 import { LADDER } from '../../data/splits.js';
-import { SAY, targetSay, targetText, setsSay, setSay } from '../../data/copy.js';
+import { SAY, targetSay, targetText, setsSay, setSay, countSay } from '../../data/copy.js';
 
 const INTRO_FIRST = 12;
 const INTRO = 10;
@@ -115,6 +115,37 @@ function introStep(r, dur, o) {
   return { kind: 'intro', dur, r, set: 0, sets: o.sets, round: o.round, rounds: o.rounds, cues: cues.filter((c) => c.beep !== null) };
 }
 
+// The coach counts a rep set out loud: "One." to the last rep, spread evenly over the set's time,
+// so the count is also the pace. A set done on each side is counted once per side. Not counted:
+// drills that go side to side every rep ("4 each way" is 8 moves, and one count can't say both),
+// and sets of fewer than COUNT.min reps.
+export const COUNT = { min: 3, tail: 1.5, cueRoom: 2.5 };
+export function counted(r, o = {}) {
+  const d = r.drill;
+  if (r.dose.type !== 'reps' || r.dose.reps < COUNT.min || d.alternate) return false;
+  return !d.side || !!o.splitAt || !!o.side;
+}
+// The count's cues. A coaching line (extras: [{ at, say }]) rides on the number nearest its time,
+// "Three. Chest to the floor.", so the two never talk over each other.
+function countCues(r, dur, o, extras) {
+  const n = r.dose.reps;
+  const spans = o.splitAt ? [[0, o.splitAt], [o.splitAt, dur]] : [[0, dur]];
+  const out = [];
+  let pace = dur;
+  for (const [a, b] of spans) {
+    pace = (b - a - COUNT.tail) / n;
+    for (let k = 1; k <= n; k++) out.push({ at: Math.round((a + k * pace) * 10) / 10, say: [countSay(k)], must: true, count: k });
+  }
+  if (pace >= COUNT.cueRoom) {
+    for (const x of extras) {
+      const free = out.filter((c) => c.say.length === 1 && c.count < n);
+      if (!free.length) break;
+      free.reduce((best, c) => (Math.abs(c.at - x.at) < Math.abs(best.at - x.at) ? c : best)).say.push(x.say);
+    }
+  }
+  return out;
+}
+
 function workStep(r, dur, o) {
   const d = r.drill;
   const cues = [
@@ -124,12 +155,20 @@ function workStep(r, dur, o) {
   if (o.splitAt) cues.push({ at: o.splitAt, say: [SAY.switch[d.side]], must: true }, { at: o.splitAt, beep: 'tick' });
   // The second cue on sets of 20 s or more, and on every jump set (that's the landing cue).
   const second = Math.round(dur * 0.4);
-  if ((dur >= 20 || r.jumps > 0) && r.cues[1]) cues.push({ at: second, say: [r.cues[1]] });
-  if (dur >= 30) {
-    // The third cue (on most drills, the one that fixes the usual mistake), clear of "Ten seconds."
-    const third = Math.max(second + MIN_GAP, Math.min(Math.round(dur * 0.7), dur - 10 - MIN_GAP));
-    cues.push({ at: third, say: [r.cues[2] || SAY.keepBreathing] });
-    cues.push({ at: dur - 10, say: [SAY.tenSeconds] });
+  const third = Math.max(second + MIN_GAP, Math.min(Math.round(dur * 0.7), dur - 10 - MIN_GAP));
+  if (counted(r, o)) {
+    // A counted set: the coaching lines ride on the count, and "Ten seconds." isn't said.
+    const extras = [];
+    if ((dur >= 20 || r.jumps > 0) && r.cues[1]) extras.push({ at: second, say: r.cues[1] });
+    if (dur >= 30) extras.push({ at: third, say: r.cues[2] || SAY.keepBreathing });
+    cues.push(...countCues(r, dur, o, extras));
+  } else {
+    if ((dur >= 20 || r.jumps > 0) && r.cues[1]) cues.push({ at: second, say: [r.cues[1]] });
+    if (dur >= 30) {
+      // The third cue (on most drills, the one that fixes the usual mistake), clear of "Ten seconds."
+      cues.push({ at: third, say: [r.cues[2] || SAY.keepBreathing] });
+      cues.push({ at: dur - 10, say: [SAY.tenSeconds] });
+    }
   }
   cues.push(...ticks(dur));
   const reps = r.dose.type === 'reps' ? r.dose.reps : undefined;

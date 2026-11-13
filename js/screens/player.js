@@ -119,6 +119,8 @@ export function resumeIfAny(app) {
 
 // dad: started from Dad's screen. extra: doesn't count. Both together is Dad's test run:
 // skip buttons to click through quickly, and nothing is saved to his record.
+export const CAM_STOPPED = 'The camera stopped. Count your own reps.';
+
 export function render(root, app, { session, extra = false, dad = false, resume = null }) {
   const test = dad && extra;
   const log = resume?.log ?? {
@@ -155,7 +157,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     <div class="pl-bar" hidden><b></b></div>
     <div class="pl-target"></div>
     <div class="pl-board"><img class="pl-draw" alt=""></div>
-    ${camKind ? '<div class="pl-cam" hidden><video class="pl-video" playsinline muted autoplay></video><p class="pl-camline"></p></div>' : ''}
+    ${camKind ? '<div class="pl-cam" hidden><video class="pl-video" playsinline muted autoplay></video><div class="pl-camn" hidden><b>0</b><span>reps</span></div><p class="pl-camline"></p></div>' : ''}
     <div class="pl-cue"></div>
     <div class="pl-warn">
       <button class="pl-sound" data-act="fixSound" hidden>Sound is off. Tap to fix.</button>
@@ -220,8 +222,19 @@ export function render(root, app, { session, extra = false, dad = false, resume 
   let camLost = false;     // no body seen for 3 s
   let targetBase = '';    // the target line under the name, without the reps
   function camLine(text) { if (camBox) camBox.querySelector('.pl-camline').textContent = text; }
+  // The count the camera has so far: a big number beside his picture, and in the line under the name.
   function showReps() {
-    if (cam && runner.current().finisher && runner.current().kind === 'work') el.target.textContent = [`Reps: ${camCount}`, targetBase].filter(Boolean).join(' · ');
+    const on = !!cam && runner.current().finisher && runner.current().kind === 'work';
+    const big = camBox?.querySelector('.pl-camn');
+    if (big) { big.hidden = !on; big.querySelector('b').textContent = String(camCount); }
+    if (on) el.target.textContent = [`Reps: ${camCount}`, targetBase].filter(Boolean).join(' · ');
+  }
+  // What happened on the last Finisher, for Dad's screen: the count, or why the camera stopped.
+  function camNote(why) {
+    try {
+      app.save.camera = { ...app.save.camera, last: { day: new Date().toISOString().slice(0, 10), n: camCount, why: String(why || '').slice(0, 80) } };
+      app.persist();
+    } catch {}
   }
   function camStop() {
     try { cam?.stop(); } catch {}
@@ -229,7 +242,13 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     camLost = false;
     if (camBox) camBox.hidden = true;
   }
-  function camGone() { camDead = true; camStop(); try { el.target.textContent = targetBase; } catch {} }
+  function camGone() {
+    camDead = true;
+    camStop();
+    camNote(camLib?.camStats?.why || 'stopped');
+    // Say so, or he keeps going thinking it's counting.
+    try { el.target.textContent = runner.current().finisher ? [CAM_STOPPED, targetBase].filter(Boolean).join(' · ') : targetBase; } catch {}
+  }
   function camStep(st) {
     if (!camKind || camDead) return;
     const inFin = st.finisher && (st.kind === 'intro' || st.kind === 'work');
@@ -385,6 +404,7 @@ export function render(root, app, { session, extra = false, dad = false, resume 
     log.secs = Math.round((carriedMs + runner.activeMs()) / 1000);
     // What the camera counted, for Done to start from. Nothing when it counted none.
     if (camCount > 0 && log.finisher) log.finisher.cam = camCount;
+    if (camKind && !camDead && camCtr) camNote('');
     if (test) log.test = true; // contract C6: shown on Done, never in his record
     else {
       app.save.log.push(log);

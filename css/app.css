@@ -750,3 +750,11 @@ img { max-width: 100%; }
 .mt-lock { font-size: 0.75rem; font-weight: 700; color: inherit; opacity: 0.75; margin-top: 2px; white-space: nowrap; }
 .game-tile.locked b { opacity: 0.55; }
 .lt-lock { margin-top: 6px; }
+
+/* The camera's rep count on the Finisher, big enough to read from the floor. 13 November 2026 */
+.pl-cam[data-at="work"] { grid-template-columns: auto auto; align-items: center; column-gap: 12px; }
+.pl-cam[data-at="work"] .pl-camline { grid-column: 1 / -1; }
+.pl-camn { display: grid; justify-items: center; padding: 2px 16px 6px; border-radius: 14px; border: 2px solid var(--ink); background: var(--card); color: var(--ink); line-height: 1; }
+.pl-camn[hidden] { display: none; }
+.pl-camn b { font-family: var(--display); font-weight: 900; font-size: 4.2rem; font-variant-numeric: tabular-nums; }
+.pl-camn span { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
