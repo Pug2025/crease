@@ -1331,6 +1331,32 @@ if (process.argv[2] === 'season') {
   const tile = home.handsLineHtml(hsv.hands, day(3, 13));
   ok(tile.includes('Glove or Blocker') && tile.includes('<b>405 ms</b>') && tile.includes('aria-label="3 of 3 rounds played today"') && (tile.match(/class="on"/g) || []).length === 3, 'Today: Glove or Blocker tile, best and 3 dots');
   ok(home.lightsLineHtml([], day(3)).includes('No score yet') && home.lightsLineHtml([], day(3)).includes('0 of 3 rounds played today'), 'Today: Lights tile with no score yet');
+  // The games are locked behind today's session: one free round of each a day until he trains.
+  {
+    const L = await import('./js/screens/lights.js');
+    const at = (h) => new Date(2026, 10, 18, h, 0);
+    const sv = { log: [], lights: [], hands: [] };
+    ok(!L.gameLocked(sv, 'lights', at(9)) && !L.gameLocked(sv, 'hands', at(9)), 'games lock: both open before the free round');
+    L.useFree(sv, 'lights', at(9));
+    ok(L.gameLocked(sv, 'lights', at(10)) && !L.gameLocked(sv, 'hands', at(10)), 'games lock: Lights locks once its free round has started, Glove or Blocker is still open');
+    ok(sv.lights.length === 0, 'games lock: the free round is used when it starts, not when it is saved');
+    L.useFree(sv, 'hands', at(10));
+    ok(L.gameLocked(sv, 'hands', at(10)), 'games lock: Glove or Blocker locks after its own free round');
+    ok(!L.gameLocked(sv, 'lights', new Date(2026, 10, 19, 8, 0)), 'games lock: a new day brings a new free round');
+    const extra = { ...sv, log: [{ date: at(11).toISOString(), type: 'stretch', completed: true, extra: true }] };
+    ok(L.gameLocked(extra, 'lights', at(12)), 'games lock: an extra Stretch does not open the games');
+    const early = { ...sv, log: [{ date: at(11).toISOString(), type: 'strength', completed: false }] };
+    ok(L.gameLocked(early, 'lights', at(12)), 'games lock: a session that did not count does not open the games');
+    const done = { ...sv, log: [{ date: at(11).toISOString(), type: 'strength', completed: true }] };
+    ok(!L.gameLocked(done, 'lights', at(12)) && !L.gameLocked(done, 'hands', at(12)), 'games lock: today\'s session opens both games');
+    const before = JSON.stringify(done.freePlay);
+    L.useFree(done, 'lights', at(13)); L.useFree(done, 'lights', at(13));
+    ok(JSON.stringify(done.freePlay) === before && !L.gameLocked(done, 'lights', at(13)), 'games lock: after training he can play as much as he likes');
+    ok(!L.gameLocked({ log: [] }, 'lights', at(9)), 'games lock: an older save with no freePlay loads open');
+    const t = home.lightsLineHtml([], at(9), true);
+    ok(t.includes('Train to play more') && !t.includes('mt-dots') && !home.lightsLineHtml([], at(9), false).includes('Train to play more'), 'games lock: the Today tile says "Train to play more" when locked');
+    ok(/Finish today's session/.test(L.LOCK_WORDS.locked) && /one round before you train/.test(L.LOCK_WORDS.free), 'games lock: the words say how to open them');
+  }
   ok(home.maskNewsHtml([{ id: 'm10', name: 'Spider' }]).includes('New mask: Spider!') && home.maskNewsHtml([]) === '', 'Today: "New mask: Spider!" banner');
   ok(fs.readFileSync('js/screens/settings.js', 'utf8').includes('You earn masks from streaks, sessions, Boss days, the two games and the splits. Two are secret.'), 'Settings: the Masks row');
   ok(fs.readFileSync('js/app.js', 'utf8').includes('hands: hands.render'), 'app: the hands route');

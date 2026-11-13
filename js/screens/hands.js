@@ -5,7 +5,7 @@
 // in a reshuffled order. Three wrong sides end the round with nothing saved, so mashing both pads
 // never scores. 3 counted rounds a day; more are practice. It never counts as a session.
 import { esc, on } from '../ui.js';
-import { median, lightsStats, maskLinesHtml, wearFrom, COUNTED_PER_DAY } from './lights.js';
+import { median, lightsStats, maskLinesHtml, wearFrom, COUNTED_PER_DAY, trainedToday, gameLocked, useFree, LOCK_WORDS } from './lights.js';
 import { claimMasks } from '../plan/card.js';
 import { celebrate } from '../celebrate.js';
 
@@ -141,8 +141,17 @@ export function render(root, app) {
     info.innerHTML = `
       <p>One side will light up ${TAPS} times. Tap that side as fast as you can each time.</p>
       <p>Your score is how fast you usually tap. A lower number is faster.</p>
-      <p class="lt-status">${esc(line)}</p>`;
+      <p class="lt-status">${esc(line)}</p>
+      ${trainedToday(s) ? '' : `<p class="lt-status lt-lock">${esc(LOCK_WORDS.free)}</p>`}`;
     buttons.innerHTML = '<button class="btn btn-go" data-act="go">Start</button>';
+    if (gameLocked(s, 'hands')) lockedView();
+  }
+
+  // He has used today's free round and hasn't trained yet.
+  function lockedView() {
+    board.dataset.state = 'intro';
+    info.innerHTML = `<p class="lt-line">${esc(LOCK_WORDS.locked)}</p>`;
+    buttons.innerHTML = `<button class="btn btn-primary lt-home" data-act="home">Back to Today</button>`;
   }
 
   function wait() {
@@ -160,6 +169,9 @@ export function render(root, app) {
   }
 
   function go() {
+    if (gameLocked(s, 'hands')) { lockedView(); return; }
+    useFree(s, 'hands');
+    app.persist();
     round = newRound();
     setPips();
     running = true;
@@ -202,9 +214,10 @@ export function render(root, app) {
     show();
     info.innerHTML = `
       <p class="lt-line">You tapped the wrong side three times.</p>
-      <p class="lt-status">This round doesn't count. Go again.</p>`;
+      <p class="lt-status">This round doesn't count.</p>
+      ${gameLocked(s, 'hands') ? `<p class="lt-status lt-lock">${esc(LOCK_WORDS.after)}</p>` : ''}`;
     buttons.innerHTML = `
-      <button class="btn lt-again" data-act="again">Go again</button>
+      ${gameLocked(s, 'hands') ? '' : '<button class="btn lt-again" data-act="again">Go again</button>'}
       <button class="btn btn-primary lt-home" data-act="home">Back to Today</button>`;
   }
 
@@ -224,9 +237,10 @@ export function render(root, app) {
     info.innerHTML = `
       <p class="lt-line${r.best ? ' lt-gold' : ''}">${esc(line)}</p>
       <p class="lt-status">Your fastest tap was ${r.fastest} ms${r.counted ? ` · round ${r.round} of ${COUNTED_PER_DAY} today` : ''}</p>
-      ${maskLinesHtml(masks)}`;
+      ${maskLinesHtml(masks)}
+      ${gameLocked(s, 'hands') ? `<p class="lt-status lt-lock">${esc(LOCK_WORDS.after)}</p>` : ''}`;
     buttons.innerHTML = `
-      <button class="btn lt-again" data-act="again">Go again</button>
+      ${gameLocked(s, 'hands') ? '' : '<button class="btn lt-again" data-act="again">Go again</button>'}
       <button class="btn btn-primary lt-home" data-act="home">Back to Today</button>`;
   }
 

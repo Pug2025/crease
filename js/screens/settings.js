@@ -28,7 +28,7 @@ export function render(root, app) {
           <div><dt>Finisher</dt><dd>The last hard drill of a session. Do as many as you can in 40 seconds, then enter your number when the session ends.</dd></div>
           <div><dt>Records</dt><dd>Your best on each finisher drill. A harder version starts a new record.</dd></div>
           <div><dt>Boss day</dt><dd>A Strength session with three rounds in place of two. You get one after every ten sessions.</dd></div>
-          <div><dt>Games</dt><dd>Lights and Glove or Blocker test how fast you react. Your first 3 rounds each day count.</dd></div>
+          <div><dt>Games</dt><dd>Lights and Glove or Blocker test how fast you react. You get one round of each before you train. After today's session you can play as much as you like, and your first 3 rounds each day count.</dd></div>
           <div><dt>Masks</dt><dd>You earn masks from streaks, sessions, Boss days, the two games and the splits. Two are secret.</dd></div>
         </dl>
       </section>

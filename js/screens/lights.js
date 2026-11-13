@@ -3,7 +3,7 @@
 // shows "Early." and that light goes again. 3 counted rounds a day; more are practice.
 // Every round is saved with its date. It never counts as a session.
 import { esc, on, maskImg } from '../ui.js';
-import { dayKey } from '../plan/decide.js';
+import { dayKey, doneByDay } from '../plan/decide.js';
 import { claimMasks } from '../plan/card.js';
 import { celebrate } from '../celebrate.js';
 
@@ -26,6 +26,31 @@ export function lightsStats(lights = [], now = new Date()) {
   const today = counted.filter((l) => dayKey(new Date(l.date)) === dayKey(now)).length;
   return { best, today, left: Math.max(0, COUNTED_PER_DAY - today) };
 }
+
+// The games are the reward for training. Each day he gets FREE_ROUNDS round of each game before
+// he trains. After that the game is locked until today's counted session is done, and then he can
+// play as much as he likes. A round uses the free one the moment it starts, so backing out of a
+// round near the end doesn't give him another. save.freePlay = { day, lights: n, hands: n }.
+export const FREE_ROUNDS = 1;
+export const trainedToday = (save, now = new Date()) => ((doneByDay(save.log || [])[dayKey(now)]) || []).length > 0;
+export function freeUsed(save, game, now = new Date()) {
+  const f = save.freePlay;
+  return f && f.day === dayKey(now) ? Number(f[game]) || 0 : 0;
+}
+export const gameLocked = (save, game, now = new Date()) => !trainedToday(save, now) && freeUsed(save, game, now) >= FREE_ROUNDS;
+// Call when a round starts. Does nothing once he has trained today.
+export function useFree(save, game, now = new Date()) {
+  if (trainedToday(save, now)) return;
+  const k = dayKey(now);
+  const f = save.freePlay && save.freePlay.day === k ? { ...save.freePlay } : { day: k };
+  f[game] = (Number(f[game]) || 0) + 1;
+  save.freePlay = f;
+}
+export const LOCK_WORDS = {
+  locked: 'You\'ve played today\'s free round. Finish today\'s session and you can play as much as you like.',
+  free: 'You get one round before you train. Finish today\'s session to play more.',
+  after: 'That was today\'s free round. Finish today\'s session to play more.',
+};
 
 // Adds one finished round to the save. Returns what the result screen shows.
 export function recordRound(save, taps, now = new Date()) {
@@ -116,8 +141,17 @@ export function render(root, app, { first = false } = {}) {
     info.innerHTML = `
       <p>A light will come on ${TAPS} times. Tap the screen as fast as you can each time.</p>
       <p>Your score is how fast you usually tap. A lower number is faster.</p>
-      <p class="lt-status">${esc(status)}</p>`;
+      <p class="lt-status">${esc(status)}</p>
+      ${trainedToday(s) ? '' : `<p class="lt-status lt-lock">${esc(LOCK_WORDS.free)}</p>`}`;
     buttons.innerHTML = '<button class="btn btn-go" data-act="go">Start</button>';
+    if (gameLocked(s, 'lights')) lockedView();
+  }
+
+  // He has used today's free round and hasn't trained yet.
+  function lockedView() {
+    board.dataset.state = 'intro';
+    info.innerHTML = `<p class="lt-line">${esc(LOCK_WORDS.locked)}</p>`;
+    buttons.innerHTML = `<button class="btn btn-primary lt-home" data-act="home">Back to Today</button>`;
   }
 
   function wait() {
@@ -135,6 +169,9 @@ export function render(root, app, { first = false } = {}) {
   }
 
   function go() {
+    if (gameLocked(s, 'lights')) { lockedView(); return; }
+    useFree(s, 'lights');
+    app.persist();
     taps = [];
     setPips();
     running = true;
@@ -189,9 +226,10 @@ export function render(root, app, { first = false } = {}) {
     info.innerHTML = `
       <p class="lt-line${r.best ? ' lt-gold' : ''}">${esc(line)}</p>
       <p class="lt-status">Your fastest tap was ${r.fastest} ms${r.counted ? ` · round ${r.round} of ${COUNTED_PER_DAY} today` : ''}</p>
-      ${maskLinesHtml(masks)}`;
+      ${maskLinesHtml(masks)}
+      ${gameLocked(s, 'lights') ? `<p class="lt-status lt-lock">${esc(LOCK_WORDS.after)}</p>` : ''}`;
     buttons.innerHTML = `
-      <button class="btn lt-again" data-act="again">Go again</button>
+      ${gameLocked(s, 'lights') ? '' : '<button class="btn lt-again" data-act="again">Go again</button>'}
       <button class="btn btn-primary lt-home" data-act="home">${first ? 'Go to Today' : 'Back to Today'}</button>`;
   }
 

@@ -5,7 +5,7 @@ import { SESSIONS } from '../../data/sessions.js';
 import { ROOM_HINT } from '../../data/copy.js';
 import { doneByDay, dayKey, counts } from '../plan/decide.js';
 import { splitsState, settleSplits } from '../plan/splits.js';
-import { lightsStats, COUNTED_PER_DAY } from './lights.js';
+import { lightsStats, COUNTED_PER_DAY, gameLocked } from './lights.js';
 import { streakStats } from '../plan/streak.js';
 import { cardStats, maskState, claimMasks } from '../plan/card.js';
 import { challengeTile } from '../plan/records.js';
@@ -104,18 +104,20 @@ export function splitsLineHtml(st) {
 }
 
 // A phone game's tile: its name, his best, and a dot for each counted round played today.
-export function gameTileHtml(act, label, rounds, now = new Date()) {
+export function gameTileHtml(act, label, rounds, now = new Date(), locked = false) {
   const { best, today: played } = lightsStats(rounds || [], now);
   const n = Math.min(COUNTED_PER_DAY, played);
   const dots = Array.from({ length: COUNTED_PER_DAY }, (_, k) => `<i${k < n ? ' class="on"' : ''}></i>`).join('');
-  return `<button class="mini-tile game-tile" data-act="${act}">
+  // Locked: he has played today's free round and hasn't trained yet.
+  return `<button class="mini-tile game-tile${locked ? ' locked' : ''}" data-act="${act}">
     <span class="mt-label">${esc(label)}</span>
     <b>${best === null ? 'No score yet' : `${best} ms`}</b>
-    <span class="mt-dots" role="img" aria-label="${n} of ${COUNTED_PER_DAY} rounds played today">${dots}</span></button>`;
+    ${locked ? '<span class="mt-lock">Train to play more</span>'
+      : `<span class="mt-dots" role="img" aria-label="${n} of ${COUNTED_PER_DAY} rounds played today">${dots}</span>`}</button>`;
 }
 
-export const lightsLineHtml = (lights, now) => gameTileHtml('lights', 'Lights', lights, now);
-export const handsLineHtml = (hands, now) => gameTileHtml('hands', 'Glove or Blocker', hands, now);
+export const lightsLineHtml = (lights, now, locked) => gameTileHtml('lights', 'Lights', lights, now, locked);
+export const handsLineHtml = (hands, now, locked) => gameTileHtml('hands', 'Glove or Blocker', hands, now, locked);
 
 // A mask he earned away from Done (Dad moved the splits rung, say). Opens the Card.
 export function maskNewsHtml(list = []) {
@@ -188,7 +190,7 @@ export function render(root, app) {
       <button class="btn btn-go btn-start" data-act="start">Start today's training</button>
       <p class="small center">A few quick questions, then your session.</p>`}
     ${challengeHtml(challengeTile(s))}
-    <div class="mini-tiles">${lightsLineHtml(s.lights, now)}${handsLineHtml(s.hands, now)}${splitsLineHtml(splits)}</div>
+    <div class="mini-tiles">${lightsLineHtml(s.lights, now, gameLocked(s, 'lights', now))}${handsLineHtml(s.hands, now, gameLocked(s, 'hands', now))}${splitsLineHtml(splits)}</div>
     ${weekStripHtml(weekStats(s.log, s.days, now, st.savedDays))}
     <footer class="home-foot">
       <span>${last ? `Last: <b>${esc(last)}</b>` : 'No sessions yet'}</span>

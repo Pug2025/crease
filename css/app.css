@@ -745,3 +745,8 @@ img { max-width: 100%; }
 .chal-step .rec-n { font-size: 2.6rem; }
 .chal-what { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; font-weight: 700; }
 .chal-his { color: var(--ink2); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Games locked until today's session, 13 November 2026 */
+.mt-lock { font-size: 0.75rem; font-weight: 700; color: inherit; opacity: 0.75; margin-top: 2px; white-space: nowrap; }
+.game-tile.locked b { opacity: 0.55; }
+.lt-lock { margin-top: 6px; }
